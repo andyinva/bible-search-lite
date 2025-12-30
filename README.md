@@ -51,7 +51,6 @@ Bible Search Lite uses a **modular architecture** with clear separation of conce
 Main Application (bible_search_lite.py)
 ├── UI Layer (PyQt6 widgets)
 ├── Search Layer (SearchController)
-├── Service Layer (UserDataService)
 ├── Modular Features
 │   ├── SubjectManager (Windows 4 & 5 coordinator)
 │   ├── SubjectVerseManager (Window 4 logic)
@@ -430,8 +429,6 @@ bible_search_ui/
 ├── controllers/
 │   ├── __init__.py
 │   └── search_controller.py       # Search logic
-├── services/
-│   └── user_data_service.py       # Database service (deprecated)
 └── ui/
     ├── __init__.py
     ├── dialogs.py                 # Translation/Filter/Font dialogs
@@ -442,8 +439,7 @@ bible_search_ui/
 ```
 database/
 ├── bibles.db                      # Bible text (all translations) - 453MB
-├── subjects.db                    # User's subject collections (modular Windows 4 & 5)
-└── user_data.db                   # Legacy database (groups/subjects - for old code paths)
+└── subjects.db                    # User's subject collections (Windows 4 & 5)
 ```
 
 ### Configuration
