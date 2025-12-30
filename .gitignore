@@ -41,6 +41,7 @@ bible_search_lite_config.json
 
 # Large database files
 database/bibles.db
+database/user_data.db
 
 # IDE and editor files
 .vscode/
