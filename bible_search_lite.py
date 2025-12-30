@@ -856,15 +856,6 @@ class BibleSearchProgram(QMainWindow):
 
         word_counts = {}
 
-        # Parse search term to extract individual search patterns
-        search_patterns = self.parse_search_patterns(self.last_search_term)
-
-        if not search_patterns:
-            print("⚠️  No search patterns to extract")
-            return word_counts
-
-        print(f"🔍 Search patterns for filter: {search_patterns}")
-
         # Get ALL search results from search controller's cached results
         # The search_controller stores all results in all_search_results
         # This is MUCH more efficient than re-querying the database
@@ -902,13 +893,10 @@ class BibleSearchProgram(QMainWindow):
             words = re.findall(r'\b[a-zA-Z]+\b', text_cleaned)
 
             for word in words:
-                # Check if word matches ANY of the search patterns
-                for pattern in search_patterns:
-                    if re.match(pattern, word, re.IGNORECASE):
-                        # Normalize to title case for display
-                        word_normalized = word.capitalize()
-                        word_counts[word_normalized] = word_counts.get(word_normalized, 0) + 1
-                        break  # Only count each word once per verse
+                # Add ALL words from the verse, not just those matching the search pattern
+                # Normalize to title case for display
+                word_normalized = word.capitalize()
+                word_counts[word_normalized] = word_counts.get(word_normalized, 0) + 1
 
         # Print summary of matched words
         print(f"📊 Found {len(word_counts)} unique word(s) from {len(all_results)} verses:")
