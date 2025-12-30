@@ -1,0 +1,75 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Development utilities (not for end users)
+AUtilities/
+Utilities/
+
+# Integration/installation packages (development only)
+AINTEGRATION_PACKAGE/
+INTEGRATION_PACKAGE/
+
+# Unknown/testing data
+Amnt/
+mnt/
+
+# Documentation source files (consolidated into README.md)
+Documentation/
+
+# Development/migration documentation files
+CLEANUP_SUMMARY.txt
+DATABASE_MIGRATION.txt
+FINAL_DATABASE_SETUP.txt
+
+# Empty downloads directory
+downloads/
+
+# User-specific files
+*.db-journal
+*.db-wal
+*.db-shm
+bible_search_lite_config.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.Zone.Identifier
+
+# Backup files
+*.bak
+*.backup
+*_backup/
+*_backup.db
+backup_*/
+cleanup_backup_*/
+
+# Database utility scripts (development only)
+database/clear_data.py
+database/compress_db.py
+database/compress_test.py
+
+# Test directories
+bible-search-lite-test*/
+*-test/
+*-test0/
+*-test1/
+*-test2/
+
+# Log files
+*.log
