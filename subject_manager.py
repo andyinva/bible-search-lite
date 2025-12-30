@@ -47,8 +47,18 @@ class SubjectManager:
         self.comments_section = None  # SectionWidget for Window 5
 
     def initialize_database(self):
-        """Initialize database connection."""
+        """Initialize database connection and create if needed."""
         try:
+            # Create database directory if it doesn't exist
+            db_dir = os.path.dirname(self.db_path)
+            if not os.path.exists(db_dir):
+                os.makedirs(db_dir)
+
+            # Create database if it doesn't exist
+            if not os.path.exists(self.db_path):
+                print(f"Creating new subjects database: {self.db_path}")
+                self._create_database()
+
             self.db_conn = sqlite3.connect(self.db_path)
             self.db_conn.row_factory = sqlite3.Row
             print(f"✓ Subject manager connected to: {self.db_path}")
@@ -56,6 +66,58 @@ class SubjectManager:
         except Exception as e:
             print(f"⚠️  Subject manager database error: {e}")
             return False
+
+    def _create_database(self):
+        """Create subjects database with required schema."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Subjects table
+        cursor.execute("""
+            CREATE TABLE subjects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Subject verses table
+        cursor.execute("""
+            CREATE TABLE subject_verses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_id INTEGER NOT NULL,
+                verse_reference TEXT NOT NULL,
+                verse_text TEXT NOT NULL,
+                translation TEXT NOT NULL,
+                comments TEXT DEFAULT '',
+                order_index INTEGER DEFAULT 0,
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (subject_id) REFERENCES subjects (id) ON DELETE CASCADE,
+                UNIQUE(subject_id, verse_reference, translation)
+            )
+        """)
+
+        # Create indexes
+        cursor.execute("""
+            CREATE INDEX idx_subject_verses_subject_id
+            ON subject_verses(subject_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX idx_subject_verses_order
+            ON subject_verses(subject_id, order_index)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX idx_subjects_name
+            ON subjects(name)
+        """)
+
+        conn.commit()
+        conn.close()
+        print(f"✓ Created subjects database: {self.db_path}")
 
     def create_ui(self, main_splitter):
         """

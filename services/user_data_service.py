@@ -27,24 +27,85 @@ class UserDataService:
         self._ensure_database_exists()
     
     def _ensure_database_exists(self):
-        """Check if database file exists, raise error if not."""
+        """Create database and tables if they don't exist."""
         if not os.path.exists(self.database_path):
-            raise FileNotFoundError(
-                f"Database file not found: {self.database_path}\n"
-                f"Please ensure user_data.db exists in the project directory."
-            )
+            print(f"Creating new database: {self.database_path}")
+            self._create_database()
     
     def _get_connection(self) -> sqlite3.Connection:
         """
         Get a database connection.
-        
+
         Returns:
             SQLite connection object
         """
         conn = sqlite3.connect(self.database_path)
         conn.row_factory = sqlite3.Row  # Enable column access by name
         return conn
-    
+
+    def _create_database(self):
+        """Create database with required schema."""
+        conn = sqlite3.connect(self.database_path)
+        cursor = conn.cursor()
+
+        # Enable foreign keys
+        cursor.execute("PRAGMA foreign_keys = ON")
+
+        # Groups table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS groups (
+                group_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                created_date TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0
+            )
+        """)
+
+        # Subjects table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS subjects (
+                subject_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                subject_name TEXT NOT NULL,
+                description TEXT,
+                created_date TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE,
+                UNIQUE(group_id, subject_name)
+            )
+        """)
+
+        # Subject verses
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS subject_verses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_id INTEGER NOT NULL,
+                verse_reference TEXT NOT NULL,
+                translation TEXT NOT NULL,
+                verse_text TEXT NOT NULL,
+                created_timestamp TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
+            )
+        """)
+
+        # Verse comments
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS verse_comments (
+                comment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_verse_id INTEGER NOT NULL,
+                comment_text TEXT,
+                created_date TEXT NOT NULL,
+                modified_date TEXT,
+                FOREIGN KEY (subject_verse_id) REFERENCES subject_verses(id) ON DELETE CASCADE
+            )
+        """)
+
+        conn.commit()
+        conn.close()
+        print(f"✓ Created database: {self.database_path}")
+
     # ========================================================================
     # GROUP OPERATIONS
     # ========================================================================
