@@ -39,6 +39,9 @@ downloads/
 *.db-shm
 bible_search_lite_config.json
 
+# Large database files
+database/bibles.db
+
 # IDE and editor files
 .vscode/
 .idea/
