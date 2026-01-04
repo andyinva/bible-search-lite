@@ -39,8 +39,25 @@ BOOK_GROUPS = {
     "Pentateuch": [
         "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy"
     ],
+    "Wisdom Books": [
+        "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon"
+    ],
+    "Major Prophets": [
+        "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel"
+    ],
+    "Minor Prophets": [
+        "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah",
+        "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi"
+    ],
     "Gospels": [
-        "Matthew", "Mark", "Luke", "John"
+        "Matthew", "Mark", "Luke", "John", "Acts"
+    ],
+    "Epistles": [
+        "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians",
+        "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians",
+        "1 Timothy", "2 Timothy", "Titus", "Philemon",
+        "Hebrews", "James", "1 Peter", "2 Peter",
+        "1 John", "2 John", "3 John", "Jude"
     ]
 }
 
@@ -189,15 +206,34 @@ class BibleSearchProgram(QMainWindow):
         self.message_label = QLabel("Ready to search the Bible...")
         self.message_label.setStyleSheet("background-color: white; padding: 10px;")
 
-        # Wrap message label in a beveled frame
+        # Wrap message label and load more button in a beveled frame
         message_frame = QFrame()
         message_frame.setFrameShape(QFrame.Shape.Panel)
         message_frame.setFrameShadow(QFrame.Shadow.Sunken)
         message_frame.setLineWidth(3)
         message_frame.setMidLineWidth(2)
-        message_layout = QVBoxLayout(message_frame)
+        message_layout = QHBoxLayout(message_frame)
         message_layout.setContentsMargins(0, 0, 0, 0)
+        message_layout.setSpacing(5)
         message_layout.addWidget(self.message_label)
+
+        # Load More button (hidden by default, shown when there are more results)
+        self.load_more_btn = QPushButton("Load Next 300")
+        self.load_more_btn.setVisible(False)
+        self.load_more_btn.clicked.connect(self.load_more_results_batch)
+        self.load_more_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        message_layout.addWidget(self.load_more_btn)
 
         # Create context-sensitive buttons
         self.tips_btn = self.create_title_button("Help")
@@ -391,7 +427,17 @@ class BibleSearchProgram(QMainWindow):
 
         self.books_combo = QComboBox()
         self.books_combo.setStyleSheet(self.get_combobox_style())
-        self.books_combo.addItems(["All Books", "Old Testament", "New Testament", "Pentateuch", "Gospels"])
+        self.books_combo.addItems([
+            "All Books",
+            "Old Testament",
+            "New Testament",
+            "Pentateuch",
+            "Wisdom Books",
+            "Major Prophets",
+            "Minor Prophets",
+            "Gospels",
+            "Epistles"
+        ])
 
         # NEW: Filter button (store as instance variable for highlighting)
         self.filter_button = QPushButton("Filter")
@@ -664,15 +710,18 @@ class BibleSearchProgram(QMainWindow):
                 print(f"🔗 Updated cross-references for clicked verse: {verse_reference}")
 
     def clear_search_and_reading(self):
-        """Clear both search results and reading window"""
+        """Clear search results, reading window, and references dropdown"""
         self.verse_lists['search'].clear_verses()
         self.verse_lists['reading'].clear_verses()
-        self.message_label.setText("Search results and reading window cleared")
 
+        # Clear the cross-references dropdown
+        self.cross_references_combo.clear()
+        self.cross_references_combo.addItem("References (0)")
+        self.cross_references_combo.setEnabled(False)
+        self.cross_references_combo.setStyleSheet(self.get_combobox_style())
 
-        # Auto-refresh Window 4 if a subject is selected
-        if self.current_subject_id is not None:
-            self.load_subject_verses()
+        self.message_label.setText("Search results, reading window, and references cleared")
+
     def show_translation_selector(self):
         """Show dialog to select which translations to search"""
         dialog = TranslationSelectorDialog(
@@ -843,6 +892,71 @@ class BibleSearchProgram(QMainWindow):
             else:
                 self.message_label.setText("All words unchecked - filter cleared")
 
+    def _extract_phrase_patterns(self, all_results, query):
+        """Extract phrase patterns for word placeholder queries.
+
+        For example, query "who & sent" would extract:
+        - "who had sent": 5
+        - "who hath sent": 3
+        - "who was sent": 2
+        etc.
+
+        Returns:
+            dict: Mapping of complete phrase -> count
+        """
+        import re
+
+        phrase_counts = {}
+
+        # Build regex pattern from query with & placeholders
+        regex_parts = []
+        parts = query.split()
+
+        for part in parts:
+            if part == '&':
+                # & matches any single word - capture it
+                regex_parts.append(r'(\w+)')
+            else:
+                # Regular word - convert wildcards to regex and capture
+                # Both * and % are stem/root wildcards
+                word_pattern = part.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
+                regex_parts.append(f'({word_pattern})')
+
+        # Join with \s+ (one or more whitespace)
+        regex_pattern = r'\b' + r'\s+'.join(regex_parts) + r'\b'
+
+        print(f"📊 Extracting phrase patterns with regex: {regex_pattern}")
+
+        # Extract matching phrases from all results
+        for result in all_results:
+            # Get text from result
+            if isinstance(result, dict):
+                text = result.get('Text', '')
+            elif hasattr(result, 'text'):
+                text = result.text
+            else:
+                text = str(result)
+
+            # Remove highlight brackets
+            text_cleaned = text.replace('[', '').replace(']', '')
+
+            # Find all matches in this verse
+            for match in re.finditer(regex_pattern, text_cleaned, flags=re.IGNORECASE):
+                # Build the complete matched phrase
+                matched_words = match.groups()
+                # Capitalize each word for consistent display
+                phrase = ' '.join(word.capitalize() for word in matched_words)
+                phrase_counts[phrase] = phrase_counts.get(phrase, 0) + 1
+
+        # Print summary
+        print(f"📊 Found {len(phrase_counts)} unique phrase pattern(s) from {len(all_results)} verses:")
+        for phrase, count in sorted(phrase_counts.items(), key=lambda x: (-x[1], x[0]))[:20]:
+            print(f"   {phrase}: {count}")
+        if len(phrase_counts) > 20:
+            print(f"   ... and {len(phrase_counts) - 20} more")
+
+        return phrase_counts
+
     def extract_word_counts(self):
         """
         Extract unique words and their counts from ALL search results.
@@ -876,6 +990,47 @@ class BibleSearchProgram(QMainWindow):
 
         print(f"📊 Extracting from {len(all_results)} total search results (not just displayed {len(self.verse_lists['search'].verse_items)})")
 
+        # Check if query contains & (word placeholder)
+        query = self.current_search_query if hasattr(self, 'current_search_query') else ""
+        contains_word_placeholder = '&' in query and ' & ' in query
+
+        if contains_word_placeholder:
+            # Extract phrase patterns for word placeholder queries
+            # For "who & sent", extract patterns like "who had sent", "who hath sent", etc.
+            print(f"🔍 Query contains word placeholder: '{query}'")
+            return self._extract_phrase_patterns(all_results, query)
+
+        # Original logic for non-placeholder queries
+        # Get search patterns from current search query
+        search_patterns = []
+        if hasattr(self, 'current_search_query') and self.current_search_query:
+            # Parse the search query to get individual search terms
+            search_term = self.current_search_query
+
+            # Split on AND/OR (case insensitive)
+            terms = re.split(r'\s+(?:AND|OR)\s+', search_term, flags=re.IGNORECASE)
+
+            # If no AND/OR was found, split on spaces (each word is a separate term)
+            # For example: "who sen*" → ["who", "sen*"]
+            if len(terms) == 1 and ' ' in terms[0]:
+                # Split on spaces, but keep quoted phrases together
+                # For now, simple split on spaces
+                terms = terms[0].split()
+
+            for term in terms:
+                term = term.strip().strip('"\'')
+                if not term:
+                    continue
+
+                # Convert wildcard * to regex pattern
+                # For example: "sen*" becomes "^sen.*$"
+                pattern = re.escape(term.lower())
+                pattern = pattern.replace(r'\*', '.*')
+                pattern = r'^' + pattern + r'$'
+                search_patterns.append(re.compile(pattern))
+
+            print(f"🔍 Search patterns for filtering: {[p.pattern for p in search_patterns]}")
+
         # Extract words from all results
         for result in all_results:
             # Extract words from verse text
@@ -893,10 +1048,23 @@ class BibleSearchProgram(QMainWindow):
             words = re.findall(r'\b[a-zA-Z]+\b', text_cleaned)
 
             for word in words:
-                # Add ALL words from the verse, not just those matching the search pattern
-                # Normalize to title case for display
-                word_normalized = word.capitalize()
-                word_counts[word_normalized] = word_counts.get(word_normalized, 0) + 1
+                # Only include words that match one of the search patterns
+                word_lower = word.lower()
+                matches_pattern = False
+
+                if search_patterns:
+                    for pattern in search_patterns:
+                        if pattern.match(word_lower):
+                            matches_pattern = True
+                            break
+                else:
+                    # If no search patterns, include all words (fallback)
+                    matches_pattern = True
+
+                if matches_pattern:
+                    # Normalize to title case for display
+                    word_normalized = word.capitalize()
+                    word_counts[word_normalized] = word_counts.get(word_normalized, 0) + 1
 
         # Print summary of matched words
         print(f"📊 Found {len(word_counts)} unique word(s) from {len(all_results)} verses:")
@@ -1068,32 +1236,8 @@ class BibleSearchProgram(QMainWindow):
 
         print(f"📝 Search term: '{search_term}'")
 
-        # Add search term to history (no duplicates, keep at least 30 items, max 50)
-        if search_term:
-            # Remove from search_history if it already exists (to avoid duplicates)
-            if search_term in self.search_history:
-                self.search_history.remove(search_term)
-
-            # Add to the beginning of search_history list
-            self.search_history.insert(0, search_term)
-
-            # Limit search history to 50 items maximum
-            if len(self.search_history) > 50:
-                self.search_history = self.search_history[:50]
-
-            # Update the combo box to match search_history
-            self.search_input.clear()
-            self.search_input.addItems(self.search_history)
-            self.search_input.setCurrentIndex(0)
-
-            # Save config with updated search history
-            try:
-                print(f"💾 Saving config...")
-                self.save_config()
-                print(f"✅ Config saved")
-            except Exception as e:
-                print(f"⚠️  Error saving config: {e}")
-                # Don't let config save errors block the search
+        # Note: Search history is now added in on_search_results_ready(),
+        # and only if the search returns results
 
         # Get selected book filter
         selected_book_group = self.books_combo.currentText()
@@ -1201,28 +1345,59 @@ class BibleSearchProgram(QMainWindow):
         # gets cleared after use, but we need to know if it WAS used for the message
         self.filter_was_applied = False
 
-        # If filter is active, we need to process ALL results, not just the first 100
+        # Get ALL results from controller and format them
+        all_raw_results = self.search_controller.all_search_results
+
+        # Only add to search history if there are results
+        # This prevents failed/empty searches from cluttering the history
+        search_term = self.current_search_query
+        if search_term and len(all_raw_results) > 0:
+            # Remove from search_history if it already exists (to avoid duplicates)
+            if search_term in self.search_history:
+                self.search_history.remove(search_term)
+
+            # Add to the beginning of search_history list
+            self.search_history.insert(0, search_term)
+
+            # Limit search history to 50 items maximum
+            if len(self.search_history) > 50:
+                self.search_history = self.search_history[:50]
+
+            # Update the combo box to match search_history
+            self.search_input.clear()
+            self.search_input.addItems(self.search_history)
+            self.search_input.setCurrentIndex(0)
+
+            # Save config with updated search history
+            try:
+                print(f"💾 Saving search to history (found {len(all_raw_results)} results)...")
+                self.save_config()
+                print(f"✅ Search history saved")
+            except Exception as e:
+                print(f"⚠️  Error saving config: {e}")
+                # Don't let config save errors block the search display
+        else:
+            if search_term and len(all_raw_results) == 0:
+                print(f"⚠️  Not saving '{search_term}' to history (no results found)")
+
+        print(f"📝 Formatting ALL {len(all_raw_results)} results...")
+        all_formatted_verses = []
+        for i, result in enumerate(all_raw_results):
+            verse_id = f"search_{i}"
+            # Format the result (using same logic as search_controller)
+            formatted = self.search_controller._format_search_result(result, verse_id)
+            if formatted:
+                all_formatted_verses.append(formatted)
+
+        print(f"✅ Formatted {len(all_formatted_verses)} verses")
+
+        # If filter is active, apply it to ALL results
         if self.filtered_words is not None:
             self.filter_was_applied = True  # Mark that filter is being applied
-            print(f"🔍 Filter active! Processing ALL {len(self.search_controller.all_search_results)} results...")
+            print(f"🔍 Filter active! Applying to {len(all_formatted_verses)} results...")
             print(f"🔍 Word filter: {self.filtered_words}")
 
-            # Get ALL raw results from controller
-            all_raw_results = self.search_controller.all_search_results
-
-            # Format ALL results
-            print(f"📝 Formatting {len(all_raw_results)} results...")
-            all_formatted_verses = []
-            for i, result in enumerate(all_raw_results):
-                verse_id = f"search_{i}"
-                # Format the result (using same logic as search_controller)
-                formatted = self.search_controller._format_search_result(result, verse_id)
-                if formatted:
-                    all_formatted_verses.append(formatted)
-
-            print(f"✅ Formatted {len(all_formatted_verses)} verses")
-
-            # Now apply filter to ALL formatted verses
+            # Apply filter to ALL formatted verses
             original_count = len(all_formatted_verses)
             try:
                 verses = self.apply_word_filter(all_formatted_verses)
@@ -1238,13 +1413,22 @@ class BibleSearchProgram(QMainWindow):
             if len(verses) == 0 and original_count > 0:
                 self.message_label.setText(f"Filter active: 0 results from {original_count} verses. No verses contain the selected {len(self.filtered_words)} word(s).")
         else:
-            print(f"🔍 No word filter active - using first {len(verses)} results")
+            # No filter - use all formatted verses
+            verses = all_formatted_verses
+            print(f"🔍 No word filter active - loading ALL {len(verses)} results")
 
         # Clear previous results
         self.verse_lists['search'].clear_verses()
 
-        # Add verses to search window
-        for verse in verses:
+        # Smart loading: For large result sets, load in batches to prevent freezing
+        # Initial load: 300 verses (fast and responsive)
+        # User can scroll to load more, or refine search for better results
+        max_initial_load = 300
+        verses_to_load = verses[:max_initial_load]
+        remaining_verses = verses[max_initial_load:] if len(verses) > max_initial_load else []
+
+        # Add initial batch to search window
+        for verse in verses_to_load:
             self.verse_lists['search'].add_verse(
                 verse.verse_id,
                 verse.translation,
@@ -1253,6 +1437,10 @@ class BibleSearchProgram(QMainWindow):
                 verse.verse,
                 verse.text
             )
+
+        # Store remaining verses for lazy loading
+        self.remaining_search_results = remaining_verses
+        self.all_formatted_verses = verses  # Store all for reference
 
         # Force Qt to process events to ensure widgets are fully rendered
         from PyQt6.QtWidgets import QApplication
@@ -1263,27 +1451,19 @@ class BibleSearchProgram(QMainWindow):
         print(f"✓ Applied font settings to search results (verse_font_size={self.verse_font_size}, size={self.verse_font_sizes[self.verse_font_size]}pt)")
 
         # QListWidget handles rendering automatically, no refresh needed
-        print(f"🔄 Loaded {len(verses)} verses into search window")
+        print(f"🔄 Loaded {len(verses_to_load)} verses into search window")
+        if remaining_verses:
+            print(f"⏳ {len(remaining_verses)} more results available (scroll to load more)")
 
         # Note: Message will be set by on_search_status() which is called after this method
         # We don't set it here because it would be immediately overwritten
 
-        # TEMPORARILY DISABLED: Lazy loading scroll connection
-        # This was causing scrolling lag - needs optimization
-        # if metadata.get('has_more', False):
-        #     scroll_bar = self.verse_lists['search'].list_widget.verticalScrollBar()
-        #     # Disconnect any existing connection first
-        #     try:
-        #         scroll_bar.valueChanged.disconnect()
-        #     except:
-        #         pass
-        #     # Connect to lazy loading
-        #     scroll_bar.valueChanged.connect(
-        #         lambda value: self.search_controller.load_more_results(
-        #             value, scroll_bar.maximum()
-        #         )
-        #     )
-        print("⚠️  Lazy loading temporarily disabled for testing")
+        # Don't use scroll-based loading - it slows down scrolling
+        # Instead, show a "Load More" prompt in the message
+        if remaining_verses:
+            print(f"⏳ {len(remaining_verses)} more results available - use message bar to load more")
+        else:
+            print("✅ All results loaded - scroll bar enabled")
 
         # Automatically activate Window 2 (Search Results) after search completes
         # This allows user to immediately use Ctrl+A or Copy without clicking
@@ -1297,6 +1477,139 @@ class BibleSearchProgram(QMainWindow):
             print(f"🔄 Clearing filter after use (was: {self.filtered_words})")
             self.filtered_words = None
         self.update_filter_button_state()
+
+    def on_scroll_load_more(self, value):
+        """Load more results when user scrolls near the bottom"""
+        # Only load if there are remaining results
+        if not hasattr(self, 'remaining_search_results') or not self.remaining_search_results:
+            return
+
+        # Check if scrolled near bottom (within 10% of max)
+        scroll_bar = self.verse_lists['search'].list_widget.verticalScrollBar()
+        if value < scroll_bar.maximum() * 0.9:
+            return  # Not near bottom yet
+
+        # Load next batch (200 at a time when scrolling)
+        batch_size = 200
+        next_batch = self.remaining_search_results[:batch_size]
+        self.remaining_search_results = self.remaining_search_results[batch_size:]
+
+        print(f"📥 Loading {len(next_batch)} more results on scroll...")
+
+        # Add to window
+        for verse in next_batch:
+            self.verse_lists['search'].add_verse(
+                verse.verse_id,
+                verse.translation,
+                verse.book_abbrev,
+                verse.chapter,
+                verse.verse,
+                verse.text
+            )
+
+        # Apply font settings
+        self.apply_font_settings()
+
+        # Update message
+        self.on_search_status("More results loaded")
+
+        # If no more remaining, disconnect scroll handler
+        if not self.remaining_search_results:
+            print("✅ All results now loaded")
+            scroll_bar.valueChanged.disconnect(self.on_scroll_load_more)
+
+    def load_more_results_batch(self):
+        """Load the next 300 results when Load More button is clicked"""
+        if not hasattr(self, 'remaining_search_results') or not self.remaining_search_results:
+            print("⚠️  No more results to load")
+            self.load_more_btn.setVisible(False)
+            return
+
+        print(f"📥 Loading next batch of results...")
+
+        # Load next 300 (or whatever's left)
+        batch_size = 300
+        next_batch = self.remaining_search_results[:batch_size]
+        self.remaining_search_results = self.remaining_search_results[batch_size:]
+
+        # Get current displayed count
+        current_displayed = len(self.verse_lists['search'].verse_items)
+
+        # Add to search window
+        for verse in next_batch:
+            self.verse_lists['search'].add_verse(
+                verse.verse_id,
+                verse.translation,
+                verse.book_abbrev,
+                verse.chapter,
+                verse.verse,
+                verse.text
+            )
+
+        # Apply font settings
+        self.apply_font_settings()
+
+        # Update displayed count
+        new_displayed = len(self.verse_lists['search'].verse_items)
+        total_results = len(self.all_formatted_verses) if hasattr(self, 'all_formatted_verses') else new_displayed
+
+        # Update message
+        if self.remaining_search_results:
+            # More results still available
+            remaining = len(self.remaining_search_results)
+            self.message_label.setText(f"Displaying {new_displayed} of {total_results} results | {remaining} more available")
+            self.load_more_btn.setVisible(True)
+            print(f"✅ Loaded {len(next_batch)} more results. {remaining} remaining.")
+        else:
+            # All results now loaded
+            self.message_label.setText(f"All {total_results} results loaded")
+            self.load_more_btn.setVisible(False)
+            print(f"✅ All {total_results} results now loaded")
+
+    def load_next_results(self):
+        """Load the next batch of search results when Next button is clicked"""
+        print("🔵 Next button clicked - loading more results")
+
+        # Get current displayed count
+        current_count = len(self.verse_lists['search'].verse_items)
+        total_count = len(self.search_controller.all_search_results)
+
+        # Calculate how many more to load (100 at a time)
+        batch_size = 100
+        remaining = total_count - current_count
+        to_load = min(batch_size, remaining)
+
+        if to_load <= 0:
+            print("⚠️  No more results to load")
+            self.next_results_btn.setVisible(False)
+            return
+
+        # Get next batch
+        next_batch = self.search_controller.all_search_results[current_count:current_count + to_load]
+
+        print(f"📥 Loading results {current_count + 1} to {current_count + to_load} of {total_count}")
+
+        # Format and add to search window
+        for i, result in enumerate(next_batch):
+            verse_id = f"search_{current_count + i}"
+            formatted = self.search_controller._format_search_result(result, verse_id)
+            if formatted:
+                self.verse_lists['search'].add_verse(
+                    formatted.verse_id,
+                    formatted.translation,
+                    formatted.book_abbrev,
+                    formatted.chapter,
+                    formatted.verse,
+                    formatted.text
+                )
+
+        # Apply saved font settings to newly added verses
+        self.apply_font_settings()
+
+        # Update message with new displayed count
+        self.on_search_status("Results loaded")
+
+        print(f"✅ Loaded {to_load} more results. Now displaying {current_count + to_load} of {total_count}")
 
     def on_search_more_results_ready(self, verses, metadata):
         """Handle additional search results from lazy loading"""
@@ -1315,6 +1628,9 @@ class BibleSearchProgram(QMainWindow):
 
         # Apply saved font settings to newly added verses
         self.apply_font_settings()
+
+        # Update message with new displayed count
+        self.on_search_status("More results loaded")
 
     def on_search_failed(self, error_message):
         """Handle search failure"""
@@ -1377,18 +1693,33 @@ class BibleSearchProgram(QMainWindow):
         print(f"📊 Status message: total={total_results}, unique={unique_count}, displayed={displayed_count}")
 
         # Build comprehensive message
-        # Format: Search: "query" | Total: 1900 | Unique: 434 | Filtered: 47 | Time: 0.45s
+        # Format: Search: "query" | Total: 5809 | Displayed: 300 | Time: 2.45s (scroll for more)
         filter_was_used = hasattr(self, 'filter_was_applied') and self.filter_was_applied
 
         # Start with search query
-        custom_message = f'Search: "{search_query}" | Total: {total_results} | Unique: {unique_count}'
+        custom_message = f'Search: "{search_query}" | Total: {total_results}'
 
-        # Add filtered count if filter was applied
-        if filter_was_used and displayed_count < total_results:
-            custom_message += f' | Filtered: {displayed_count}'
+        # Only show Unique count if it's different from Total (i.e., unique filtering was applied)
+        if unique_count != total_results:
+            custom_message += f' | Unique: {unique_count}'
+
+        # Show displayed count if not all results are loaded
+        if displayed_count < total_results:
+            if filter_was_used:
+                custom_message += f' | Filtered: {displayed_count}'
+            else:
+                custom_message += f' | Displayed: {displayed_count}'
 
         # Add search time
         custom_message += f' | Time: {search_time:.2f}s'
+
+        # Show/hide Load More button based on whether there are remaining results
+        if hasattr(self, 'remaining_search_results') and self.remaining_search_results:
+            remaining = len(self.remaining_search_results)
+            custom_message += f' | {remaining} more available'
+            self.load_more_btn.setVisible(True)
+        else:
+            self.load_more_btn.setVisible(False)
 
         print(f"📝 Custom message: {custom_message}")
         self.message_label.setText(custom_message)
@@ -1705,12 +2036,54 @@ class BibleSearchProgram(QMainWindow):
             <li><b>righ*ness</b> → righteousness, richness</li>
         </ul>
 
+        <h4>Percent Sign (%) - Stem/Root Wildcard</h4>
+        <p>Same as asterisk (*), matches word stems and variations. Useful for finding all forms of a word.</p>
+        <ul>
+            <li><b>believ%</b> → believe, believed, believer, believing, believeth</li>
+            <li><b>lov%</b> → love, loved, loves, lover, loving, loveth</li>
+            <li><b>pray%</b> → pray, prayed, prayer, prayers, praying</li>
+        </ul>
+        <p><i>Note: * and % work identically - use whichever you prefer</i></p>
+
         <h4>Question Mark (?) - Single Character</h4>
         <p>Matches exactly one character.</p>
         <ul>
             <li><b>l?ve</b> → love, live (not leave or believe)</li>
             <li><b>m?n</b> → man, men, min, mon</li>
         </ul>
+
+        <h3>Special Operators</h3>
+
+        <h4>Ampersand (&) - Word Placeholder</h4>
+        <p>Matches any single word. Use for patterns where you want exactly one word between search terms.</p>
+        <ul>
+            <li><b>who & sent</b> → "who had sent", "who hath sent", "who will send"</li>
+            <li><b>I & you</b> → "I tell you", "I command you", "I say you"</li>
+            <li><b>who & & sent</b> → "who will then send" (two words between)</li>
+            <li><b>love & & God</b> → "love dwelleth in God", "love is of God"</li>
+        </ul>
+        <p><i>Tip: Combine with wildcards: <b>who & sen*</b> → "who had sent", "who will send"</i></p>
+
+        <h4>Greater Than (>) - Ordered Words</h4>
+        <p>Ensures words appear in the specified order (but not necessarily consecutive).</p>
+        <ul>
+            <li><b>love > neighbour</b> → "love thy neighbour" (love before neighbour)</li>
+            <li><b>faith > works</b> → verses where "faith" comes before "works"</li>
+            <li><b>God > love > man</b> → three words in sequence</li>
+            <li><b>lov% > God</b> → "love the Lord thy God" (with wildcard)</li>
+        </ul>
+        <p><i>Note: Order matters! "love > God" gives different results than "God > love"</i></p>
+
+        <h4>Tilde (~N) - Proximity Operator</h4>
+        <p>Finds words within N words or less of each other. The number specifies the maximum word distance (range: 0 to N).</p>
+        <ul>
+            <li><b>love ~0 God</b> → "love God" (adjacent words only)</li>
+            <li><b>love ~2 God</b> → "love of God", "love the God" (0-2 words between)</li>
+            <li><b>love ~4 God</b> → "love the Lord thy God" (0-4 words between)</li>
+            <li><b>faith ~5 works</b> → "faith" and "works" within 5 words</li>
+            <li><b>believ% ~3 Jesus</b> → any "believe" form within 3 words of "Jesus"</li>
+        </ul>
+        <p><i>Tip: Smaller numbers give more precise matches. ~0 means adjacent, ~10 allows wide spacing.</i></p>
 
         <h3>Boolean Operators</h3>
 
@@ -1736,13 +2109,75 @@ class BibleSearchProgram(QMainWindow):
             <li><b>"love the Lord"</b> → exact phrase in this order</li>
             <li><b>"I am"</b> → exact two-word phrase</li>
         </ul>
+        <p><i><b>Important:</b> Do NOT use quotation marks with special operators (&, >, ~N). These operators need to process individual words and patterns, which quotation marks prevent. Only use quotes for exact phrase matching.</i></p>
+        <p style="color: #cc0000;"><b>Incorrect:</b> "who & sent", "love > God", "love ~4 God"</p>
+        <p style="color: #00aa00;"><b>Correct:</b> who & sent, love > God, love ~4 God</p>
 
         <h3>Combining Operators</h3>
+        <p>Mix different operators for powerful searches:</p>
         <ul>
             <li><b>"faith without" AND works</b> → exact phrase plus word</li>
             <li><b>love* AND neighbor</b> → any form of "love" with "neighbor"</li>
             <li><b>"Holy Spirit" OR "Spirit of God"</b> → either phrase</li>
+            <li><b>believ% > Jesus</b> → any "believe" form before "Jesus"</li>
+            <li><b>I & lov% > God</b> → "I [word] love/loved God"</li>
+            <li><b>believ% ~3 Jesus</b> → any "believe" form within 3 words of "Jesus"</li>
+            <li><b>pray% ~5 faith</b> → any "pray" form within 5 words of "faith"</li>
         </ul>
+
+        <h3>Quick Reference</h3>
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
+            <tr style="background-color: #e0e0e0;">
+                <th>Operator</th>
+                <th>Purpose</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td><b>*</b></td>
+                <td>Multiple characters wildcard</td>
+                <td>love* → loved, loving</td>
+            </tr>
+            <tr>
+                <td><b>%</b></td>
+                <td>Stem/root wildcard (same as *)</td>
+                <td>believ% → believe, believed</td>
+            </tr>
+            <tr>
+                <td><b>?</b></td>
+                <td>Single character wildcard</td>
+                <td>m?n → man, men</td>
+            </tr>
+            <tr>
+                <td><b>&</b></td>
+                <td>Word placeholder (exactly one word)</td>
+                <td>who & sent → "who had sent"</td>
+            </tr>
+            <tr>
+                <td><b>></b></td>
+                <td>Ordered words (must be in sequence)</td>
+                <td>love > God → love before God</td>
+            </tr>
+            <tr>
+                <td><b>~N</b></td>
+                <td>Proximity (words within N words)</td>
+                <td>love ~4 God → within 4 words</td>
+            </tr>
+            <tr>
+                <td><b>AND</b></td>
+                <td>Both terms required</td>
+                <td>faith AND works</td>
+            </tr>
+            <tr>
+                <td><b>OR</b></td>
+                <td>Either term (or both)</td>
+                <td>peace OR joy</td>
+            </tr>
+            <tr>
+                <td><b>" "</b></td>
+                <td>Exact phrase</td>
+                <td>"in the beginning"</td>
+            </tr>
+        </table>
         """)
         tab2_layout.addWidget(text2)
         tabs.addTab(tab2, "Wildcards")
@@ -1767,6 +2202,36 @@ class BibleSearchProgram(QMainWindow):
             <li><b>bless*</b> → blessed, blessing, blessings, blessedness</li>
             <li><b>righ*</b> → right, righteous, righteousness, rightly</li>
             <li><b>*ness</b> → righteousness, holiness, goodness, kindness</li>
+            <li><b>believ%</b> → believe, believed, believer, believing (stem/root)</li>
+            <li><b>pray%</b> → pray, prayed, prayer, prayers, praying (stem/root)</li>
+        </ul>
+
+        <h3>Word Placeholder Examples (&)</h3>
+        <ul>
+            <li><b>who & sent</b> → "who had sent", "who hath sent", "who will send"</li>
+            <li><b>I & you</b> → "I tell you", "I command you", "I pray you"</li>
+            <li><b>God & love</b> → "God so loved", "God is love"</li>
+            <li><b>who & & sent</b> → "who will then send" (two words between)</li>
+            <li><b>love & & God</b> → "love dwelleth in God", "love is of God"</li>
+        </ul>
+
+        <h3>Ordered Words Examples (>)</h3>
+        <ul>
+            <li><b>love > neighbour</b> → "love thy neighbour" (love before neighbour)</li>
+            <li><b>faith > works</b> → faith mentioned before works in verse</li>
+            <li><b>God > love > man</b> → all three words in this sequence</li>
+            <li><b>lov% > God</b> → "love the Lord thy God" (with wildcard)</li>
+            <li><b>I > love > you</b> → "But I say unto you, Love your enemies"</li>
+        </ul>
+
+        <h3>Proximity Examples (~N)</h3>
+        <ul>
+            <li><b>love ~0 God</b> → "love God" (words must be adjacent)</li>
+            <li><b>love ~2 God</b> → "love of God", "love the God" (0-2 words between)</li>
+            <li><b>love ~4 God</b> → "love the Lord thy God" (0-4 words between)</li>
+            <li><b>faith ~5 works</b> → "faith" and "works" within 5 words</li>
+            <li><b>believ% ~3 Jesus</b> → any "believe" form within 3 words of "Jesus"</li>
+            <li><b>pray% ~5 faith</b> → any "pray" form within 5 words of "faith"</li>
         </ul>
 
         <h3>Exact Phrase Examples</h3>
@@ -1783,11 +2248,15 @@ class BibleSearchProgram(QMainWindow):
             <li><b>peace OR joy</b> → verses with either concept</li>
         </ul>
 
-        <h3>Combined Examples</h3>
+        <h3>Combined Advanced Examples</h3>
         <ul>
             <li><b>"Holy Spirit" OR "Spirit of God"</b> → either phrase</li>
             <li><b>love* AND neighbor</b> → "love your neighbor" passages</li>
-            <li><b>kingdom AND (heaven OR God)</b> → kingdom references</li>
+            <li><b>believ% > Jesus</b> → believe forms before Jesus</li>
+            <li><b>I & lov% > God</b> → complex pattern with placeholder + wildcard + order</li>
+            <li><b>who & sen* > Israel</b> → "who [word] sent/send to Israel"</li>
+            <li><b>believ% ~3 Jesus</b> → any "believe" form within 3 words of "Jesus"</li>
+            <li><b>pray% ~5 faith</b> → any "pray" form within 5 words of "faith"</li>
         </ul>
 
         <h3>Advanced Thematic Searches</h3>
@@ -1795,6 +2264,7 @@ class BibleSearchProgram(QMainWindow):
             <li><b>prayer AND (answer* OR hear*)</b> → answered prayers</li>
             <li><b>David AND (king OR shepherd)</b> → David's roles</li>
             <li><b>Moses AND (law OR commandment*)</b> → Mosaic law</li>
+            <li><b>faith > lov%</b> → faith mentioned before any form of love</li>
         </ul>
 
         <h3>Using Filters</h3>

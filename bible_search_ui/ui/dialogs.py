@@ -10,8 +10,57 @@ Author: Andrew Hopkins
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QCheckBox, QGridLayout, QGroupBox, QRadioButton,
-                             QDialogButtonBox, QScrollArea, QWidget, QLabel)
+                             QDialogButtonBox, QScrollArea, QWidget, QLabel, QMessageBox, QLineEdit, QTextEdit)
 from PyQt6.QtCore import Qt
+
+# Translation publication dates
+TRANSLATION_DATES = {
+    'ACV': '',
+    'AKJ': '',
+    'AND': '1864',
+    'ASV': '1901',
+    'BBE': '1949',
+    'BIS': '1568',
+    'BSB': '2016',
+    'BST': '1844',
+    'COV': '1535',
+    'CPD': '2009',
+    'DBT': '1890',
+    'DRB': '1582-1610',
+    'DRC': '1749-52',
+    'ERV': '1881-85',
+    'GEN': '1560',
+    'GN2': '1599',
+    'HAW': '1795',
+    'JPS': '1917',
+    'JUB': '2000',
+    'KJA': '1611',
+    'KJV': '1611',
+    'KPC': '1900',
+    'LEB': '2012',
+    'LIT': '1985',
+    'MKJ': '1962',
+    'NET': '2005',
+    'NHE': '2023',
+    'NHJ': '2023',
+    'NHM': '2023',
+    'NOY': '1869',
+    'OEB': '2010',
+    'OEC': '2010',
+    'RLT': '',
+    'RNK': '',
+    'ROT': '1902',
+    'RWB': '1833',
+    'TWE': '1904',
+    'TYD': '1525',
+    'TYN': '1526-30',
+    'UKJ': '',
+    'WBT': '1833',
+    'WEB': '2020',
+    'WNT': '1903',
+    'WYC': '1382-95',
+    'YLT': '1862'
+}
 
 
 class TranslationSelectorDialog(QDialog):
@@ -85,17 +134,57 @@ class TranslationSelectorDialog(QDialog):
         select_buttons_layout.addStretch()
         layout.addLayout(select_buttons_layout)
 
+        # Sort translations by date (most recent first, then oldest, then no date)
+        def get_sort_key(translation):
+            """
+            Returns a sort key for translations.
+            Most recent dates first, oldest last, no dates at the end.
+            """
+            abbrev = translation.abbreviation
+            date = TRANSLATION_DATES.get(abbrev, '')
+
+            if not date:
+                # No date - sort to end (use year 0)
+                return 0
+
+            # Extract year from date string
+            # Handle ranges like "1582-1610" by taking the end year
+            if '-' in date:
+                parts = date.split('-')
+                # Get the last part (end year)
+                year_str = parts[-1]
+            else:
+                year_str = date
+
+            try:
+                year = int(year_str)
+                # Negate to sort most recent first
+                return -year
+            except ValueError:
+                # If we can't parse it, treat as no date
+                return 0
+
+        sorted_translations = sorted(self.translations, key=get_sort_key)
+
         # Create checkboxes for each translation in a grid
         grid = QGridLayout()
         row = 0
         col = 0
         max_cols = 4
 
-        for translation in self.translations:
-            # Create checkbox with full translation name
-            cb = QCheckBox(f"{translation.abbreviation} - {translation.full_name}")
-            cb.setChecked(translation.abbreviation in self.selected_translations)
-            self.checkboxes[translation.abbreviation] = cb
+        for translation in sorted_translations:
+            # Create checkbox with full translation name and date
+            abbrev = translation.abbreviation
+            date = TRANSLATION_DATES.get(abbrev, '')
+
+            if date:
+                label = f"{abbrev} - {translation.full_name} ({date})"
+            else:
+                label = f"{abbrev} - {translation.full_name}"
+
+            cb = QCheckBox(label)
+            cb.setChecked(abbrev in self.selected_translations)
+            self.checkboxes[abbrev] = cb
             grid.addWidget(cb, row, col)
 
             # Move to next grid position
