@@ -44,6 +44,51 @@ def print_header(title):
     print(title)
     print("=" * 70 + "\n")
 
+def install_sqlite3():
+    """Attempt to install sqlite3 based on the platform"""
+    system = platform.system()
+
+    if system == 'Linux':
+        # Detect Linux distribution
+        try:
+            with open('/etc/os-release') as f:
+                os_info = f.read().lower()
+
+            if 'debian' in os_info or 'ubuntu' in os_info:
+                print("\n  Installing SQLite3 on Debian/Ubuntu...")
+                subprocess.run(['sudo', 'apt-get', 'update'], check=True)
+                subprocess.run(['sudo', 'apt-get', 'install', '-y', 'sqlite3'], check=True)
+            elif 'fedora' in os_info or 'rhel' in os_info or 'centos' in os_info:
+                print("\n  Installing SQLite3 on Fedora/RHEL/CentOS...")
+                subprocess.run(['sudo', 'dnf', 'install', '-y', 'sqlite'], check=True)
+            elif 'arch' in os_info:
+                print("\n  Installing SQLite3 on Arch Linux...")
+                subprocess.run(['sudo', 'pacman', '-S', '--noconfirm', 'sqlite'], check=True)
+            else:
+                print("\n  ⚠️  Unknown Linux distribution")
+                return False
+
+            return True
+
+        except Exception as e:
+            print(f"  ❌ Installation failed: {e}")
+            return False
+
+    elif system == 'Darwin':  # macOS
+        print("\n  Installing SQLite3 on macOS...")
+        try:
+            subprocess.run(['brew', 'install', 'sqlite3'], check=True)
+            return True
+        except Exception as e:
+            print(f"  ❌ Installation failed: {e}")
+            print("  Note: You may need to install Homebrew first:")
+            print("    /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
+            return False
+
+    else:
+        print(f"\n  ⚠️  Automatic installation not supported on {system}")
+        return False
+
 def check_requirements():
     """Check if required tools are installed"""
     print("Checking requirements...")
@@ -64,12 +109,38 @@ def check_requirements():
 
     if missing:
         print(f"\n❌ Missing required tools: {', '.join(missing)}")
-        print("\nPlease install them:")
-        if platform.system() == 'Linux':
-            print("  sudo apt-get install sqlite3 gzip")
-        elif platform.system() == 'Darwin':  # macOS
-            print("  brew install sqlite3")
-        sys.exit(1)
+
+        # Special handling for sqlite3 - offer to install
+        if 'sqlite3' in missing:
+            print("\nSQLite3 is required to run Bible Search Lite.")
+            response = input("Would you like to install SQLite3 now? (Y/n): ").strip().lower()
+
+            if response == '' or response == 'y' or response == 'yes':
+                if install_sqlite3():
+                    print("  ✅ SQLite3 installed successfully!")
+                    missing.remove('sqlite3')
+                else:
+                    print("\n  Please install SQLite3 manually:")
+                    if platform.system() == 'Linux':
+                        print("    sudo apt-get install sqlite3")
+                    elif platform.system() == 'Darwin':
+                        print("    brew install sqlite3")
+            else:
+                print("\n  Please install SQLite3 manually before continuing:")
+                if platform.system() == 'Linux':
+                    print("    sudo apt-get install sqlite3")
+                elif platform.system() == 'Darwin':
+                    print("    brew install sqlite3")
+
+        # If still missing tools, show instructions and exit
+        if missing:
+            print(f"\n❌ Still missing: {', '.join(missing)}")
+            print("\nPlease install the missing tools:")
+            if platform.system() == 'Linux':
+                print(f"  sudo apt-get install {' '.join(missing)}")
+            elif platform.system() == 'Darwin':
+                print(f"  brew install {' '.join(missing)}")
+            sys.exit(1)
 
     print()
 
