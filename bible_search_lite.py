@@ -827,10 +827,10 @@ class BibleSearchProgram(QMainWindow):
                 }
             """)
         else:
-            # Normal/gray style when inactive
+            # Normal white style when inactive (matches other title buttons)
             self.subject_toggle_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #e0e0e0;
+                    background-color: white;
                     color: #333;
                     border: 1px solid #999;
                     border-radius: 3px;
@@ -838,11 +838,11 @@ class BibleSearchProgram(QMainWindow):
                     padding: 0px;
                 }
                 QPushButton:hover {
-                    background-color: #d0d0d0;
+                    background-color: #f0f0f0;
                     border: 1px solid #666;
                 }
                 QPushButton:checked {
-                    background-color: #e0e0e0;
+                    background-color: white;
                     color: #333;
                     border: 1px solid #999;
                 }
