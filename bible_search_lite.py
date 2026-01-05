@@ -1931,6 +1931,24 @@ class BibleSearchProgram(QMainWindow):
         docs_btn.clicked.connect(lambda: (dialog.accept(), self.show_comprehensive_docs()))
         layout.addWidget(docs_btn)
 
+        # Button for License Information
+        license_btn = QPushButton("📜 License Information")
+        license_btn.setMinimumHeight(50)
+        license_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #607D8B;
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #455A64;
+            }
+        """)
+        license_btn.clicked.connect(lambda: (dialog.accept(), self.show_license_info()))
+        layout.addWidget(license_btn)
+
         layout.addSpacing(20)
 
         # Cancel button
@@ -3270,6 +3288,73 @@ class BibleSearchProgram(QMainWindow):
                 f"Error opening automatically: {e}"
             )
 
+    def show_license_info(self):
+        """Show MIT License information dialog"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QLabel, QPushButton
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QFont
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Bible Search Lite - License Information")
+        dialog.setMinimumSize(650, 550)
+
+        layout = QVBoxLayout(dialog)
+
+        # Title
+        title = QLabel("📜 MIT License")
+        title_font = QFont()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        # License text
+        license_text = QTextEdit()
+        license_text.setReadOnly(True)
+        license_text.setPlainText("""MIT License
+
+Copyright (c) 2026 Andrew Hopkins
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In simple terms:
+
+✅ Free to use for any purpose (personal, commercial, ministry)
+✅ Free to modify and distribute
+✅ Free to include in other projects
+✅ No warranty or liability
+ℹ️  Just keep the copyright notice
+
+This permissive license allows maximum freedom while protecting the author
+from liability. It's the same license used by many popular open-source projects.""")
+
+        layout.addWidget(license_text)
+
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+
+        dialog.exec()
 
 
     def on_copy_clicked(self):
