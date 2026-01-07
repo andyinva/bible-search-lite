@@ -85,6 +85,21 @@ def install_sqlite3():
             print("    /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
             return False
 
+    elif system == 'Windows':
+        print("\n  Windows Installation Instructions:")
+        print("\n  SQLite3 is typically included with Python on Windows.")
+        print("  However, you need the sqlite3.exe command-line tool.")
+        print("\n  Option 1: Install via Chocolatey (if you have it)")
+        print("    choco install sqlite")
+        print("\n  Option 2: Manual Download")
+        print("    1. Visit: https://www.sqlite.org/download.html")
+        print("    2. Download: 'sqlite-tools-win32-x86-*.zip'")
+        print("    3. Extract and add to PATH")
+        print("\n  Option 3: Use WSL2 (Recommended)")
+        print("    Windows Subsystem for Linux provides full Linux environment.")
+        print("    Run: wsl --install")
+        print("    Then install from Ubuntu within WSL2")
+        return False
     else:
         print(f"\n  ⚠️  Automatic installation not supported on {system}")
         return False
@@ -140,6 +155,27 @@ def check_requirements():
                 print(f"  sudo apt-get install {' '.join(missing)}")
             elif platform.system() == 'Darwin':
                 print(f"  brew install {' '.join(missing)}")
+            elif platform.system() == 'Windows':
+                print("\n⚠️  Windows Native Installation Not Supported")
+                print("\nBible Search Lite requires Unix tools (sqlite3, gunzip) that are not")
+                print("natively available on Windows.")
+                print("\n📌 RECOMMENDED: Use WSL2 (Windows Subsystem for Linux)")
+                print("\n  WSL2 provides a full Linux environment on Windows 11:")
+                print("  1. Open PowerShell as Administrator")
+                print("  2. Run: wsl --install")
+                print("  3. Restart your computer")
+                print("  4. Open Ubuntu from Start Menu")
+                print("  5. Run the installer in Ubuntu:")
+                print("     python3 setup.py")
+                print("\n  WSL2 Documentation:")
+                print("  https://docs.microsoft.com/en-us/windows/wsl/install")
+                print("\n📌 ALTERNATIVE: Manual Installation")
+                print("\n  If you prefer not to use WSL2, you'll need to:")
+                print("  1. Download sqlite3.exe from https://www.sqlite.org/download.html")
+                print("  2. Install 7-Zip or WinRAR to extract .gz files")
+                print("  3. Manually download and extract the database")
+                print("  4. Install PyQt6: pip install PyQt6")
+                print("  5. Download the application files from GitHub")
             sys.exit(1)
 
     print()
