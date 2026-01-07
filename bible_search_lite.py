@@ -110,7 +110,73 @@ class BibleSearchProgram(QMainWindow):
 
         # Set initial geometry (will be overridden by load_config if config exists)
         self.setGeometry(100, 100, 1200, 900)
-        self.setStyleSheet("background-color: #f0f0f0;")
+
+        # Set cross-platform stylesheet for consistent appearance on Windows and Linux
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #f0f0f0;
+                color: #000000;
+            }
+            QPushButton {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #999999;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #e6f2ff;
+                border: 1px solid #0078d4;
+            }
+            QPushButton:pressed {
+                background-color: #cce4f7;
+            }
+            QPushButton:disabled {
+                background-color: #e0e0e0;
+                color: #999999;
+            }
+            QCheckBox {
+                color: #000000;
+                spacing: 5px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border: 1px solid #999999;
+                border-radius: 2px;
+                background-color: #ffffff;
+            }
+            QCheckBox::indicator:hover {
+                border: 1px solid #0078d4;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #0078d4;
+                border: 1px solid #0078d4;
+                image: url(none);
+            }
+            QCheckBox::indicator:checked:after {
+                content: "✓";
+                color: white;
+            }
+            QLineEdit, QComboBox {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #999999;
+                padding: 3px;
+                border-radius: 2px;
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border: 1px solid #0078d4;
+            }
+            QLabel {
+                color: #000000;
+            }
+            QTextEdit {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #999999;
+            }
+        """)
 
         # Font settings
         default_font = QFont("IBM Plex Mono", 9)
