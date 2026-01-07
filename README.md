@@ -12,19 +12,31 @@ A powerful, feature-rich Bible search application with advanced search operators
 
 ### Installation
 
+**Linux/macOS:**
 ```bash
 curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup.py
 python3 setup.py
 ```
 
+**Windows 10/11:**
+```powershell
+curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py
+python setup_win11.py
+```
+
 ### Running
 
+**Linux/macOS:**
 ```bash
 ./run_bible_search.sh
 ```
 
-Or:
+**Windows:**
+```powershell
+run_bible_search.bat
+```
 
+**All platforms:**
 ```bash
 python3 bible_search_lite.py
 ```
@@ -86,9 +98,9 @@ love ~4 God             - "love" and "God" within 4 words
 ## Requirements
 
 - Python 3.7 or higher
-- SQLite3 (auto-installed on Linux/macOS)
 - PyQt6 (installed automatically)
-- **Windows users**: WSL2 recommended (see [INSTALLATION.md](INSTALLATION.md))
+- **Linux/macOS**: SQLite3 (auto-installed if missing)
+- **Windows**: Use `setup_win11.py` (no additional tools needed)
 
 ---
 
