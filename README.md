@@ -86,8 +86,9 @@ love ~4 God             - "love" and "God" within 4 words
 ## Requirements
 
 - Python 3.7 or higher
-- SQLite3 (auto-installed if missing)
+- SQLite3 (auto-installed on Linux/macOS)
 - PyQt6 (installed automatically)
+- **Windows users**: WSL2 recommended (see [INSTALLATION.md](INSTALLATION.md))
 
 ---
 
