@@ -1,11 +1,16 @@
 import sys
+import os
+import urllib.request
+import urllib.error
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QCheckBox, QPushButton, QComboBox, QLineEdit,
                              QVBoxLayout, QHBoxLayout, QSplitter, QFrame,
-                             QScrollArea, QListWidget)
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
+                             QScrollArea, QListWidget, QMessageBox, QProgressDialog)
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
+# Version number
+VERSION = "1.0.0"
 
 # Import custom UI components, config, and controllers from refactored modules
 from bible_search_ui.ui.widgets import VerseItemWidget, VerseListWidget, SectionWidget
@@ -818,6 +823,11 @@ class BibleSearchProgram(QMainWindow):
         font_btn = QPushButton("Font Size Settings")
         font_btn.clicked.connect(lambda: [dialog.accept(), self.show_font_size_dialog()])
         layout.addWidget(font_btn)
+
+        # Check for Updates button
+        update_btn = QPushButton("Check for Updates")
+        update_btn.clicked.connect(lambda: [dialog.accept(), self.check_for_updates()])
+        layout.addWidget(update_btn)
 
         # Subject Features toggle
         layout.addWidget(QLabel(""))  # Spacer
@@ -3421,6 +3431,143 @@ from liability. It's the same license used by many popular open-source projects.
         layout.addWidget(close_btn)
 
         dialog.exec()
+
+    def check_for_updates(self):
+        """Check for application updates on GitHub"""
+        try:
+            # Show checking message
+            self.message_label.setText("⏳ Checking for updates...")
+            QApplication.processEvents()  # Update UI immediately
+
+            # Fetch version from GitHub
+            version_url = "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/VERSION.txt"
+
+            try:
+                with urllib.request.urlopen(version_url, timeout=10) as response:
+                    latest_version = response.read().decode('utf-8').strip()
+            except urllib.error.URLError as e:
+                QMessageBox.warning(
+                    self,
+                    "Update Check Failed",
+                    f"Could not check for updates.\n\n"
+                    f"Error: {e}\n\n"
+                    f"Please check your internet connection."
+                )
+                self.message_label.setText("❌ Update check failed")
+                return
+
+            # Compare versions
+            current = VERSION
+
+            if latest_version > current:
+                # Update available
+                reply = QMessageBox.question(
+                    self,
+                    "Update Available",
+                    f"A new version is available!\n\n"
+                    f"Current version: {current}\n"
+                    f"Latest version: {latest_version}\n\n"
+                    f"Would you like to download the update?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.download_update()
+                else:
+                    self.message_label.setText("Update cancelled")
+            else:
+                # Already up to date
+                QMessageBox.information(
+                    self,
+                    "No Updates Available",
+                    f"You are running the latest version ({current}).\n\n"
+                    f"No updates are available at this time."
+                )
+                self.message_label.setText(f"✓ Up to date (v{current})")
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Update Check Error",
+                f"An error occurred while checking for updates:\n\n{e}"
+            )
+            self.message_label.setText("❌ Update check error")
+
+    def download_update(self):
+        """Download and install application update"""
+        import tempfile
+        import shutil
+        import platform
+
+        try:
+            # Create progress dialog
+            progress = QProgressDialog("Downloading update...", "Cancel", 0, 100, self)
+            progress.setWindowTitle("Updating Bible Search Lite")
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.show()
+
+            # Determine which file to download
+            system = platform.system()
+            if system == "Windows":
+                file_url = "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/bible_search_lite.py"
+                file_name = "bible_search_lite.py"
+            else:
+                file_url = "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/bible_search_lite.py"
+                file_name = "bible_search_lite.py"
+
+            # Download to temp file
+            temp_file = tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.py')
+
+            def download_progress(count, block_size, total_size):
+                if progress.wasCanceled():
+                    raise Exception("Download cancelled by user")
+                if total_size > 0:
+                    percent = int(count * block_size * 100 / total_size)
+                    progress.setValue(min(percent, 100))
+                    QApplication.processEvents()
+
+            urllib.request.urlretrieve(file_url, temp_file.name, download_progress)
+            temp_file.close()
+
+            progress.setValue(100)
+            progress.close()
+
+            # Backup current file
+            backup_name = "bible_search_lite.py.backup"
+            if os.path.exists(file_name):
+                shutil.copy2(file_name, backup_name)
+
+            # Replace with new version
+            shutil.move(temp_file.name, file_name)
+
+            # Success message
+            QMessageBox.information(
+                self,
+                "Update Complete",
+                "Bible Search Lite has been updated successfully!\n\n"
+                "Please restart the application for changes to take effect.\n\n"
+                f"A backup of the previous version was saved as:\n{backup_name}"
+            )
+
+            self.message_label.setText("✓ Update downloaded - Please restart")
+
+        except Exception as e:
+            if "cancelled" not in str(e).lower():
+                QMessageBox.critical(
+                    self,
+                    "Update Failed",
+                    f"Failed to download update:\n\n{e}\n\n"
+                    f"You can manually update by downloading from:\n"
+                    f"https://github.com/andyinva/bible-search-lite"
+                )
+            self.message_label.setText("❌ Update failed")
+
+            # Clean up temp file if it exists
+            try:
+                if 'temp_file' in locals() and os.path.exists(temp_file.name):
+                    os.unlink(temp_file.name)
+            except:
+                pass
 
 
     def on_copy_clicked(self):
