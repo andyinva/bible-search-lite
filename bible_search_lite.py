@@ -426,17 +426,23 @@ class BibleSearchProgram(QMainWindow):
 
     def update_subject_acquire_button(self):
         """Update the Acquire button state in Window 4 when selections change in Windows 2 or 3"""
-        if self.subject_manager and self.subject_manager.verse_manager:
-            # Check if there are any selected verses in Windows 2 or 3
-            search_count = self.verse_lists['search'].get_selected_count()
-            reading_count = self.verse_lists['reading'].get_selected_count()
-            has_selections = (search_count > 0) or (reading_count > 0)
+        if not self.subject_manager:
+            return
 
-            # Enable/disable Acquire button based on selections AND whether a subject is selected
-            has_subject = self.subject_manager.verse_manager.current_subject_id is not None
-            self.subject_manager.verse_manager.acquire_btn.setEnabled(has_subject and has_selections)
+        # If Windows 4 & 5 are not visible, the verse_manager won't exist yet
+        if not self.subject_manager.verse_manager:
+            return
 
-            print(f"Subject Acquire button: subject={has_subject}, selections={has_selections}")
+        # Check if there are any selected verses in Windows 2 or 3
+        search_count = self.verse_lists['search'].get_selected_count()
+        reading_count = self.verse_lists['reading'].get_selected_count()
+        has_selections = (search_count > 0) or (reading_count > 0)
+
+        # Enable/disable Acquire button based on selections AND whether a subject is selected
+        has_subject = self.subject_manager.verse_manager.current_subject_id is not None
+        self.subject_manager.verse_manager.acquire_btn.setEnabled(has_subject and has_selections)
+
+        print(f"Subject Acquire button: subject={has_subject}, selections={has_selections}, search={search_count}, reading={reading_count}")
 
     def create_title_button(self, text):
         """Create a standardized button for section title bars"""

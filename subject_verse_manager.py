@@ -233,18 +233,24 @@ class SubjectVerseManager:
 
     def on_acquire_verses(self):
         """Acquire checked verses from Windows 2 & 3."""
+        print(f"🔵 Acquire button clicked in Window 4")
+
         if not self.current_subject_id:
             self.parent_app.message_label.setText("⚠️  Select a subject first")
+            print(f"❌ No subject selected")
             return
 
         # Get checked verses from Windows 2 & 3
         search_verses = self.parent_app.verse_lists['search'].get_selected_verses()
         reading_verses = self.parent_app.verse_lists['reading'].get_selected_verses()
 
+        print(f"📊 Found {len(search_verses)} verses in Window 2, {len(reading_verses)} verses in Window 3")
+
         all_verse_ids = search_verses + reading_verses
 
         if not all_verse_ids:
             self.parent_app.message_label.setText("⚠️  No verses selected")
+            print(f"❌ No verses selected in either window")
             return
 
         # Add verses to subject
