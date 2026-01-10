@@ -235,10 +235,42 @@ class SubjectVerseManager:
         """Acquire checked verses from Windows 2 & 3."""
         print(f"🔵 Acquire button clicked in Window 4")
 
+        # Check if Window 4 has a subject selected, otherwise use Window 3's subject
         if not self.current_subject_id:
-            self.parent_app.message_label.setText("⚠️  Select a subject first")
-            print(f"❌ No subject selected")
-            return
+            # Try to use Window 3's subject selection
+            subject_name = self.parent_app.reading_subject_combo.currentText().strip()
+            if not subject_name:
+                self.parent_app.message_label.setText("⚠️  Select a subject first (in Window 3 or Window 4)")
+                print(f"❌ No subject selected in either Window 3 or Window 4")
+                return
+
+            # Find or create the subject from Window 3's selection
+            try:
+                cursor = self.db_conn.cursor()
+                cursor.execute("SELECT id FROM subjects WHERE name = ?", (subject_name,))
+                result = cursor.fetchone()
+
+                if result:
+                    subject_id = result['id']
+                    print(f"✓ Using subject from Window 3: {subject_name} (ID: {subject_id})")
+                else:
+                    # Create new subject
+                    cursor.execute("INSERT INTO subjects (name) VALUES (?)", (subject_name,))
+                    self.db_conn.commit()
+                    subject_id = cursor.lastrowid
+                    print(f"✓ Created new subject from Window 3: {subject_name} (ID: {subject_id})")
+                    self.load_subjects()  # Refresh dropdown
+
+                # Temporarily use this subject for this operation
+                temp_subject_id = subject_id
+                temp_subject_name = subject_name
+            except Exception as e:
+                self.parent_app.message_label.setText(f"⚠️  Error accessing subject: {e}")
+                print(f"❌ Error accessing subject: {e}")
+                return
+        else:
+            temp_subject_id = self.current_subject_id
+            temp_subject_name = self.current_subject
 
         # Get checked verses from Windows 2 & 3
         search_verses = self.parent_app.verse_lists['search'].get_selected_verses()
@@ -253,28 +285,33 @@ class SubjectVerseManager:
             print(f"❌ No verses selected in either window")
             return
 
-        # Add verses to subject
-        added_count = self.add_verses(all_verse_ids)
+        # Add verses to the subject (either from Window 4 or Window 3)
+        added_count = self.add_verses_to_subject(all_verse_ids, temp_subject_id)
 
         # Uncheck verses
         self.parent_app.verse_lists['search'].select_none()
         self.parent_app.verse_lists['reading'].select_none()
 
         self.parent_app.message_label.setText(
-            f"✓ Added {added_count} verse(s) to {self.current_subject}"
+            f"✓ Added {added_count} verse(s) to {temp_subject_name}"
         )
 
-    def add_verses(self, verse_ids):
+        # If we used Window 3's subject and Window 4 is showing, refresh it
+        if not self.current_subject_id and self.current_subject == temp_subject_name:
+            self.load_subject_verses()
+
+    def add_verses_to_subject(self, verse_ids, subject_id):
         """
-        Add verses to current subject.
+        Add verses to a specific subject.
 
         Args:
             verse_ids: List of verse IDs to add
+            subject_id: Subject ID to add verses to
 
         Returns:
             Number of verses added
         """
-        if not self.current_subject_id:
+        if not subject_id:
             return 0
 
         added_count = 0
@@ -285,7 +322,7 @@ class SubjectVerseManager:
             # Get current max order_index
             cursor.execute(
                 "SELECT MAX(order_index) FROM subject_verses WHERE subject_id = ?",
-                (self.current_subject_id,)
+                (subject_id,)
             )
             max_order = cursor.fetchone()[0] or 0
 
@@ -299,7 +336,7 @@ class SubjectVerseManager:
                 cursor.execute("""
                     SELECT id FROM subject_verses
                     WHERE subject_id = ? AND verse_reference = ? AND translation = ?
-                """, (self.current_subject_id, verse_data['reference'], verse_data['translation']))
+                """, (subject_id, verse_data['reference'], verse_data['translation']))
 
                 if cursor.fetchone():
                     continue  # Skip duplicates
@@ -310,20 +347,34 @@ class SubjectVerseManager:
                     INSERT INTO subject_verses
                     (subject_id, verse_reference, verse_text, translation, order_index)
                     VALUES (?, ?, ?, ?, ?)
-                """, (self.current_subject_id, verse_data['reference'],
+                """, (subject_id, verse_data['reference'],
                       verse_data['text'], verse_data['translation'], max_order))
 
                 added_count += 1
 
             self.db_conn.commit()
 
-            # Reload display
-            self.load_subject_verses()
+            # Reload display if this is the current subject
+            if subject_id == self.current_subject_id:
+                self.load_subject_verses()
 
         except Exception as e:
             print(f"⚠️  Error adding verses: {e}")
 
         return added_count
+
+    def add_verses(self, verse_ids):
+        """
+        Add verses to current subject.
+
+        Args:
+            verse_ids: List of verse IDs to add
+
+        Returns:
+            Number of verses added
+        """
+        # Just delegate to add_verses_to_subject with current subject
+        return self.add_verses_to_subject(verse_ids, self.current_subject_id)
 
     def get_verse_data(self, verse_id):
         """Extract verse data from verse ID."""

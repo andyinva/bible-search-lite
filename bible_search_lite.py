@@ -438,11 +438,15 @@ class BibleSearchProgram(QMainWindow):
         reading_count = self.verse_lists['reading'].get_selected_count()
         has_selections = (search_count > 0) or (reading_count > 0)
 
-        # Enable/disable Acquire button based on selections AND whether a subject is selected
-        has_subject = self.subject_manager.verse_manager.current_subject_id is not None
+        # Check if a subject is selected in EITHER Window 3 OR Window 4
+        # This allows using Window 3's subject dropdown to enable Window 4's Acquire button
+        has_subject_in_window4 = self.subject_manager.verse_manager.current_subject_id is not None
+        has_subject_in_window3 = bool(self.reading_subject_combo.currentText().strip())
+        has_subject = has_subject_in_window4 or has_subject_in_window3
+
         self.subject_manager.verse_manager.acquire_btn.setEnabled(has_subject and has_selections)
 
-        print(f"Subject Acquire button: subject={has_subject}, selections={has_selections}, search={search_count}, reading={reading_count}")
+        print(f"Subject Acquire button: W4_subject={has_subject_in_window4}, W3_subject={has_subject_in_window3}, selections={has_selections}, search={search_count}, reading={reading_count}")
 
     def create_title_button(self, text):
         """Create a standardized button for section title bars"""
@@ -4309,9 +4313,12 @@ from liability. It's the same license used by many popular open-source projects.
 
     def on_reading_subject_changed(self, subject_name):
         """Handle subject selection change in Window 3."""
-        # Enable Acquire button if subject is selected and not empty
+        # Enable Acquire button in Window 3 if subject is selected and not empty
         has_subject = bool(subject_name and subject_name.strip())
         self.send_btn.setEnabled(has_subject)
+
+        # Also update Window 4's Acquire button state
+        self.update_subject_acquire_button()
 
         if has_subject:
             print(f"✓ Reading window subject selected: {subject_name}")
