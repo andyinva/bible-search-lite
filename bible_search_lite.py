@@ -569,11 +569,11 @@ class BibleSearchProgram(QMainWindow):
         self.reading_subject_combo.currentTextChanged.connect(self.on_reading_subject_changed)
         layout.addWidget(self.reading_subject_combo)
 
-        # Send button (works like Acquire)
-        self.send_btn = QPushButton("Send")
+        # Acquire button (adds checked verses to selected subject)
+        self.send_btn = QPushButton("Acquire")
         self.send_btn.setEnabled(False)  # Disabled until subject selected
         self.send_btn.clicked.connect(self.on_send_to_subject)
-        self.send_btn.setToolTip("Send checked verses to selected subject")
+        self.send_btn.setToolTip("Acquire checked verses to selected subject")
         layout.addWidget(self.send_btn)
 
         # Stretch to push References dropdown to the right
@@ -4302,7 +4302,7 @@ from liability. It's the same license used by many popular open-source projects.
 
     def on_reading_subject_changed(self, subject_name):
         """Handle subject selection change in Window 3."""
-        # Enable Send button if subject is selected and not empty
+        # Enable Acquire button if subject is selected and not empty
         has_subject = bool(subject_name and subject_name.strip())
         self.send_btn.setEnabled(has_subject)
 
@@ -4310,7 +4310,7 @@ from liability. It's the same license used by many popular open-source projects.
             print(f"✓ Reading window subject selected: {subject_name}")
 
     def on_send_to_subject(self):
-        """Send checked verses from Window 3 (reading) to selected subject."""
+        """Acquire checked verses from Window 3 (reading) to selected subject."""
         subject_name = self.reading_subject_combo.currentText().strip()
 
         if not subject_name:
