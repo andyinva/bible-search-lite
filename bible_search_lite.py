@@ -3665,9 +3665,10 @@ from liability. It's the same license used by many popular open-source projects.
         print(f"📋 Copied to clipboard:")
         print(f"   First verse: {text_lines[0][:100]}..." if text_lines else "   (empty)")
 
-        # Uncheck all boxes after copying (this will auto-unlock via checkbox handler)
-        self.verse_lists[active].select_none()
-        print(f"📋 Unchecked all {verse_count} verses")
+        # Uncheck all boxes in both Windows 2 & 3 after copying (this will auto-unlock via checkbox handler)
+        self.verse_lists['search'].select_none()
+        self.verse_lists['reading'].select_none()
+        print(f"📋 Unchecked all verses in Windows 2 & 3")
 
         # Show success message (unlock happens automatically when boxes uncheck)
         self.message_label.setText(f"Copied {verse_count} verse(s) to clipboard ({text_size_kb:.1f} KB)")
@@ -4377,6 +4378,10 @@ from liability. It's the same license used by many popular open-source projects.
                         print(f"Error adding verse: {e}")
 
             self.subject_manager.db_conn.commit()
+
+            # Uncheck all verses in both Windows 2 & 3 after acquiring
+            self.verse_lists['search'].select_none()
+            self.verse_lists['reading'].select_none()
 
             # Update message
             if added_count > 0:
