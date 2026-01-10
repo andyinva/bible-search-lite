@@ -4335,12 +4335,16 @@ from liability. It's the same license used by many popular open-source projects.
             self.message_label.setText("⚠️ Subject features not initialized")
             return
 
-        # Get checked verses from reading window
-        checked_verses = self.verse_lists['reading'].get_selected_verses()
+        # Get checked verses from BOTH Windows 2 & 3
+        search_verses = self.verse_lists['search'].get_selected_verses()
+        reading_verses = self.verse_lists['reading'].get_selected_verses()
+        checked_verses = search_verses + reading_verses
 
         if not checked_verses:
-            self.message_label.setText("⚠️ No verses selected in reading window")
+            self.message_label.setText("⚠️ No verses selected in Windows 2 or 3")
             return
+
+        print(f"📊 Window 3 Acquire: Found {len(search_verses)} verses in Window 2, {len(reading_verses)} verses in Window 3")
 
         try:
             # Check if subject exists, create if not
@@ -4369,9 +4373,14 @@ from liability. It's the same license used by many popular open-source projects.
             # Add verses to subject
             added_count = 0
             for verse_id in checked_verses:
-                if verse_id in self.verse_lists['reading'].verse_items:
+                # Check both search and reading windows for this verse
+                verse_widget = None
+                if verse_id in self.verse_lists['search'].verse_items:
+                    item, verse_widget = self.verse_lists['search'].verse_items[verse_id]
+                elif verse_id in self.verse_lists['reading'].verse_items:
                     item, verse_widget = self.verse_lists['reading'].verse_items[verse_id]
 
+                if verse_widget:
                     # Insert verse into subject_verses table
                     try:
                         cursor.execute("""
