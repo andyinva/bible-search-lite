@@ -337,6 +337,8 @@ def download_application_files():
         'subject_manager.py',
         'subject_verse_manager.py',
         'subject_comment_manager.py',
+        'export_dialog.py',
+        'VERSION.txt',
         'run_bible_search.sh',
         'README.md',
         'SEARCH_OPERATORS.md',
@@ -387,11 +389,50 @@ def download_application_files():
         os.chmod('run_bible_search.sh', 0o755)
         print("  ✅ Made run_bible_search.sh executable")
 
-    # Create empty database for user data
+    # Create user data database with schema
     print("\nCreating user data database...")
     os.makedirs('database', exist_ok=True)
-    subprocess.run(['sqlite3', 'database/subjects.db', '.quit'], check=True)
-    print("  ✅ Created database/subjects.db")
+
+    # SQL schema for subjects database
+    schema_sql = '''
+CREATE TABLE IF NOT EXISTS subjects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS subject_verses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_id INTEGER NOT NULL,
+    book TEXT NOT NULL,
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    translation TEXT NOT NULL,
+    order_index INTEGER DEFAULT 0,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS subject_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_id INTEGER NOT NULL,
+    verse_id INTEGER NOT NULL,
+    comment TEXT,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (verse_id) REFERENCES subject_verses(id) ON DELETE CASCADE,
+    UNIQUE(subject_id, verse_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_subject_verses_subject ON subject_verses(subject_id);
+'''
+
+    # Execute schema
+    subprocess.run(['sqlite3', 'database/subjects.db', schema_sql], check=True)
+    print("  ✅ Created database/subjects.db with schema")
 
 def install_dependencies():
     """Install Python dependencies"""

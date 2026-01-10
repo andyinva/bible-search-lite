@@ -233,6 +233,8 @@ def download_application_files():
         'subject_manager.py',
         'subject_verse_manager.py',
         'subject_comment_manager.py',
+        'export_dialog.py',
+        'VERSION.txt',
         'run_bible_search.sh',
         'README.md',
         'SEARCH_OPERATORS.md',
@@ -278,12 +280,59 @@ def download_application_files():
 
     print(f"\nDownload summary: {success_count} succeeded, {fail_count} failed")
 
-    # Create empty database for user data
+    # Create user data database with schema
     print("\nCreating user data database...")
     os.makedirs('database', exist_ok=True)
     conn = sqlite3.connect('database/subjects.db')
+    cursor = conn.cursor()
+
+    # Create subjects table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subjects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Create subject_verses table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subject_verses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject_id INTEGER NOT NULL,
+            book TEXT NOT NULL,
+            chapter INTEGER NOT NULL,
+            verse INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            translation TEXT NOT NULL,
+            order_index INTEGER DEFAULT 0,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+        )
+    ''')
+
+    # Create subject_comments table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subject_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject_id INTEGER NOT NULL,
+            verse_id INTEGER NOT NULL,
+            comment TEXT,
+            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+            FOREIGN KEY (verse_id) REFERENCES subject_verses(id) ON DELETE CASCADE,
+            UNIQUE(subject_id, verse_id)
+        )
+    ''')
+
+    # Create indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_subject_verses_subject ON subject_verses(subject_id)')
+
+    conn.commit()
     conn.close()
-    print("  ✅ Created database/subjects.db")
+    print("  ✅ Created database/subjects.db with schema")
 
 def install_dependencies():
     """Install Python dependencies"""
