@@ -28,6 +28,7 @@ import urllib.error
 import hashlib
 import sys
 import platform
+import json
 
 # Configuration
 GITHUB_USER = "andyinva"
@@ -433,6 +434,43 @@ CREATE INDEX IF NOT EXISTS idx_subject_verses_subject ON subject_verses(subject_
     # Execute schema
     subprocess.run(['sqlite3', 'database/subjects.db', schema_sql], check=True)
     print("  ✅ Created database/subjects.db with schema")
+
+    # Create default configuration file
+    print("\nCreating default configuration...")
+    default_config = {
+        "window_geometry": {
+            "x": 100,
+            "y": 100,
+            "width": 1200,
+            "height": 800
+        },
+        "splitter_sizes": [
+            100,
+            250,
+            400
+        ],
+        "selected_translations": [
+            "KJV"
+        ],
+        "checkboxes": {
+            "case_sensitive": False,
+            "unique_verse": True,
+            "abbreviate_results": False
+        },
+        "font_settings": {
+            "title_font_size": 1,
+            "verse_font_size": 2
+        },
+        "search_history": [],
+        "subject_splitter_sizes": [
+            300,
+            200
+        ]
+    }
+
+    with open('bible_search_lite_config.json', 'w') as f:
+        json.dump(default_config, f, indent=2)
+    print("  ✅ Created bible_search_lite_config.json with default settings")
 
 def install_dependencies():
     """Install Python dependencies"""
