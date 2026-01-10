@@ -332,6 +332,7 @@ class BibleSearchProgram(QMainWindow):
         search_verses = VerseListWidget("search")
         search_verses.main_window = self  # Enable click-to-activate
         search_verses.verse_navigation_requested.connect(self.on_verse_navigation)
+        search_verses.selection_changed.connect(self.update_subject_acquire_button)
         self.verse_lists['search'] = search_verses
         self.selection_manager.register_window("search", search_verses)
 
@@ -343,6 +344,7 @@ class BibleSearchProgram(QMainWindow):
         reading_verses = VerseListWidget("reading")
         reading_verses.main_window = self  # Enable click-to-activate
         reading_verses.verse_navigation_requested.connect(self.on_verse_navigation)
+        reading_verses.selection_changed.connect(self.update_subject_acquire_button)
         self.verse_lists['reading'] = reading_verses
         self.selection_manager.register_window("reading", reading_verses)
 
@@ -421,6 +423,20 @@ class BibleSearchProgram(QMainWindow):
             else:
                 self.acquire_button.setStyleSheet(self.get_button_style())
                 print(f"Acquire button normal - no selections available")
+
+    def update_subject_acquire_button(self):
+        """Update the Acquire button state in Window 4 when selections change in Windows 2 or 3"""
+        if self.subject_manager and self.subject_manager.verse_manager:
+            # Check if there are any selected verses in Windows 2 or 3
+            search_count = self.verse_lists['search'].get_selected_count()
+            reading_count = self.verse_lists['reading'].get_selected_count()
+            has_selections = (search_count > 0) or (reading_count > 0)
+
+            # Enable/disable Acquire button based on selections AND whether a subject is selected
+            has_subject = self.subject_manager.verse_manager.current_subject_id is not None
+            self.subject_manager.verse_manager.acquire_btn.setEnabled(has_subject and has_selections)
+
+            print(f"Subject Acquire button: subject={has_subject}, selections={has_selections}")
 
     def create_title_button(self, text):
         """Create a standardized button for section title bars"""

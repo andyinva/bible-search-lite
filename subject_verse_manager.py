@@ -189,10 +189,16 @@ class SubjectVerseManager:
                 self.current_subject_id = result['id']
                 self.load_subject_verses()
                 self.update_button_states()
+                # Update Acquire button based on selections in Windows 2/3
+                if hasattr(self.parent_app, 'update_subject_acquire_button'):
+                    self.parent_app.update_subject_acquire_button()
             else:
                 self.current_subject = None
                 self.current_subject_id = None
                 self.update_button_states()
+                # Update Acquire button based on selections in Windows 2/3
+                if hasattr(self.parent_app, 'update_subject_acquire_button'):
+                    self.parent_app.update_subject_acquire_button()
 
         except Exception as e:
             print(f"⚠️  Error selecting subject: {e}")
@@ -508,7 +514,16 @@ class SubjectVerseManager:
         has_subject = self.current_subject_id is not None
         has_checked = self.subject_verse_list.get_selected_count() > 0
 
-        self.acquire_btn.setEnabled(has_subject)
+        # Acquire button state is managed by parent_app.update_subject_acquire_button()
+        # which considers both subject selection AND verse selections in Windows 2/3
+        # So we only update it here if there are no selections in Windows 2/3
+        if self.parent_app:
+            search_selections = self.parent_app.verse_lists['search'].get_selected_count()
+            reading_selections = self.parent_app.verse_lists['reading'].get_selected_count()
+            if search_selections == 0 and reading_selections == 0:
+                # No selections in Windows 2/3, disable Acquire if no subject
+                self.acquire_btn.setEnabled(has_subject)
+
         self.delete_btn.setEnabled(has_checked)
         self.rename_btn.setEnabled(has_subject)
         self.delete_subject_btn.setEnabled(has_subject)
