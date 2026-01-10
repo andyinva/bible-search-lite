@@ -333,6 +333,7 @@ class BibleSearchProgram(QMainWindow):
         search_verses.main_window = self  # Enable click-to-activate
         search_verses.verse_navigation_requested.connect(self.on_verse_navigation)
         search_verses.selection_changed.connect(self.update_subject_acquire_button)
+        search_verses.selection_changed.connect(self.update_window3_acquire_style)
         self.verse_lists['search'] = search_verses
         self.selection_manager.register_window("search", search_verses)
 
@@ -345,6 +346,7 @@ class BibleSearchProgram(QMainWindow):
         reading_verses.main_window = self  # Enable click-to-activate
         reading_verses.verse_navigation_requested.connect(self.on_verse_navigation)
         reading_verses.selection_changed.connect(self.update_subject_acquire_button)
+        reading_verses.selection_changed.connect(self.update_window3_acquire_style)
         self.verse_lists['reading'] = reading_verses
         self.selection_manager.register_window("reading", reading_verses)
 
@@ -447,6 +449,40 @@ class BibleSearchProgram(QMainWindow):
         self.subject_manager.verse_manager.acquire_btn.setEnabled(has_subject and has_selections)
 
         print(f"Subject Acquire button: W4_subject={has_subject_in_window4}, W3_subject={has_subject_in_window3}, selections={has_selections}, search={search_count}, reading={reading_count}")
+
+    def update_window3_acquire_style(self):
+        """Update Window 3 Acquire button styling based on selections"""
+        # Check if there are any selected verses in Windows 2 or 3
+        search_count = self.verse_lists['search'].get_selected_count()
+        reading_count = self.verse_lists['reading'].get_selected_count()
+        has_selections = (search_count > 0) or (reading_count > 0)
+
+        # Check if a subject is selected in Window 3
+        has_subject = bool(self.reading_subject_combo.currentText().strip())
+
+        # Green style when selections are available and subject is selected
+        green_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: 2px solid #45a049;
+                border-radius: 3px;
+                padding: 4px 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """
+
+        # Normal style
+        normal_style = self.get_button_style()
+
+        # Apply green style if both conditions met, otherwise normal
+        if has_subject and has_selections:
+            self.send_btn.setStyleSheet(green_style)
+        else:
+            self.send_btn.setStyleSheet(normal_style)
 
     def create_title_button(self, text):
         """Create a standardized button for section title bars"""
@@ -4281,10 +4317,14 @@ from liability. It's the same license used by many popular open-source projects.
 
         # Restore normal button styles
         self.copy_btn.setStyleSheet(self.get_button_style())
+        self.send_btn.setStyleSheet(self.get_button_style())  # Window 3 Acquire button
 
         if hasattr(self, 'acquire_button') and self.acquire_button:
             self.acquire_button.setEnabled(True)
             self.update_acquire_button_state()
+
+        # Update Window 3 Acquire button styling
+        self.update_window3_acquire_style()
 
         # Restore normal message label style
         self.message_label.setStyleSheet("background-color: white; padding: 10px; border: 1px solid #ccc;")
@@ -4319,6 +4359,9 @@ from liability. It's the same license used by many popular open-source projects.
 
         # Also update Window 4's Acquire button state
         self.update_subject_acquire_button()
+
+        # Update Window 3 Acquire button styling
+        self.update_window3_acquire_style()
 
         if has_subject:
             print(f"✓ Reading window subject selected: {subject_name}")
