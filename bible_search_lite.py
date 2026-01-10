@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 # Version number
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 # Import custom UI components, config, and controllers from refactored modules
 from bible_search_ui.ui.widgets import VerseItemWidget, VerseListWidget, SectionWidget
@@ -106,7 +106,7 @@ class SelectionManager:
 class BibleSearchProgram(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Bible Search Lite")
+        self.setWindowTitle(f"Bible Search Lite v{VERSION} (January 2026)")
 
         # Configuration manager
         self.config_manager = ConfigManager("bible_search_lite_config.json")
