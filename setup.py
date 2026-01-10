@@ -473,24 +473,140 @@ CREATE INDEX IF NOT EXISTS idx_subject_verses_subject ON subject_verses(subject_
     print("  ✅ Created bible_search_lite_config.json with default settings")
 
 def install_dependencies():
-    """Install Python dependencies"""
+    """Install Python dependencies using multiple fallback methods"""
     print_header("Step 3: Install Python Dependencies")
 
-    dependencies = ['PyQt6']
+    # First, check if PyQt6 is already installed
+    try:
+        import PyQt6
+        print("  ✅ PyQt6 is already installed")
+        return
+    except ImportError:
+        print("  PyQt6 not found, attempting installation...")
 
-    print("Installing dependencies with pip...")
-    for dep in dependencies:
+    system = platform.system()
+
+    # Method 1: Try system package manager (Linux only)
+    if system == 'Linux':
+        print("\n  Method 1: Trying system package manager (apt/dnf/pacman)...")
         try:
-            subprocess.run(
-                [sys.executable, '-m', 'pip', 'install', dep],
-                check=True,
-                stdout=subprocess.DEVNULL
-            )
-            print(f"  ✅ Installed {dep}")
-        except subprocess.CalledProcessError:
-            print(f"  ❌ Failed to install {dep}")
-            print("     You may need to install it manually:")
-            print(f"       pip install {dep}")
+            with open('/etc/os-release') as f:
+                os_info = f.read().lower()
+
+            if 'debian' in os_info or 'ubuntu' in os_info:
+                print("  Installing python3-pyqt6 on Debian/Ubuntu...")
+                result = subprocess.run(
+                    ['sudo', 'apt-get', 'install', '-y', 'python3-pyqt6'],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    print("  ✅ Installed PyQt6 via apt")
+                    return
+                else:
+                    print(f"  ⚠️  apt install failed: {result.stderr}")
+
+            elif 'fedora' in os_info or 'rhel' in os_info or 'centos' in os_info:
+                print("  Installing python3-qt6 on Fedora/RHEL/CentOS...")
+                result = subprocess.run(
+                    ['sudo', 'dnf', 'install', '-y', 'python3-qt6'],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    print("  ✅ Installed PyQt6 via dnf")
+                    return
+                else:
+                    print(f"  ⚠️  dnf install failed: {result.stderr}")
+
+            elif 'arch' in os_info:
+                print("  Installing python-pyqt6 on Arch Linux...")
+                result = subprocess.run(
+                    ['sudo', 'pacman', '-S', '--noconfirm', 'python-pyqt6'],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    print("  ✅ Installed PyQt6 via pacman")
+                    return
+                else:
+                    print(f"  ⚠️  pacman install failed: {result.stderr}")
+        except Exception as e:
+            print(f"  ⚠️  System package manager failed: {e}")
+
+    # Method 2: Try pip install (works if PEP 668 not enforced)
+    print("\n  Method 2: Trying pip install...")
+    try:
+        result = subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', 'PyQt6'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            print("  ✅ Installed PyQt6 via pip")
+            return
+        else:
+            print(f"  ⚠️  pip install failed: {result.stderr[:200]}")
+    except Exception as e:
+        print(f"  ⚠️  pip install failed: {e}")
+
+    # Method 3: Try pip install with --user flag
+    print("\n  Method 3: Trying pip install --user...")
+    try:
+        result = subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', '--user', 'PyQt6'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            print("  ✅ Installed PyQt6 via pip --user")
+            return
+        else:
+            print(f"  ⚠️  pip --user install failed: {result.stderr[:200]}")
+    except Exception as e:
+        print(f"  ⚠️  pip --user install failed: {e}")
+
+    # Method 4: Instructions for manual installation
+    print("\n  ❌ All automatic installation methods failed")
+    print("\n  Please install PyQt6 manually using one of these methods:")
+
+    if system == 'Linux':
+        try:
+            with open('/etc/os-release') as f:
+                os_info = f.read().lower()
+
+            if 'debian' in os_info or 'ubuntu' in os_info:
+                print("\n  For Ubuntu/Debian:")
+                print("    sudo apt-get update")
+                print("    sudo apt-get install python3-pyqt6")
+            elif 'fedora' in os_info or 'rhel' in os_info or 'centos' in os_info:
+                print("\n  For Fedora/RHEL/CentOS:")
+                print("    sudo dnf install python3-qt6")
+            elif 'arch' in os_info:
+                print("\n  For Arch Linux:")
+                print("    sudo pacman -S python-pyqt6")
+        except:
+            pass
+
+        print("\n  Or use a virtual environment:")
+        print("    python3 -m venv bible-search-env")
+        print("    source bible-search-env/bin/activate")
+        print("    pip install PyQt6")
+
+    elif system == 'Darwin':  # macOS
+        print("\n  For macOS:")
+        print("    pip3 install --user PyQt6")
+        print("  Or with Homebrew:")
+        print("    brew install pyqt@6")
+
+    elif system == 'Windows':
+        print("\n  For Windows:")
+        print("    python -m pip install PyQt6")
+
+    print("\n  After manual installation, you can run the application with:")
+    print("    ./run_bible_search.sh")
+
+    # Don't exit - let the installation continue, user can install PyQt6 later
 
 def main():
     """Main installation process"""
