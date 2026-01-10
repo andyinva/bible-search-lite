@@ -62,37 +62,63 @@ class SubjectVerseManager:
         self.subject_dropdown.currentTextChanged.connect(self.on_subject_selected)
         controls_layout.addWidget(self.subject_dropdown)
 
+        # Button style for cross-platform consistency
+        button_style = """
+            QPushButton {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #999999;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #e6f2ff;
+                border: 1px solid #0078d4;
+            }
+            QPushButton:disabled {
+                background-color: #f0f0f0;
+                color: #999999;
+                border: 1px solid #cccccc;
+            }
+        """
+
         # Create button
         self.create_btn = QPushButton("Create")
+        self.create_btn.setStyleSheet(button_style)
         self.create_btn.clicked.connect(self.on_create_subject)
         controls_layout.addWidget(self.create_btn)
 
         # Acquire button
         self.acquire_btn = QPushButton("Acquire")
+        self.acquire_btn.setStyleSheet(button_style)
         self.acquire_btn.setEnabled(False)
         self.acquire_btn.clicked.connect(self.on_acquire_verses)
         controls_layout.addWidget(self.acquire_btn)
 
         # Delete (verses) button
         self.delete_btn = QPushButton("Delete")
+        self.delete_btn.setStyleSheet(button_style)
         self.delete_btn.setEnabled(False)
         self.delete_btn.clicked.connect(self.on_delete_verses)
         controls_layout.addWidget(self.delete_btn)
 
         # Rename button
         self.rename_btn = QPushButton("Rename")
+        self.rename_btn.setStyleSheet(button_style)
         self.rename_btn.setEnabled(False)
         self.rename_btn.clicked.connect(self.on_rename_subject)
         controls_layout.addWidget(self.rename_btn)
 
         # Delete Subject button
         self.delete_subject_btn = QPushButton("Delete Subject")
+        self.delete_subject_btn.setStyleSheet(button_style)
         self.delete_subject_btn.setEnabled(False)
         self.delete_subject_btn.clicked.connect(self.on_delete_subject)
         controls_layout.addWidget(self.delete_subject_btn)
 
         # Clear Subject button
         self.clear_subject_btn = QPushButton("Clear Subject")
+        self.clear_subject_btn.setStyleSheet(button_style)
         self.clear_subject_btn.setEnabled(False)
         self.clear_subject_btn.clicked.connect(self.on_clear_subject)
         controls_layout.addWidget(self.clear_subject_btn)

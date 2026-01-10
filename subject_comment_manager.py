@@ -60,26 +60,51 @@ class SubjectCommentManager:
         controls_layout = QHBoxLayout(controls_widget)
         controls_layout.setContentsMargins(5, 5, 5, 5)
 
+        # Button style for cross-platform consistency
+        button_style = """
+            QPushButton {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #999999;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #e6f2ff;
+                border: 1px solid #0078d4;
+            }
+            QPushButton:disabled {
+                background-color: #f0f0f0;
+                color: #999999;
+                border: 1px solid #cccccc;
+            }
+        """
+
         self.add_btn = QPushButton("Add Comment")
+        self.add_btn.setStyleSheet(button_style)
         self.add_btn.clicked.connect(self.on_add_comment)
         controls_layout.addWidget(self.add_btn)
 
         self.edit_btn = QPushButton("Edit")
+        self.edit_btn.setStyleSheet(button_style)
         self.edit_btn.setEnabled(False)
         self.edit_btn.clicked.connect(self.on_edit_comment)
         controls_layout.addWidget(self.edit_btn)
 
         self.save_btn = QPushButton("Save")
+        self.save_btn.setStyleSheet(button_style)
         self.save_btn.setEnabled(False)
         self.save_btn.clicked.connect(self.on_save_comment)
         controls_layout.addWidget(self.save_btn)
 
         self.delete_btn = QPushButton("Delete")
+        self.delete_btn.setStyleSheet(button_style)
         self.delete_btn.setEnabled(False)
         self.delete_btn.clicked.connect(self.on_delete_comment)
         controls_layout.addWidget(self.delete_btn)
 
         self.close_btn = QPushButton("Close")
+        self.close_btn.setStyleSheet(button_style)
         self.close_btn.setEnabled(False)
         self.close_btn.clicked.connect(self.on_close_comment)
         controls_layout.addWidget(self.close_btn)
@@ -129,23 +154,44 @@ class SubjectCommentManager:
         toolbar_layout = QHBoxLayout(toolbar_widget)
         toolbar_layout.setContentsMargins(5, 5, 5, 5)
 
+        # Toolbar button style for cross-platform consistency
+        toolbar_button_base = """
+            QPushButton {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #999999;
+                border-radius: 3px;
+                min-width: 30px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #e6f2ff;
+                border: 1px solid #0078d4;
+            }
+            QPushButton:disabled {
+                background-color: #f0f0f0;
+                color: #999999;
+                border: 1px solid #cccccc;
+            }
+        """
+
         # Bold button
         self.bold_btn = QPushButton("B")
-        self.bold_btn.setStyleSheet("font-weight: bold; min-width: 30px; padding: 5px;")
+        self.bold_btn.setStyleSheet(toolbar_button_base + "QPushButton { font-weight: bold; }")
         self.bold_btn.setEnabled(False)
         self.bold_btn.clicked.connect(lambda: self.toggle_format('bold'))
         toolbar_layout.addWidget(self.bold_btn)
 
         # Italic button
         self.italic_btn = QPushButton("I")
-        self.italic_btn.setStyleSheet("font-style: italic; min-width: 30px; padding: 5px;")
+        self.italic_btn.setStyleSheet(toolbar_button_base + "QPushButton { font-style: italic; }")
         self.italic_btn.setEnabled(False)
         self.italic_btn.clicked.connect(lambda: self.toggle_format('italic'))
         toolbar_layout.addWidget(self.italic_btn)
 
         # Underline button
         self.underline_btn = QPushButton("U")
-        self.underline_btn.setStyleSheet("text-decoration: underline; min-width: 30px; padding: 5px;")
+        self.underline_btn.setStyleSheet(toolbar_button_base + "QPushButton { text-decoration: underline; }")
         self.underline_btn.setEnabled(False)
         self.underline_btn.clicked.connect(lambda: self.toggle_format('underline'))
         toolbar_layout.addWidget(self.underline_btn)
