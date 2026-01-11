@@ -75,6 +75,7 @@ class VerseItemWidget(QWidget):
         self.verse_number = verse_number
         self.text = text
         self.window_id = window_id  # Store which window this verse belongs to
+        self.is_highlighted = False  # Track if this verse is highlighted for navigation
 
         self.setup_ui()
         self.setup_styling()
@@ -202,22 +203,27 @@ class VerseItemWidget(QWidget):
         from PyQt6.QtCore import QSize
         return QSize(200, 18)  # Very compact minimal height
 
-    def on_checkbox_changed(self, state):
+    def apply_current_style(self):
         """
-        Handle checkbox state change and emit selection_changed signal.
-        
-        Args:
-            state (int): Qt.CheckState value (Checked or Unchecked)
-            
-        Side Effects:
-            - Emits selection_changed signal
-            - Updates visual styling to show selection
+        Apply the appropriate style based on current state (highlighted, checked, or normal).
+
+        Priority order:
+        1. Gray highlight (if is_highlighted is True)
+        2. Blue selection (if checkbox is checked)
+        3. Normal white background
         """
-        is_selected = state == Qt.CheckState.Checked.value
-        self.selection_changed.emit(self.verse_id, is_selected)
-        
-        # Update visual feedback for selection
-        if is_selected:
+        if self.is_highlighted:
+            # Gray highlight for navigation
+            self.setStyleSheet("""
+                VerseItemWidget {
+                    background-color: #e0e0e0;
+                    border-bottom: 1px solid #b0b0b0;
+                    border-left: 3px solid #808080;
+                    padding: 2px;
+                }
+            """)
+        elif self.checkbox.isChecked():
+            # Blue selection for checked verses
             self.setStyleSheet("""
                 VerseItemWidget {
                     background-color: #e6f3ff;
@@ -227,7 +233,25 @@ class VerseItemWidget(QWidget):
                 }
             """)
         else:
+            # Normal white background
             self.setup_styling()
+
+    def on_checkbox_changed(self, state):
+        """
+        Handle checkbox state change and emit selection_changed signal.
+
+        Args:
+            state (int): Qt.CheckState value (Checked or Unchecked)
+
+        Side Effects:
+            - Emits selection_changed signal
+            - Updates visual styling to show selection
+        """
+        is_selected = state == Qt.CheckState.Checked.value
+        self.selection_changed.emit(self.verse_id, is_selected)
+
+        # Update visual feedback based on all states
+        self.apply_current_style()
             
     def on_verse_clicked(self, event):
         """
@@ -391,6 +415,7 @@ class VerseListWidget(QWidget):
         self.window_id = window_id
         self.verse_items = {}  # verse_id -> (QListWidgetItem, VerseItemWidget)
         self.selected_verses = set()  # Set of selected verse_ids
+        self.currently_highlighted_verse = None  # Track clicked verse for gray highlighting
 
         self.setup_ui()
 
@@ -442,6 +467,9 @@ class VerseListWidget(QWidget):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding
         )
+
+        # Install event filter to activate window when clicking anywhere in list
+        self.list_widget.viewport().installEventFilter(self)
 
         # Add list to frame, then frame to main layout
         frame_layout.addWidget(self.list_widget)
@@ -566,6 +594,42 @@ class VerseListWidget(QWidget):
         # Emit navigation signal (no checkbox toggling - user must click checkbox directly)
         self.verse_navigation_requested.emit(verse_id)
 
+        # Highlight this verse in gray
+        self.set_highlighted_verse(verse_id)
+
+    def set_highlighted_verse(self, verse_id):
+        """
+        Highlight a verse with gray background when clicked.
+
+        Args:
+            verse_id (str): Verse to highlight (or None to clear highlight)
+        """
+        # Clear ALL previous highlights across ALL windows (including old blue highlights)
+        if hasattr(self, 'main_window') and self.main_window:
+            # Clear highlights in all verse list windows
+            for window_name in ['search', 'reading']:
+                if window_name in self.main_window.verse_lists:
+                    verse_list = self.main_window.verse_lists[window_name]
+                    # Clear the currently_highlighted_verse tracking
+                    if verse_list.currently_highlighted_verse and verse_list.currently_highlighted_verse in verse_list.verse_items:
+                        item, verse_widget = verse_list.verse_items[verse_list.currently_highlighted_verse]
+                        verse_widget.is_highlighted = False
+                        verse_widget.apply_current_style()
+                        verse_list.currently_highlighted_verse = None
+
+                    # Also clear old-style blue highlighting (from Window 2 clicks)
+                    from PyQt6.QtGui import QColor, QBrush
+                    for vid, (list_item, vw) in verse_list.verse_items.items():
+                        vw.set_highlighted(False)
+                        list_item.setBackground(QBrush(QColor(255, 255, 255)))  # White
+
+        # Set new highlight
+        self.currently_highlighted_verse = verse_id
+        if verse_id and verse_id in self.verse_items:
+            item, verse_widget = self.verse_items[verse_id]
+            verse_widget.is_highlighted = True
+            verse_widget.apply_current_style()
+
     def clear_verses(self):
         """
         Remove all verses from the list.
@@ -574,11 +638,13 @@ class VerseListWidget(QWidget):
             - Removes all verse widgets
             - Clears verse_items dictionary
             - Clears selected_verses set
+            - Clears highlighted verse
             - Emits selection_changed signal
         """
         self.list_widget.clear()
         self.verse_items.clear()
         self.selected_verses.clear()
+        self.currently_highlighted_verse = None
         self.selection_changed.emit()
 
     def get_selected_verses(self):
@@ -621,6 +687,37 @@ class VerseListWidget(QWidget):
             item.setSizeHint(verse_widget.sizeHint())
         # Force the list widget to update its layout
         self.list_widget.update()
+
+    def eventFilter(self, obj, event):
+        """
+        Event filter to catch mouse clicks on the QListWidget viewport.
+
+        This ensures clicking anywhere in the list (not just the sidebar)
+        will activate this window.
+
+        Args:
+            obj: The object that generated the event
+            event: The event to filter
+
+        Returns:
+            bool: True if event was handled, False to pass it on
+        """
+        from PyQt6.QtCore import QEvent
+
+        # Only handle mouse press events on the list viewport
+        if obj == self.list_widget.viewport() and event.type() == QEvent.Type.MouseButtonPress:
+            # Block window switching if selection is locked
+            if hasattr(self, 'main_window') and self.main_window:
+                if not self.main_window.selection_locked:
+                    # Make this window active when clicked
+                    print(f"🖱️  Clicked in list viewport '{self.window_id}' → Activating")
+                    self.main_window.set_active_window(self.window_id)
+                    self.setFocus()
+                else:
+                    print(f"🔒 Window switching blocked - selection is locked")
+
+        # Always pass the event through for normal processing
+        return False
 
     def mousePressEvent(self, event):
         """
