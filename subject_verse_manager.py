@@ -266,6 +266,10 @@ class SubjectVerseManager:
             self.subject_dropdown.setCurrentText(subject_name)
             self.update_button_states()  # Enable buttons
 
+            # Also update Window 3's subject dropdown
+            if hasattr(self.parent_app, 'load_subjects_for_reading'):
+                self.parent_app.load_subjects_for_reading()
+
             self.parent_app.message_label.setText(f"✓ Created subject: {subject_name}")
 
         except sqlite3.IntegrityError:
@@ -440,10 +444,11 @@ class SubjectVerseManager:
         try:
             cursor = self.db_conn.cursor()
             cursor.execute("""
-                SELECT id, verse_reference, verse_text, translation, comments
-                FROM subject_verses
-                WHERE subject_id = ?
-                ORDER BY order_index
+                SELECT sv.id, sv.verse_reference, sv.verse_text, sv.translation, sc.comment as comments
+                FROM subject_verses sv
+                LEFT JOIN subject_comments sc ON sv.id = sc.verse_id AND sv.subject_id = sc.subject_id
+                WHERE sv.subject_id = ?
+                ORDER BY sv.order_index
             """, (self.current_subject_id,))
 
             verses = cursor.fetchall()
