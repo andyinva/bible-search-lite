@@ -486,6 +486,20 @@ class SubjectVerseManager:
                     chapter, verse_num, verse['verse_text']
                 )
 
+            # Apply font settings to all loaded verses
+            from PyQt6.QtGui import QFont
+            verse_size = self.parent_app.verse_font_sizes[self.parent_app.verse_font_size]
+
+            for verse_id, verse_item in self.subject_verse_list.verse_items.items():
+                _, verse_widget = verse_item
+                verse_font = QFont("IBM Plex Mono")
+                verse_font.setBold(False)
+                verse_font.setPointSizeF(verse_size)
+                verse_widget.text_label.setFont(verse_font)
+
+            # Update size hints after font changes
+            self.subject_verse_list.update_item_sizes()
+
             print(f"✓ Loaded {len(verses)} verse(s) for subject")
 
         except Exception as e:
