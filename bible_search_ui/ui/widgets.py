@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (QWidget, QLabel, QCheckBox, QVBoxLayout,
                              QHBoxLayout, QScrollArea, QFrame, QSizePolicy,
                              QListWidget, QListWidgetItem)
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QFontMetrics
 
 
 class VerseItemWidget(QWidget):
@@ -90,7 +90,7 @@ class VerseItemWidget(QWidget):
         - Verse text (expandable with word wrap)
         """
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(3, 1, 3, 1)  # Compact margins
+        layout.setContentsMargins(3, 0, 3, 0)  # No top/bottom margins
         layout.setSpacing(5)  # Minimal spacing between checkbox and text
         
         # Checkbox (fixed width for alignment) - very small with checkmark
@@ -116,13 +116,20 @@ class VerseItemWidget(QWidget):
         self.checkbox.stateChanged.connect(self.on_checkbox_changed)
         layout.addWidget(self.checkbox, alignment=Qt.AlignmentFlag.AlignTop)
 
-        # Combined reference and text as a single label with word wrap
+        # Combined reference and text as a single label with word wrap and hanging indent
         ref_text = f"{self.translation} {self.book_abbrev} {self.chapter}:{self.verse_number}"
+
+        # Calculate reference width for hanging indent
+        temp_font = QFont("IBM Plex Mono", 9)
+        font_metrics = QFontMetrics(temp_font)
+        ref_width = font_metrics.horizontalAdvance(ref_text + " - ")
+        self.ref_width = ref_width  # Store for later updates
+
+        # Simple plain text display without hanging indent
         combined_text = f"{ref_text} - {self.text}"
         self.text_label = QLabel(combined_text)
         self.text_label.setWordWrap(True)
         self.text_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        # Remove minimum height to allow compact display
         layout.addWidget(self.text_label, stretch=1)
 
         # Keep reference_label as attribute for compatibility (points to same label)
@@ -132,8 +139,8 @@ class VerseItemWidget(QWidget):
         # Make the entire widget clickable for navigation
         self.mousePressEvent = self.on_verse_clicked
 
-        # Set height for proper scrolling - compact
-        self.setMinimumHeight(22)  # Compact but readable
+        # Set height for proper scrolling - minimal
+        self.setMinimumHeight(18)  # Minimal height
 
     def setup_styling(self):
         """
@@ -148,7 +155,7 @@ class VerseItemWidget(QWidget):
             VerseItemWidget {
                 background-color: white;
                 border: none;
-                padding: 1px;
+                padding: 0px;
                 margin: 0px;
             }
             VerseItemWidget:hover {
@@ -159,7 +166,6 @@ class VerseItemWidget(QWidget):
                 color: #333;
                 padding: 0px;
                 margin: 0px;
-                line-height: 1.4;
             }
         """)
         
@@ -180,23 +186,51 @@ class VerseItemWidget(QWidget):
         font.setPointSizeF(font_size)
         self.text_label.setFont(font)
 
-        # Add line-height for consistent wrapped text spacing
+        # Recalculate hanging indent for the current font size
+        # Update text with plain text (no HTML)
+        combined_text = f"{self.reference_text} - {self.text}"
+        self.text_label.setText(combined_text)
+
+        # Remove line-height to prevent blank lines after multi-line verses
         self.text_label.setStyleSheet("""
             QLabel {
                 color: black;
-                line-height: 13px;
                 padding: 0px;
+                margin: 0px;
             }
         """)
 
     def sizeHint(self):
-        """Return recommended size for this widget - very compact"""
+        """Return recommended size for this widget using Qt's actual text measurement"""
         from PyQt6.QtCore import QSize
-        # Very compact: minimal spacing
-        # Assuming ~75 chars per line at 9pt font, ~15px per line
-        text_lines = max(1, len(self.text) // 75)
-        height = 18 + (text_lines * 15)  # Very compact base + text height
-        return QSize(600, min(height, 120))  # Cap at 120px per verse
+
+        # Try to get the actual width from the list widget (dynamic width detection)
+        actual_width = 600  # Fallback default
+
+        # Walk up the widget tree to find the list widget
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'viewport'):
+                # Found the list widget - get its actual viewport width
+                actual_width = parent.viewport().width()
+                break
+            parent = parent.parent() if hasattr(parent, 'parent') else None
+
+        # Calculate text width based on actual width
+        # Account for checkbox (16px), spacing (5px), margins (3+3px), and scrollbar (20px)
+        text_width = actual_width - 16 - 5 - 3 - 3 - 20
+        text_width = max(text_width, 400)  # Ensure reasonable minimum
+
+        # Get actual wrapped text height from QLabel's heightForWidth
+        text_height = self.text_label.heightForWidth(text_width)
+
+        # No padding, no margins - use exact text height
+        total_height = text_height if text_height > 0 else 18
+
+        # Reasonable bounds: minimum 18px, maximum 150px
+        total_height = max(18, min(total_height, 150))
+
+        return QSize(actual_width, total_height)
 
     def minimumSizeHint(self):
         """Return minimum size for this widget - very compact"""
@@ -219,7 +253,7 @@ class VerseItemWidget(QWidget):
                     background-color: #e0e0e0;
                     border-bottom: 1px solid #b0b0b0;
                     border-left: 3px solid #808080;
-                    padding: 2px;
+                    padding: 0px;
                 }
             """)
         elif self.checkbox.isChecked():
@@ -229,7 +263,7 @@ class VerseItemWidget(QWidget):
                     background-color: #e6f3ff;
                     border-bottom: 1px solid #b3d9ff;
                     border-left: 3px solid #0078d4;
-                    padding: 2px;
+                    padding: 0px;
                 }
             """)
         else:
@@ -453,7 +487,7 @@ class VerseListWidget(QWidget):
 
         # Create QListWidget for optimized scrolling
         self.list_widget = QListWidget()
-        self.list_widget.setSpacing(0)  # No spacing for maximum compactness
+        self.list_widget.setSpacing(1)  # 1px spacing between verses for readability
         self.list_widget.setUniformItemSizes(False)  # Dynamic heights for proper wrapping
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
@@ -470,6 +504,12 @@ class VerseListWidget(QWidget):
 
         # Install event filter to activate window when clicking anywhere in list
         self.list_widget.viewport().installEventFilter(self)
+
+        # Also install event filter on the list widget itself
+        self.list_widget.installEventFilter(self)
+
+        # Install event filter on the frame to catch clicks on frame borders
+        list_frame.installEventFilter(self)
 
         # Add list to frame, then frame to main layout
         frame_layout.addWidget(self.list_widget)
@@ -690,9 +730,9 @@ class VerseListWidget(QWidget):
 
     def eventFilter(self, obj, event):
         """
-        Event filter to catch mouse clicks on the QListWidget viewport.
+        Event filter to catch mouse clicks anywhere in the window.
 
-        This ensures clicking anywhere in the list (not just the sidebar)
+        This ensures clicking anywhere (viewport, list, frame, scrollbar)
         will activate this window.
 
         Args:
@@ -704,13 +744,14 @@ class VerseListWidget(QWidget):
         """
         from PyQt6.QtCore import QEvent
 
-        # Only handle mouse press events on the list viewport
-        if obj == self.list_widget.viewport() and event.type() == QEvent.Type.MouseButtonPress:
+        # Handle mouse press events on any of our tracked objects
+        if event.type() == QEvent.Type.MouseButtonPress:
             # Block window switching if selection is locked
             if hasattr(self, 'main_window') and self.main_window:
                 if not self.main_window.selection_locked:
                     # Make this window active when clicked
-                    print(f"🖱️  Clicked in list viewport '{self.window_id}' → Activating")
+                    obj_name = obj.__class__.__name__
+                    print(f"🖱️  Clicked in {obj_name} '{self.window_id}' → Activating")
                     self.main_window.set_active_window(self.window_id)
                     self.setFocus()
                 else:
@@ -746,6 +787,22 @@ class VerseListWidget(QWidget):
 
         # Pass event to parent for normal processing
         super().mousePressEvent(event)
+
+    def resizeEvent(self, event):
+        """
+        Handle resize events to recalculate verse heights based on new width.
+
+        When the window is resized, text wrapping changes, so we need to
+        recalculate the height of each verse item to match the new width.
+
+        Args:
+            event (QResizeEvent): The resize event
+        """
+        super().resizeEvent(event)
+
+        # Update all item sizes to match new width
+        if hasattr(self, 'verse_items') and self.verse_items:
+            self.update_item_sizes()
 
     def keyPressEvent(self, event):
         """

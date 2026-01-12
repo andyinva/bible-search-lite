@@ -475,7 +475,7 @@ class BibleSearch:
 
         # Apply highlights from end to start
         for start, end, matched_text in unique_matches:
-            highlighted_text = highlighted_text[:start] + f'[{matched_text}]' + highlighted_text[end:]
+            highlighted_text = highlighted_text[:start] + matched_text + highlighted_text[end:]
 
         return highlighted_text
 
@@ -516,7 +516,7 @@ class BibleSearch:
 
         # Apply highlights from end to start (to preserve positions)
         for start, end, matched_text in unique_matches:
-            highlighted_text = highlighted_text[:start] + f'[{matched_text}]' + highlighted_text[end:]
+            highlighted_text = highlighted_text[:start] + matched_text + highlighted_text[end:]
 
         return highlighted_text
 
@@ -560,7 +560,7 @@ class BibleSearch:
                 prev_group_end_in_match = match.end(i) - match.start()
                 highlighted_match += match.group(0)[prev_group_end_in_match:group_start_in_match]
 
-            highlighted_match += f'[{group}]'
+            highlighted_match += group
 
         result = text[:match.start()] + highlighted_match + text[match.end():]
 
@@ -699,7 +699,7 @@ class BibleSearch:
         # Apply highlights from right to left (to preserve indices)
         highlighted_text = text
         for start, end, matched_text in filtered_matches:
-            highlighted_text = highlighted_text[:start] + f'[{matched_text}]' + highlighted_text[end:]
+            highlighted_text = highlighted_text[:start] + matched_text + highlighted_text[end:]
         
         return highlighted_text
     

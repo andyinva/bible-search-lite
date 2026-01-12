@@ -191,7 +191,7 @@ class BibleSearchProgram(QMainWindow):
         self.title_font_size = 0  # Current: 9px
         self.verse_font_size = 0  # Current: 9px for reference and text
         self.title_font_sizes = [9, 9.5, 10, 10.5, 11]  # 5 choices, 0.5pt increments
-        self.verse_font_sizes = [9, 9.5, 10, 10.5, 11]   # 5 choices, 0.5pt increments
+        self.verse_font_sizes = [9, 9.5, 10, 10.5, 11, 11.5, 12]   # 7 choices, 0.5pt increments
 
         # Context-sensitive buttons (will be created in setup_ui)
         self.tips_btn = None
@@ -698,12 +698,20 @@ class BibleSearchProgram(QMainWindow):
                     padding: 4px 8px;
                     border-radius: 2px;
                     min-width: 50px;
+                    color: #000000;
                 }
                 QPushButton:hover {
                     background-color: #d0d0d0;
+                    color: #000000;
                 }
                 QPushButton:pressed {
                     background-color: #c0c0c0;
+                    color: #000000;
+                }
+                QPushButton:disabled {
+                    background-color: #f0f0f0;
+                    color: #999999;
+                    border: 1px solid #ccc;
                 }
             """
 
@@ -1354,6 +1362,9 @@ class BibleSearchProgram(QMainWindow):
                 verse_font.setPointSizeF(verse_size)  # Use setPointSizeF for fractional sizes
                 widget.text_label.setFont(verse_font)
 
+            # Recalculate verse heights after font change
+            verse_list.update_item_sizes()
+
     def perform_search(self):
         """Perform a Bible search using SearchController"""
         import time
@@ -1894,6 +1905,10 @@ class BibleSearchProgram(QMainWindow):
 
         print(f"✓ Applied {verse_size}pt font to {len(verses)} context verses individually")
 
+        # Update size hints after font changes to prevent text cutoff
+        self.verse_lists['reading'].update_item_sizes()
+        print(f"✓ Updated size hints for all verses in reading window")
+
         # Highlight the first verse (the one that was clicked)
         if verses:
             # Clear any previous highlights in Window 3 first
@@ -1919,10 +1934,11 @@ class BibleSearchProgram(QMainWindow):
             self.update_cross_references_dropdown(verse_reference)
             print(f"🔗 Loading cross-references for {verse_reference}")
 
-            # Automatically activate Window 3 (Reading) after loading context
-            # This allows user to immediately use Ctrl+A or Copy without clicking
-            self.set_active_window('reading')
-            print("🎯 Auto-activated Window 3 (Reading Window)")
+            # NOTE: We used to auto-activate Window 3 here, but that prevented
+            # Window 2 from staying active when clicking verses in it.
+            # Users can click Window 3 if they want to work there.
+            # self.set_active_window('reading')
+            # print("🎯 Auto-activated Window 3 (Reading Window)")
 
     def on_tips_clicked(self):
         """Show context-sensitive tips based on active window"""
