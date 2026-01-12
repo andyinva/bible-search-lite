@@ -443,13 +443,28 @@ class SubjectVerseManager:
 
         try:
             cursor = self.db_conn.cursor()
-            cursor.execute("""
-                SELECT sv.id, sv.verse_reference, sv.verse_text, sv.translation, sc.comment as comments
-                FROM subject_verses sv
-                LEFT JOIN subject_comments sc ON sv.id = sc.verse_id AND sv.subject_id = sc.subject_id
-                WHERE sv.subject_id = ?
-                ORDER BY sv.order_index
-            """, (self.current_subject_id,))
+
+            # Check if subject_comments table exists (new schema) or if comments column exists (old schema)
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='subject_comments'")
+            has_comments_table = cursor.fetchone() is not None
+
+            if has_comments_table:
+                # New schema: comments in separate table
+                cursor.execute("""
+                    SELECT sv.id, sv.verse_reference, sv.verse_text, sv.translation, sc.comment as comments
+                    FROM subject_verses sv
+                    LEFT JOIN subject_comments sc ON sv.id = sc.verse_id AND sv.subject_id = sc.subject_id
+                    WHERE sv.subject_id = ?
+                    ORDER BY sv.order_index
+                """, (self.current_subject_id,))
+            else:
+                # Old schema: comments as column in subject_verses
+                cursor.execute("""
+                    SELECT id, verse_reference, verse_text, translation, comments
+                    FROM subject_verses
+                    WHERE subject_id = ?
+                    ORDER BY order_index
+                """, (self.current_subject_id,))
 
             verses = cursor.fetchall()
 
