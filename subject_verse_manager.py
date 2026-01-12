@@ -60,6 +60,48 @@ class SubjectVerseManager:
         self.subject_dropdown.setEditable(True)
         self.subject_dropdown.setPlaceholderText("Select or create subject...")
         self.subject_dropdown.currentTextChanged.connect(self.on_subject_selected)
+
+        # Style dropdown for visibility on all platforms
+        self.subject_dropdown.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                color: black;
+                border: 1px solid #999;
+                padding: 4px 8px;
+                border-radius: 2px;
+                min-width: 150px;
+            }
+            QComboBox:editable {
+                background-color: white;
+                color: black;
+            }
+            QComboBox:hover {
+                border: 1px solid #666;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #555;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: white;
+                color: black;
+                selection-background-color: #0078d4;
+                selection-color: white;
+                border: 1px solid #999;
+            }
+            QLineEdit {
+                background-color: white;
+                color: black;
+            }
+        """)
+
         controls_layout.addWidget(self.subject_dropdown)
 
         # Button style for cross-platform consistency
