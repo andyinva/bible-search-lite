@@ -302,10 +302,8 @@ def download_application_files():
         CREATE TABLE IF NOT EXISTS subject_verses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             subject_id INTEGER NOT NULL,
-            book TEXT NOT NULL,
-            chapter INTEGER NOT NULL,
-            verse INTEGER NOT NULL,
-            text TEXT NOT NULL,
+            verse_reference TEXT NOT NULL,
+            verse_text TEXT NOT NULL,
             translation TEXT NOT NULL,
             order_index INTEGER DEFAULT 0,
             created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
