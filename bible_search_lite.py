@@ -920,7 +920,7 @@ class BibleSearchProgram(QMainWindow):
                 print(f"🔗 Updated cross-references for clicked verse: {verse_reference}")
 
     def clear_search_and_reading(self):
-        """Clear search results, reading window, and references dropdown"""
+        """Clear search results, reading window, references dropdown, and subject selections"""
         self.verse_lists['search'].clear_verses()
         self.verse_lists['reading'].clear_verses()
 
@@ -930,7 +930,22 @@ class BibleSearchProgram(QMainWindow):
         self.cross_references_combo.setEnabled(False)
         self.cross_references_combo.setStyleSheet(self.get_combobox_style())
 
-        self.message_label.setText("Search results, reading window, and references cleared")
+        # Hide the Go Back button in Window 3
+        self.go_back_btn.setVisible(False)
+
+        # Clear subject dropdown in Window 3
+        if hasattr(self, 'reading_subject_combo'):
+            self.reading_subject_combo.setCurrentIndex(0)  # Reset to empty
+
+        # Clear subject dropdown in Window 4
+        if self.subject_manager and self.subject_manager.verse_manager:
+            self.subject_manager.verse_manager.subject_dropdown.setCurrentIndex(0)
+            self.subject_manager.verse_manager.current_subject = None
+            self.subject_manager.verse_manager.current_subject_id = None
+            # Update button states in Window 4
+            self.subject_manager.verse_manager.update_button_states()
+
+        self.message_label.setText("Search results, reading window, references, and subjects cleared")
 
     def show_translation_selector(self):
         """Show dialog to select which translations to search"""
