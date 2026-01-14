@@ -613,6 +613,48 @@ class BibleSearchProgram(QMainWindow):
         self.reading_subject_combo.setPlaceholderText("Select or create subject...")
         self.reading_subject_combo.setMinimumWidth(200)
         self.reading_subject_combo.currentTextChanged.connect(self.on_reading_subject_changed)
+
+        # Style dropdown for visibility on all platforms
+        self.reading_subject_combo.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                color: black;
+                border: 1px solid #999;
+                padding: 4px 8px;
+                border-radius: 2px;
+                min-width: 150px;
+            }
+            QComboBox:editable {
+                background-color: white;
+                color: black;
+            }
+            QComboBox:hover {
+                border: 1px solid #666;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #555;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: white;
+                color: black;
+                selection-background-color: #0078d4;
+                selection-color: white;
+                border: 1px solid #999;
+            }
+            QLineEdit {
+                background-color: white;
+                color: black;
+            }
+        """)
+
         layout.addWidget(self.reading_subject_combo)
 
         # Acquire button (adds checked verses to selected subject)
@@ -4428,6 +4470,10 @@ from liability. It's the same license used by many popular open-source projects.
                 self.load_subjects_for_reading()
                 if self.subject_manager.verse_manager:
                     self.subject_manager.verse_manager.load_subjects()
+                    # Select the newly created subject in Window 4
+                    self.subject_manager.verse_manager.subject_dropdown.setCurrentText(subject_name)
+                    self.subject_manager.verse_manager.current_subject = subject_name
+                    self.subject_manager.verse_manager.current_subject_id = subject_id
 
             # Add verses to subject
             added_count = 0

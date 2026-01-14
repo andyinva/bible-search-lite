@@ -234,6 +234,9 @@ class SubjectVerseManager:
                 # Update Acquire button based on selections in Windows 2/3
                 if hasattr(self.parent_app, 'update_subject_acquire_button'):
                     self.parent_app.update_subject_acquire_button()
+                # Sync to Window 3's subject dropdown
+                if hasattr(self.parent_app, 'reading_subject_combo'):
+                    self.parent_app.reading_subject_combo.setCurrentText(subject_name)
             else:
                 self.current_subject = None
                 self.current_subject_id = None
