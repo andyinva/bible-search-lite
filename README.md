@@ -4,7 +4,7 @@
 **Release Date**: January 2026
 **License**: MIT
 
-A powerful, feature-rich Bible search application with advanced search operators, 44 Bible translations, and an intuitive multi-window interface.
+A powerful, feature-rich Bible search application with advanced search operators, 37 Bible translations, and an intuitive multi-window interface.
 
 ---
 
@@ -20,14 +20,14 @@ python3 setup.py
 
 **Windows 10/11:**
 ```powershell
-curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py" -OutFile "setup_win11.py"
 python setup_win11.py
 ```
 
 The installer will:
-- ✅ Download Bible database from GitHub Release (~90 MB)
+- ✅ Download Bible database from GitHub Release (~79 MB)
 - ✅ Verify download integrity with checksums
-- ✅ Extract and create SQLite database (453 MB)
+- ✅ Extract and create SQLite database (405 MB)
 - ✅ Download all application files
 - ✅ Install PyQt6 automatically
 - ✅ Create platform-specific launcher
@@ -67,8 +67,8 @@ python3 bible_search_lite.py
 
 See [SEARCH_OPERATORS.md](SEARCH_OPERATORS.md) for complete documentation.
 
-### 44 Bible Translations
-Including KJV (1611), NIV, ESV, NASB, and many historical translations from 1382-2023, with publication dates shown.
+### 37 Bible Translations
+Including KJV (1611), ASV, Darby, Geneva Bible, and many historical translations from 1395-2000, with publication dates shown.
 
 ### Multi-Window Interface
 - **Window 1: Message** - Status and controls
@@ -126,11 +126,11 @@ love ~4 God             - "love" and "God" within 4 words
 
 ## Database
 
-- **44 Bible translations**
+- **37 Bible translations**
 - **~31,000 verses per translation**
-- **1.3+ million total verses**
-- **453 MB SQLite database**
-- **Compressed download: ~90 MB**
+- **1.1+ million total verses**
+- **405 MB SQLite database**
+- **Compressed download: ~79 MB**
 
 ---
 
