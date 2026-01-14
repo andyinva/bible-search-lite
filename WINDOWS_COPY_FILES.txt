@@ -1,0 +1,65 @@
+# Files to Copy to Windows 11 for Testing
+# =========================================
+
+## Method 1: Manual Copy (Easiest)
+Just copy these files/folders from your WSL to Windows:
+
+### Main Directory Files:
+bible_search_lite.py
+bible_search.py
+bible_search_service.py
+subject_manager.py
+subject_verse_manager.py  
+subject_comment_manager.py
+VERSION.txt
+README.md
+SEARCH_OPERATORS.md
+WINDOWS_INSTALL.md
+LICENSE
+
+### Folders (copy entire folders):
+bible_search_ui/
+database/
+
+### Create Launcher:
+Create a file called "run_bible_search.bat" with this content:
+@echo off
+echo Starting Bible Search Lite...
+python bible_search_lite.py
+pause
+
+
+## Method 2: Using the Archive
+The file bible-search-lite-windows.tar.gz (130MB) contains everything.
+
+Transfer to Windows and extract with 7-Zip:
+1. Right-click bible-search-lite-windows.tar.gz
+2. 7-Zip → Extract Here
+3. Double-click run_bible_search.bat
+
+
+## Method 3: Direct WSL Access
+If you have WSL on your Windows 11 machine, you can access WSL files from Windows:
+
+Windows path: \\wsl$\Ubuntu\home\ajhinva\projects\bible-search-lite
+
+Copy the entire folder to your Windows desktop!
+
+
+## Minimum Required Files (if space is limited):
+- bible_search_lite.py
+- bible_search.py  
+- bible_search_service.py
+- subject_*.py (all 3 files)
+- bible_search_ui/ (entire folder)
+- database/bibles.db (453MB)
+- VERSION.txt
+- run_bible_search.bat
+
+
+## What You DON'T Need to Copy:
+- .git/ folder
+- test_*.py files
+- __pycache__/ folders
+- .backup files
+- data/ folder (just for exports)

@@ -162,10 +162,13 @@ class VerseItemWidget(QWidget):
                 background-color: #f5f5f5;
             }
             QLabel {
-                background-color: transparent;
+                background-color: white;
                 color: #333;
                 padding: 0px;
                 margin: 0px;
+            }
+            QLabel:hover {
+                background-color: #f5f5f5;
             }
         """)
         
@@ -248,6 +251,8 @@ class VerseItemWidget(QWidget):
         """
         if self.is_highlighted:
             # Gray highlight for navigation
+            print(f"  🎨 Applying GRAY to {self.verse_id}")
+
             self.setStyleSheet("""
                 VerseItemWidget {
                     background-color: #e0e0e0;
@@ -255,9 +260,17 @@ class VerseItemWidget(QWidget):
                     border-left: 3px solid #808080;
                     padding: 0px;
                 }
+                VerseItemWidget:hover {
+                    background-color: #e0e0e0;
+                }
+                QLabel {
+                    background-color: #e0e0e0;
+                    color: #333;
+                }
             """)
         elif self.checkbox.isChecked():
             # Blue selection for checked verses
+            print(f"  🎨 Applying BLUE to {self.verse_id}")
             self.setStyleSheet("""
                 VerseItemWidget {
                     background-color: #e6f3ff;
@@ -265,9 +278,17 @@ class VerseItemWidget(QWidget):
                     border-left: 3px solid #0078d4;
                     padding: 0px;
                 }
+                VerseItemWidget:hover {
+                    background-color: #e6f3ff;
+                }
+                QLabel {
+                    background-color: #e6f3ff;
+                    color: #333;
+                }
             """)
         else:
             # Normal white background
+            print(f"  🎨 Applying WHITE to {self.verse_id}")
             self.setup_styling()
 
     def on_checkbox_changed(self, state):
@@ -670,6 +691,10 @@ class VerseListWidget(QWidget):
             verse_widget.is_highlighted = True
             verse_widget.apply_current_style()
 
+            # ALSO set background on the QListWidgetItem for more reliable highlighting
+            from PyQt6.QtGui import QColor, QBrush
+            item.setBackground(QBrush(QColor(224, 224, 224)))  # Gray: #e0e0e0
+
     def clear_verses(self):
         """
         Remove all verses from the list.
@@ -883,9 +908,6 @@ class VerseListWidget(QWidget):
                     padding: 0px;
                     margin: 0px;
                 }
-                QListWidget::item:selected {
-                    background-color: transparent;
-                }
             """)
             # Enable scrolling when active
             self.list_widget.verticalScrollBar().setEnabled(True)
@@ -900,9 +922,6 @@ class VerseListWidget(QWidget):
                     border: none;
                     padding: 0px;
                     margin: 0px;
-                }
-                QListWidget::item:selected {
-                    background-color: transparent;
                 }
             """)
             # Disable scrolling when inactive (only for search and reading windows)

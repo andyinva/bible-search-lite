@@ -222,7 +222,14 @@ class SubjectVerseManager:
             return
 
         # Get subject ID
+        # Prevent infinite recursion when syncing dropdowns
+        if hasattr(self.parent_app, '_syncing_subjects') and self.parent_app._syncing_subjects:
+            return
+
         try:
+            # Set flag to prevent recursion
+            self.parent_app._syncing_subjects = True
+
             cursor = self.db_conn.cursor()
             cursor.execute("SELECT id FROM subjects WHERE name = ?", (subject_name,))
             result = cursor.fetchone()
@@ -238,6 +245,7 @@ class SubjectVerseManager:
                 # Sync to Window 3's subject dropdown
                 if hasattr(self.parent_app, 'reading_subject_combo'):
                     self.parent_app.reading_subject_combo.setCurrentText(subject_name)
+                    print(f"✓ Synced Window 3 to Window 4 subject: '{subject_name}'")
             else:
                 self.current_subject = None
                 self.current_subject_id = None
@@ -247,7 +255,9 @@ class SubjectVerseManager:
                     self.parent_app.update_subject_acquire_button()
 
         except Exception as e:
-            print(f"⚠️  Error selecting subject: {e}")
+            print(f"⚠️  Error in on_subject_changed: {e}")
+        finally:
+            self.parent_app._syncing_subjects = False
 
     def on_create_subject(self):
         """Create a new subject from dropdown text."""

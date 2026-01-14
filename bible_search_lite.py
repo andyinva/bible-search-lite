@@ -159,10 +159,6 @@ class BibleSearchProgram(QMainWindow):
                 border: 1px solid #0078d4;
                 image: url(none);
             }
-            QCheckBox::indicator:checked:after {
-                content: "✓";
-                color: white;
-            }
             QLineEdit, QComboBox {
                 background-color: #ffffff;
                 color: #000000;
@@ -4432,6 +4428,10 @@ from liability. It's the same license used by many popular open-source projects.
 
     def on_reading_subject_changed(self, subject_name):
         """Handle subject selection change in Window 3."""
+        # Prevent infinite recursion when syncing dropdowns
+        if hasattr(self, '_syncing_subjects') and self._syncing_subjects:
+            return
+
         # Enable Acquire button in Window 3 if subject is selected and not empty
         has_subject = bool(subject_name and subject_name.strip())
         self.send_btn.setEnabled(has_subject)
@@ -4444,6 +4444,30 @@ from liability. It's the same license used by many popular open-source projects.
 
         if has_subject:
             print(f"✓ Reading window subject selected: {subject_name}")
+
+            # Sync to Window 4 and load verses
+            if self.subject_manager and self.subject_manager.verse_manager:
+                try:
+                    # Set flag to prevent recursion
+                    self._syncing_subjects = True
+
+                    # Get subject ID
+                    cursor = self.subject_manager.db_conn.cursor()
+                    cursor.execute("SELECT id FROM subjects WHERE name = ?", (subject_name.strip(),))
+                    result = cursor.fetchone()
+                    if result:
+                        subject_id = result['id']
+                        # Set Window 4's dropdown to match Window 3
+                        self.subject_manager.verse_manager.subject_dropdown.setCurrentText(subject_name)
+                        self.subject_manager.verse_manager.current_subject = subject_name
+                        self.subject_manager.verse_manager.current_subject_id = subject_id
+                        # Load the verses
+                        self.subject_manager.verse_manager.load_subject_verses()
+                        print(f"✓ Synced Window 4 to Window 3 subject: '{subject_name}'")
+                except Exception as e:
+                    print(f"⚠️  Error syncing subject to Window 4: {e}")
+                finally:
+                    self._syncing_subjects = False
 
     def on_send_to_subject(self):
         """Acquire checked verses from Window 3 (reading) to selected subject."""
