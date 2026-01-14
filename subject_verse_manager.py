@@ -451,25 +451,50 @@ class SubjectVerseManager:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='subject_comments'")
             has_comments_table = cursor.fetchone() is not None
 
+            # Get Bible database connection for book order lookup
+            bible_db = self.parent_app.search_controller.bible_search.db_path
+
             if has_comments_table:
                 # New schema: comments in separate table
                 cursor.execute("""
-                    SELECT sv.id, sv.verse_reference, sv.verse_text, sv.translation, sc.comment as comments
+                    SELECT sv.id, sv.verse_reference, sv.verse_text, sv.translation, sc.comment as comments,
+                           CAST(substr(sv.verse_reference, instr(sv.verse_reference, ' ') + 1,
+                                instr(sv.verse_reference || ':', ':') - instr(sv.verse_reference, ' ') - 1) AS INTEGER) as chapter_num,
+                           CAST(substr(sv.verse_reference, instr(sv.verse_reference, ':') + 1) AS INTEGER) as verse_num,
+                           substr(sv.verse_reference, 1, instr(sv.verse_reference, ' ') - 1) as book_abbr
                     FROM subject_verses sv
                     LEFT JOIN subject_comments sc ON sv.id = sc.verse_id AND sv.subject_id = sc.subject_id
                     WHERE sv.subject_id = ?
-                    ORDER BY sv.order_index
                 """, (self.current_subject_id,))
             else:
                 # Old schema: comments as column in subject_verses
                 cursor.execute("""
-                    SELECT id, verse_reference, verse_text, translation, comments
+                    SELECT id, verse_reference, verse_text, translation, comments,
+                           CAST(substr(verse_reference, instr(verse_reference, ' ') + 1,
+                                instr(verse_reference || ':', ':') - instr(verse_reference, ' ') - 1) AS INTEGER) as chapter_num,
+                           CAST(substr(verse_reference, instr(verse_reference, ':') + 1) AS INTEGER) as verse_num,
+                           substr(verse_reference, 1, instr(verse_reference, ' ') - 1) as book_abbr
                     FROM subject_verses
                     WHERE subject_id = ?
-                    ORDER BY order_index
                 """, (self.current_subject_id,))
 
             verses = cursor.fetchall()
+
+            # Sort verses by biblical order using books table from bibles.db
+            import sqlite3
+            bible_conn = sqlite3.connect(bible_db)
+            bible_conn.row_factory = sqlite3.Row
+            bible_cursor = bible_conn.cursor()
+            bible_cursor.execute("SELECT abbreviation, order_index FROM books")
+            book_order = {row['abbreviation']: row['order_index'] for row in bible_cursor.fetchall()}
+            bible_conn.close()
+
+            # Sort verses: book order, then chapter, then verse
+            verses = sorted(verses, key=lambda v: (
+                book_order.get(v['book_abbr'], 999),  # Book order (999 if not found)
+                v['chapter_num'],                       # Chapter number
+                v['verse_num']                          # Verse number
+            ))
 
             self.subject_verse_list.clear_verses()
 
