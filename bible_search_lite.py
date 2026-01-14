@@ -424,7 +424,7 @@ class BibleSearchProgram(QMainWindow):
                 print(f"Acquire button normal - no selections available")
 
     def update_subject_acquire_button(self):
-        """Update the Acquire button state in Window 4 when selections change in Windows 2 or 3"""
+        """Update the Acquire button state and style in Window 4 when selections change in Windows 2 or 3"""
         if not self.subject_manager:
             return
 
@@ -444,6 +444,30 @@ class BibleSearchProgram(QMainWindow):
         has_subject = has_subject_in_window4 or has_subject_in_window3
 
         self.subject_manager.verse_manager.acquire_btn.setEnabled(has_subject and has_selections)
+
+        # Green style when selections are available and subject is selected
+        green_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: 2px solid #45a049;
+                border-radius: 3px;
+                padding: 4px 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """
+
+        # Normal style
+        normal_style = self.get_button_style()
+
+        # Apply green style if both conditions met, otherwise normal
+        if has_subject and has_selections:
+            self.subject_manager.verse_manager.acquire_btn.setStyleSheet(green_style)
+        else:
+            self.subject_manager.verse_manager.acquire_btn.setStyleSheet(normal_style)
 
         print(f"Subject Acquire button: W4_subject={has_subject_in_window4}, W3_subject={has_subject_in_window3}, selections={has_selections}, search={search_count}, reading={reading_count}")
 
