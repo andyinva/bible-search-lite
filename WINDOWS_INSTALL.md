@@ -11,7 +11,7 @@ Simple installation guide for Windows 10 and Windows 11 users.
 Open PowerShell and run:
 
 ```powershell
-curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py" -OutFile "setup_win11.py"
 ```
 
 Or download manually from:

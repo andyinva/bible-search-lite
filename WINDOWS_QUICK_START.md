@@ -6,7 +6,7 @@
 
 Open PowerShell and run:
 ```powershell
-curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py" -OutFile "setup_win11.py"
 ```
 
 ### Step 2: Run Installer
