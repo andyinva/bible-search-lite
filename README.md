@@ -10,7 +10,7 @@ A powerful, feature-rich Bible search application with advanced search operators
 
 ## Quick Start
 
-### Installation
+### Installation (One-Command Setup)
 
 **Linux/macOS:**
 ```bash
@@ -24,6 +24,19 @@ curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_
 python setup_win11.py
 ```
 
+The installer will:
+- ✅ Download Bible database from GitHub Release (~90 MB)
+- ✅ Verify download integrity with checksums
+- ✅ Extract and create SQLite database (453 MB)
+- ✅ Download all application files
+- ✅ Install PyQt6 automatically
+- ✅ Create platform-specific launcher
+
+**Requirements:**
+- Python 3.7+ (Windows: enable "Add Python to PATH" during install)
+- Internet connection (one-time download)
+- ~500 MB disk space
+
 ### Running
 
 **Linux/macOS:**
@@ -32,9 +45,8 @@ python setup_win11.py
 ```
 
 **Windows:**
-```powershell
-run_bible_search.bat
-```
+- Double-click: `run_bible_search.bat`
+- Or run: `python bible_search_lite.py`
 
 **All platforms:**
 ```bash
