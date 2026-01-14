@@ -4335,12 +4335,12 @@ from liability. It's the same license used by many popular open-source projects.
         self.selection_locked = True
         self.is_ctrl_a_selection = is_ctrl_a
 
-        # Green button style
+        # Green button style (matches original button size from create_title_button)
         green_style = """
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
-                border: 2px solid #45a049;
+                border: 1px solid #45a049;
                 border-radius: 3px;
                 padding: 2px 8px;
                 font-size: 10px;
@@ -4348,7 +4348,7 @@ from liability. It's the same license used by many popular open-source projects.
             }
             QPushButton:hover {
                 background-color: #45a049;
-                border: 2px solid #3d8b40;
+                border: 1px solid #3d8b40;
             }
         """
 
