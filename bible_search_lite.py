@@ -1,5 +1,6 @@
 import sys
 import os
+import sqlite3
 import urllib.request
 import urllib.error
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
@@ -652,6 +653,12 @@ class BibleSearchProgram(QMainWindow):
         """)
 
         layout.addWidget(self.reading_subject_combo)
+
+        # Create button (creates new subject from dropdown text)
+        self.create_subject_btn = QPushButton("Create")
+        self.create_subject_btn.clicked.connect(self.on_create_subject_from_reading)
+        self.create_subject_btn.setToolTip("Create a new subject with the typed name")
+        layout.addWidget(self.create_subject_btn)
 
         # Acquire button (adds checked verses to selected subject)
         self.send_btn = QPushButton("Acquire")
@@ -4468,6 +4475,43 @@ from liability. It's the same license used by many popular open-source projects.
                     print(f"⚠️  Error syncing subject to Window 4: {e}")
                 finally:
                     self._syncing_subjects = False
+
+    def on_create_subject_from_reading(self):
+        """Create a new subject from Window 3's dropdown text."""
+        subject_name = self.reading_subject_combo.currentText().strip()
+
+        if not subject_name:
+            self.message_label.setText("⚠️  Enter a subject name")
+            return
+
+        if not self.subject_manager:
+            self.message_label.setText("⚠️  Subject features not initialized")
+            return
+
+        try:
+            cursor = self.subject_manager.db_conn.cursor()
+            cursor.execute("INSERT INTO subjects (name) VALUES (?)", (subject_name,))
+            self.subject_manager.db_conn.commit()
+            subject_id = cursor.lastrowid
+
+            # Reload subjects in Window 3 dropdown
+            self.load_subjects_for_reading()
+            self.reading_subject_combo.setCurrentText(subject_name)
+
+            # Sync to Window 4
+            if self.subject_manager.verse_manager:
+                self.subject_manager.verse_manager.load_subjects()
+                self.subject_manager.verse_manager.subject_dropdown.setCurrentText(subject_name)
+                self.subject_manager.verse_manager.current_subject = subject_name
+                self.subject_manager.verse_manager.current_subject_id = subject_id
+
+            self.message_label.setText(f"✓ Created subject: {subject_name}")
+            print(f"✓ Created subject from Window 3: {subject_name} (ID: {subject_id})")
+
+        except sqlite3.IntegrityError:
+            self.message_label.setText(f"⚠️  Subject '{subject_name}' already exists")
+        except Exception as e:
+            self.message_label.setText(f"⚠️  Error creating subject: {e}")
 
     def on_send_to_subject(self):
         """Acquire checked verses from Window 3 (reading) to selected subject."""
