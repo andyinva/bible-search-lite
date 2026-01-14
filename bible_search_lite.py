@@ -982,6 +982,27 @@ class BibleSearchProgram(QMainWindow):
         if show:
             self.subject_manager.show()
             self.message_label.setText("✓ Subject features enabled")
+
+            # If Window 3 has a subject selected, sync it to Window 4 and load verses
+            if hasattr(self, 'reading_subject_combo'):
+                subject_name = self.reading_subject_combo.currentText().strip()
+                if subject_name and self.subject_manager.verse_manager:
+                    # Get subject ID
+                    try:
+                        cursor = self.subject_manager.db_conn.cursor()
+                        cursor.execute("SELECT id FROM subjects WHERE name = ?", (subject_name,))
+                        result = cursor.fetchone()
+                        if result:
+                            subject_id = result['id']
+                            # Set Window 4's dropdown to match Window 3
+                            self.subject_manager.verse_manager.subject_dropdown.setCurrentText(subject_name)
+                            self.subject_manager.verse_manager.current_subject = subject_name
+                            self.subject_manager.verse_manager.current_subject_id = subject_id
+                            # Load the verses
+                            self.subject_manager.verse_manager.load_subject_verses()
+                            print(f"✓ Auto-loaded subject '{subject_name}' verses into Window 4")
+                    except Exception as e:
+                        print(f"⚠️ Error auto-loading subject: {e}")
         else:
             self.subject_manager.hide()
             self.message_label.setText("✓ Subject features hidden")
