@@ -647,7 +647,7 @@ class VerseListWidget(QWidget):
         # Clear ALL previous highlights across ALL windows (including old blue highlights)
         if hasattr(self, 'main_window') and self.main_window:
             # Clear highlights in all verse list windows
-            for window_name in ['search', 'reading']:
+            for window_name in ['search', 'reading', 'subject']:
                 if window_name in self.main_window.verse_lists:
                     verse_list = self.main_window.verse_lists[window_name]
                     # Clear the currently_highlighted_verse tracking
