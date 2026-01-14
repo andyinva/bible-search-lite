@@ -82,6 +82,7 @@ class SubjectCommentManager:
 
         self.add_btn = QPushButton("Add Comment")
         self.add_btn.setStyleSheet(button_style)
+        self.add_btn.setEnabled(False)  # Disabled until verse is clicked
         self.add_btn.clicked.connect(self.on_add_comment)
         controls_layout.addWidget(self.add_btn)
 
@@ -224,13 +225,17 @@ class SubjectCommentManager:
             row = cursor.fetchone()
 
             if row and row['comments']:
+                # Verse has a comment - enable Edit and Delete
                 self.comments_editor.setHtml(row['comments'])
+                self.add_btn.setEnabled(True)  # Can still add/replace
                 self.edit_btn.setEnabled(True)
                 self.delete_btn.setEnabled(True)
             else:
+                # Verse selected but no comment yet - enable Add Comment
                 self.comments_editor.clear()
-                self.edit_btn.setEnabled(False)
-                self.delete_btn.setEnabled(False)
+                self.add_btn.setEnabled(True)  # Enable Add since verse is selected
+                self.edit_btn.setEnabled(False)  # Can't edit what doesn't exist
+                self.delete_btn.setEnabled(False)  # Can't delete what doesn't exist
 
         except Exception as e:
             print(f"⚠️  Error loading comment: {e}")
