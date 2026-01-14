@@ -452,7 +452,7 @@ class SubjectVerseManager:
             has_comments_table = cursor.fetchone() is not None
 
             # Get Bible database connection for book order lookup
-            bible_db = self.parent_app.search_controller.bible_search.db_path
+            bible_db = self.parent_app.search_controller.bible_search.database_path
 
             if has_comments_table:
                 # New schema: comments in separate table
