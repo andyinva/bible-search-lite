@@ -946,7 +946,7 @@ class BibleSearchProgram(QMainWindow):
             self.subject_manager.verse_manager.update_button_states()
 
         # Stop blinking message if selection was locked
-        self.unlock_selection()
+        self.unlock_selection_mode()
 
         self.message_label.setText("Search results, reading window, references, and subjects cleared")
 
