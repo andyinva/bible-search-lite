@@ -4440,7 +4440,26 @@ from liability. It's the same license used by many popular open-source projects.
             self.blink_timer = None
 
         # Restore normal button styles
-        self.copy_btn.setStyleSheet(self.get_button_style())
+        # Copy button uses title button style (from create_title_button)
+        title_button_style = """
+            QPushButton {
+                background-color: white;
+                border: 1px solid #999;
+                border-radius: 3px;
+                padding: 2px 8px;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+                border: 1px solid #666;
+            }
+            QPushButton:disabled {
+                background-color: #f0f0f0;
+                color: #999;
+                border: 1px solid #ccc;
+            }
+        """
+        self.copy_btn.setStyleSheet(title_button_style)
         self.send_btn.setStyleSheet(self.get_button_style())  # Window 3 Acquire button
 
         if hasattr(self, 'acquire_button') and self.acquire_button:
