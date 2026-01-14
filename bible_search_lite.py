@@ -945,6 +945,9 @@ class BibleSearchProgram(QMainWindow):
             # Update button states in Window 4
             self.subject_manager.verse_manager.update_button_states()
 
+        # Stop blinking message if selection was locked
+        self.unlock_selection()
+
         self.message_label.setText("Search results, reading window, references, and subjects cleared")
 
     def show_translation_selector(self):
