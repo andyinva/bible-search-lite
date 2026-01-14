@@ -167,6 +167,7 @@ class SubjectVerseManager:
 
         # Create verse list
         self.subject_verse_list = VerseListWidget(window_id='subject')
+        self.subject_verse_list.main_window = self.parent_app  # Enable click-to-activate
         self.subject_verse_list.verse_navigation_requested.connect(
             self.on_subject_verse_clicked
         )
