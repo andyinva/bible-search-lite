@@ -1170,6 +1170,11 @@ class BibleSearchProgram(QMainWindow):
         update_btn.clicked.connect(lambda: [dialog.accept(), self.check_for_updates()])
         layout.addWidget(update_btn)
 
+        # Backup & Restore button
+        backup_btn = QPushButton("Backup & Restore Subjects")
+        backup_btn.clicked.connect(lambda: [dialog.accept(), self.show_backup_restore_dialog()])
+        layout.addWidget(backup_btn)
+
         # Subject Features toggle
         layout.addWidget(QLabel(""))  # Spacer
         subject_label = QLabel("Subject Features (Windows 4 & 5):")
@@ -1235,6 +1240,356 @@ class BibleSearchProgram(QMainWindow):
         else:
             self.subject_manager.hide()
             self.set_message("✓ Subject features hidden")
+
+    def show_backup_restore_dialog(self):
+        """Show dialog with backup and restore options"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPushButton, QLabel
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Backup & Restore Subjects")
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dialog)
+
+        # Info label
+        info = QLabel("Backup your subjects, verses, and comments to share with others\nor restore from a backup file.")
+        info.setWordWrap(True)
+        info.setStyleSheet("padding: 10px; color: #666;")
+        layout.addWidget(info)
+
+        # Create Backup button
+        backup_btn = QPushButton("📦 Create Backup")
+        backup_btn.setMinimumHeight(50)
+        backup_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        backup_btn.clicked.connect(lambda: [dialog.accept(), self.create_backup()])
+        layout.addWidget(backup_btn)
+
+        # Restore Backup button
+        restore_btn = QPushButton("📥 Restore from Backup")
+        restore_btn.setMinimumHeight(50)
+        restore_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #388E3C;
+            }
+        """)
+        restore_btn.clicked.connect(lambda: [dialog.accept(), self.restore_backup()])
+        layout.addWidget(restore_btn)
+
+        layout.addSpacing(20)
+
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+
+        dialog.exec()
+
+    def create_backup(self):
+        """Create a backup zip file of all subjects, verses, and comments"""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        import json
+        import zipfile
+        from datetime import datetime
+
+        if not self.subject_manager:
+            self.set_message("⚠️  Subject features not available")
+            return
+
+        # Ask user where to save backup
+        default_filename = f"bible_subjects_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Backup File",
+            default_filename,
+            "Zip Files (*.zip)"
+        )
+
+        if not filename:
+            return
+
+        try:
+            # Export subjects data from database
+            cursor = self.subject_manager.db_conn.cursor()
+
+            # Get all subjects
+            cursor.execute("SELECT id, name FROM subjects ORDER BY name")
+            subjects = cursor.fetchall()
+
+            backup_data = {
+                "version": "1.0",
+                "created": datetime.now().isoformat(),
+                "subjects": []
+            }
+
+            # For each subject, get its verses and comments
+            for subject in subjects:
+                subject_id = subject['id']
+                subject_name = subject['name']
+
+                # Get verses for this subject
+                cursor.execute("""
+                    SELECT verse_ref, verse_text, translation, comments
+                    FROM subject_verses
+                    WHERE subject_id = ?
+                    ORDER BY id
+                """, (subject_id,))
+                verses = cursor.fetchall()
+
+                subject_data = {
+                    "name": subject_name,
+                    "verses": [
+                        {
+                            "reference": v['verse_ref'],
+                            "text": v['verse_text'],
+                            "translation": v['translation'],
+                            "comments": v['comments'] or ""
+                        }
+                        for v in verses
+                    ]
+                }
+
+                backup_data["subjects"].append(subject_data)
+
+            # Create zip file with JSON data
+            with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                json_data = json.dumps(backup_data, indent=2)
+                zipf.writestr("subjects_backup.json", json_data)
+
+            subject_count = len(backup_data["subjects"])
+            verse_count = sum(len(s["verses"]) for s in backup_data["subjects"])
+
+            self.set_message(f"✓ Backup created: {subject_count} subjects, {verse_count} verses")
+            self.debug_print(f"✓ Backup saved to: {filename}")
+
+            QMessageBox.information(
+                self,
+                "Backup Complete",
+                f"Successfully backed up:\n\n"
+                f"• {subject_count} subjects\n"
+                f"• {verse_count} verses with comments\n\n"
+                f"File: {filename}"
+            )
+
+        except Exception as e:
+            self.set_message(f"⚠️  Error creating backup: {e}")
+            self.debug_print(f"⚠️  Backup error: {e}")
+            QMessageBox.critical(self, "Backup Error", f"Failed to create backup:\n{e}")
+
+    def restore_backup(self):
+        """Restore subjects from a backup zip file"""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox, QDialog, QVBoxLayout, QLabel, QPushButton, QRadioButton, QButtonGroup, QLineEdit
+        import json
+        import zipfile
+
+        if not self.subject_manager:
+            self.set_message("⚠️  Subject features not available")
+            return
+
+        # Ask user to select backup file
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Backup File",
+            "",
+            "Zip Files (*.zip)"
+        )
+
+        if not filename:
+            return
+
+        try:
+            # Extract and read JSON from zip
+            with zipfile.ZipFile(filename, 'r') as zipf:
+                json_data = zipf.read("subjects_backup.json").decode('utf-8')
+                backup_data = json.loads(json_data)
+
+            self.debug_print(f"✓ Loaded backup file: {filename}")
+            self.debug_print(f"✓ Backup version: {backup_data.get('version', 'unknown')}")
+            self.debug_print(f"✓ Backup created: {backup_data.get('created', 'unknown')}")
+
+            cursor = self.subject_manager.db_conn.cursor()
+
+            # Get existing subjects
+            cursor.execute("SELECT name FROM subjects")
+            existing_subjects = {row['name'] for row in cursor.fetchall()}
+
+            restored_count = 0
+            merged_count = 0
+            renamed_count = 0
+
+            # Process each subject in backup
+            for subject_data in backup_data["subjects"]:
+                subject_name = subject_data["name"]
+                verses = subject_data["verses"]
+
+                # Check if subject already exists
+                if subject_name in existing_subjects:
+                    # Show conflict resolution dialog
+                    action, new_name = self.show_conflict_dialog(subject_name, len(verses))
+
+                    if action == "cancel":
+                        continue
+                    elif action == "rename":
+                        subject_name = new_name
+                        renamed_count += 1
+                    elif action == "merge":
+                        merged_count += 1
+
+                # Get or create subject
+                if subject_name in existing_subjects and action != "rename":
+                    # Merge into existing subject
+                    cursor.execute("SELECT id FROM subjects WHERE name = ?", (subject_name,))
+                    subject_id = cursor.fetchone()['id']
+                else:
+                    # Create new subject
+                    cursor.execute("INSERT INTO subjects (name) VALUES (?)", (subject_name,))
+                    subject_id = cursor.lastrowid
+                    existing_subjects.add(subject_name)
+
+                # Add all verses
+                for verse in verses:
+                    # Check if verse already exists in this subject
+                    cursor.execute("""
+                        SELECT id FROM subject_verses
+                        WHERE subject_id = ? AND verse_ref = ? AND translation = ?
+                    """, (subject_id, verse['reference'], verse['translation']))
+
+                    existing_verse = cursor.fetchone()
+
+                    if existing_verse:
+                        # Update existing verse (merge comments)
+                        verse_id = existing_verse['id']
+                        cursor.execute("""
+                            UPDATE subject_verses
+                            SET comments = ?
+                            WHERE id = ?
+                        """, (verse['comments'], verse_id))
+                    else:
+                        # Insert new verse
+                        cursor.execute("""
+                            INSERT INTO subject_verses (subject_id, verse_ref, verse_text, translation, comments)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (subject_id, verse['reference'], verse['text'], verse['translation'], verse['comments']))
+
+                restored_count += 1
+
+            self.subject_manager.db_conn.commit()
+
+            # Reload subjects in dropdowns
+            if hasattr(self, 'reading_subject_combo'):
+                self.load_subjects_for_reading()
+            if self.subject_manager.verse_manager:
+                self.subject_manager.verse_manager.load_subjects()
+
+            self.set_message(f"✓ Restored {restored_count} subjects from backup")
+            self.debug_print(f"✓ Restore complete: {restored_count} subjects, {merged_count} merged, {renamed_count} renamed")
+
+            QMessageBox.information(
+                self,
+                "Restore Complete",
+                f"Successfully restored backup:\n\n"
+                f"• {restored_count} subjects restored\n"
+                f"• {merged_count} subjects merged\n"
+                f"• {renamed_count} subjects renamed"
+            )
+
+        except Exception as e:
+            self.set_message(f"⚠️  Error restoring backup: {e}")
+            self.debug_print(f"⚠️  Restore error: {e}")
+            QMessageBox.critical(self, "Restore Error", f"Failed to restore backup:\n{e}")
+
+    def show_conflict_dialog(self, subject_name, verse_count):
+        """Show dialog to resolve subject name conflict"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QRadioButton, QButtonGroup, QLineEdit, QHBoxLayout
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Subject Name Conflict")
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dialog)
+
+        # Info message
+        info = QLabel(f"The subject '{subject_name}' already exists in your database.\n"
+                     f"The backup contains {verse_count} verses for this subject.\n\n"
+                     f"How would you like to proceed?")
+        info.setWordWrap(True)
+        info.setStyleSheet("padding: 10px;")
+        layout.addWidget(info)
+
+        # Radio button group
+        button_group = QButtonGroup(dialog)
+
+        merge_radio = QRadioButton(f"Merge with existing '{subject_name}' (add new verses, keep existing)")
+        merge_radio.setChecked(True)
+        button_group.addButton(merge_radio, 1)
+        layout.addWidget(merge_radio)
+
+        rename_radio = QRadioButton("Import as new subject with different name:")
+        button_group.addButton(rename_radio, 2)
+        layout.addWidget(rename_radio)
+
+        # Name input for rename option
+        name_layout = QHBoxLayout()
+        name_layout.addSpacing(30)
+        name_input = QLineEdit(f"{subject_name} (imported)")
+        name_input.setEnabled(False)
+        name_layout.addWidget(name_input)
+        layout.addLayout(name_layout)
+
+        rename_radio.toggled.connect(name_input.setEnabled)
+
+        skip_radio = QRadioButton("Skip this subject (don't import)")
+        button_group.addButton(skip_radio, 3)
+        layout.addWidget(skip_radio)
+
+        layout.addSpacing(20)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        ok_btn = QPushButton("OK")
+        ok_btn.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_btn)
+
+        button_layout.addStretch()
+
+        cancel_btn = QPushButton("Cancel Restore")
+        cancel_btn.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_btn)
+
+        layout.addLayout(button_layout)
+
+        result = dialog.exec()
+
+        if not result:
+            return ("cancel", None)
+
+        if merge_radio.isChecked():
+            return ("merge", subject_name)
+        elif rename_radio.isChecked():
+            new_name = name_input.text().strip()
+            if not new_name:
+                new_name = f"{subject_name} (imported)"
+            return ("rename", new_name)
+        else:  # skip
+            return ("cancel", None)
 
     def on_subject_toggle_clicked(self, checked):
         """Handle toggle button click for Windows 4 & 5"""
