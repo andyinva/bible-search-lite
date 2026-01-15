@@ -403,7 +403,7 @@ class BibleSearchProgram(QMainWindow):
             QSplitter::handle {
                 background-color: #c0c0c0;
                 border: 1px solid #999;
-                height: 5px;
+                height: 3px;
             }
             QSplitter::handle:hover {
                 background-color: #4CAF50;
