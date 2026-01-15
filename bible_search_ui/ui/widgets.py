@@ -627,12 +627,15 @@ class VerseListWidget(QWidget):
             self.main_window.update_acquire_button_state()
 
             # Lock/unlock selection mode based on whether ANY boxes are checked
-            if len(self.selected_verses) > 0:
-                # Lock mode (manual selection, not Ctrl+A)
-                self.main_window.lock_selection_mode(is_ctrl_a=False)
-            else:
-                # All unchecked - unlock
-                self.main_window.unlock_selection_mode()
+            # BUT: Don't lock for Window 4 (subject) - those verses are already in the database
+            # and can only be deleted/cut, not acquired
+            if self.window_id != 'subject':
+                if len(self.selected_verses) > 0:
+                    # Lock mode (manual selection, not Ctrl+A)
+                    self.main_window.lock_selection_mode(is_ctrl_a=False)
+                else:
+                    # All unchecked - unlock
+                    self.main_window.unlock_selection_mode()
 
     def on_verse_clicked(self, verse_id):
         """
