@@ -2141,29 +2141,45 @@ class BibleSearchProgram(QMainWindow):
 
     def extract_highlight_terms(self, search_query):
         """
-        Extract simple words to highlight from search query.
-        Removes operators, wildcards, and special characters.
+        Extract terms to highlight from search query.
+        Preserves quoted phrases as single terms, removes operators and wildcards.
 
         Args:
             search_query (str): The original search query
 
         Returns:
-            list: List of terms to highlight
+            list: List of terms/phrases to highlight
         """
         import re
 
         if not search_query:
             return []
 
-        # Remove quotes
-        query = search_query.strip().strip('"\'')
+        highlight_terms = []
+
+        # Extract quoted phrases first (keep them as complete phrases)
+        quoted_pattern = r'"([^"]+)"|\'([^\']+)\''
+        quoted_matches = re.finditer(quoted_pattern, search_query)
+
+        for match in quoted_matches:
+            # Get the quoted phrase (from either single or double quotes)
+            phrase = match.group(1) or match.group(2)
+            if phrase and phrase.strip():
+                # Remove wildcards from the phrase
+                phrase = phrase.replace('*', '').replace('%', '')
+                highlight_terms.append(phrase.strip())
+
+        # Remove quoted phrases from query to process remaining terms
+        query_without_quotes = re.sub(quoted_pattern, '', search_query)
 
         # Split on AND/OR operators
-        terms = re.split(r'\s+(?:AND|OR)\s+', query, flags=re.IGNORECASE)
+        terms = re.split(r'\s+(?:AND|OR)\s+', query_without_quotes, flags=re.IGNORECASE)
 
-        highlight_terms = []
+        # Process remaining individual words (non-quoted terms)
         for term in terms:
             term = term.strip()
+            if not term:
+                continue
             # Remove wildcards
             term = term.replace('*', '').replace('%', '')
             # Remove special operators like ~, >, &
@@ -2274,7 +2290,6 @@ class BibleSearchProgram(QMainWindow):
 
         # Extract terms to highlight from the search query
         highlight_terms = self.extract_highlight_terms(self.current_search_query)
-        self.debug_print(f"🎨 Highlighting terms: {highlight_terms}")
 
         # Add initial batch to search window with highlighting
         for verse in verses_to_load:
