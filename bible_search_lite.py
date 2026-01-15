@@ -255,7 +255,7 @@ class BibleSearchProgram(QMainWindow):
 
     def set_message(self, message):
         """Set message label text and log it"""
-        self.set_message(message)
+        self.message_label.setText(message)
         self.log_message(message)
 
     def show_message_log(self):
