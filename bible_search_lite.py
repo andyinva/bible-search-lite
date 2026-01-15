@@ -474,7 +474,7 @@ class BibleSearchProgram(QMainWindow):
         print(f"Subject Acquire button: W4_subject={has_subject_in_window4}, W3_subject={has_subject_in_window3}, selections={has_selections}, search={search_count}, reading={reading_count}")
 
     def update_window3_acquire_style(self):
-        """Update Window 3 Acquire button styling based on selections"""
+        """Update Window 3 Acquire button styling and enabled state based on selections"""
         # Check if there are any selected verses in Windows 2 or 3
         search_count = self.verse_lists['search'].get_selected_count()
         reading_count = self.verse_lists['reading'].get_selected_count()
@@ -482,6 +482,10 @@ class BibleSearchProgram(QMainWindow):
 
         # Check if a subject is selected in Window 3
         has_subject = bool(self.reading_subject_combo.currentText().strip())
+
+        # Enable button only if subject is selected AND there are selections in Windows 2/3
+        # This matches Window 4's behavior - Acquire only works with Windows 2/3 verses
+        self.send_btn.setEnabled(has_subject and has_selections)
 
         # Green style when selections are available and subject is selected
         green_style = """
@@ -4552,16 +4556,14 @@ from liability. It's the same license used by many popular open-source projects.
         if hasattr(self, '_syncing_subjects') and self._syncing_subjects:
             return
 
-        # Enable Acquire button in Window 3 if subject is selected and not empty
-        has_subject = bool(subject_name and subject_name.strip())
-        self.send_btn.setEnabled(has_subject)
-
-        # Also update Window 4's Acquire button state
+        # Update Window 4's Acquire button state
         self.update_subject_acquire_button()
 
-        # Update Window 3 Acquire button styling
+        # Update Window 3 Acquire button styling and enabled state
+        # (This now handles both based on subject selection AND verse selections)
         self.update_window3_acquire_style()
 
+        has_subject = bool(subject_name and subject_name.strip())
         if has_subject:
             print(f"✓ Reading window subject selected: {subject_name}")
 
