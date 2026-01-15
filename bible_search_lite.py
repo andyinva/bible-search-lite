@@ -114,6 +114,10 @@ class BibleSearchProgram(QMainWindow):
         self.config_manager = ConfigManager("bible_search_lite_config.json")
         self.config_file = "bible_search_lite_config.json"
 
+        # Message log for Help menu
+        self.message_log = []
+        self.max_message_log_size = 500  # Keep last 500 messages
+
         # Set initial geometry (will be overridden by load_config if config exists)
         self.setGeometry(100, 100, 1200, 900)
 
@@ -237,6 +241,65 @@ class BibleSearchProgram(QMainWindow):
         # Load saved configuration after UI is set up (restores window sizes)
         self.load_config()
         self.add_sample_verses()
+
+    def log_message(self, message):
+        """Add a message to the message log with timestamp"""
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] {message}"
+        self.message_log.append(log_entry)
+
+        # Keep only the last N messages
+        if len(self.message_log) > self.max_message_log_size:
+            self.message_log = self.message_log[-self.max_message_log_size:]
+
+    def set_message(self, message):
+        """Set message label text and log it"""
+        self.set_message(message)
+        self.log_message(message)
+
+    def show_message_log(self):
+        """Display the message log in a dialog"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Message Log")
+        dialog.setMinimumSize(800, 600)
+
+        layout = QVBoxLayout(dialog)
+
+        # Text area to display log
+        log_text = QTextEdit()
+        log_text.setReadOnly(True)
+        log_text.setStyleSheet("font-family: monospace; background-color: white;")
+
+        if self.message_log:
+            log_text.setPlainText("\n".join(self.message_log))
+            # Scroll to bottom to show most recent messages
+            log_text.verticalScrollBar().setValue(log_text.verticalScrollBar().maximum())
+        else:
+            log_text.setPlainText("No messages logged yet.")
+
+        layout.addWidget(log_text)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        # Clear log button
+        clear_btn = QPushButton("Clear Log")
+        clear_btn.clicked.connect(lambda: (self.message_log.clear(), log_text.setPlainText("Message log cleared.")))
+        button_layout.addWidget(clear_btn)
+
+        button_layout.addStretch()
+
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        button_layout.addWidget(close_btn)
+
+        layout.addLayout(button_layout)
+
+        dialog.exec()
 
     def load_available_translations(self):
         """Load available translations from database"""
@@ -1002,7 +1065,7 @@ class BibleSearchProgram(QMainWindow):
         # Stop blinking message if selection was locked
         self.unlock_selection_mode()
 
-        self.message_label.setText("Search results, reading window, references, and subjects cleared")
+        self.set_message("Search results, reading window, references, and subjects cleared")
 
     def show_translation_selector(self):
         """Show dialog to select which translations to search"""
@@ -1075,12 +1138,12 @@ class BibleSearchProgram(QMainWindow):
     def toggle_subject_features(self, show):
         """Toggle visibility of Windows 4 & 5"""
         if not self.subject_manager:
-            self.message_label.setText("⚠️  Subject features not initialized")
+            self.set_message("⚠️  Subject features not initialized")
             return
 
         if show:
             self.subject_manager.show()
-            self.message_label.setText("✓ Subject features enabled")
+            self.set_message("✓ Subject features enabled")
 
             # If Window 3 has a subject selected, sync it to Window 4 and load verses
             if hasattr(self, 'reading_subject_combo'):
@@ -1104,7 +1167,7 @@ class BibleSearchProgram(QMainWindow):
                         print(f"⚠️ Error auto-loading subject: {e}")
         else:
             self.subject_manager.hide()
-            self.message_label.setText("✓ Subject features hidden")
+            self.set_message("✓ Subject features hidden")
 
     def on_subject_toggle_clicked(self, checked):
         """Handle toggle button click for Windows 4 & 5"""
@@ -1163,12 +1226,12 @@ class BibleSearchProgram(QMainWindow):
         # Check if there are search results
         if 'search' not in self.verse_lists:
             print("❌ 'search' not in verse_lists")
-            self.message_label.setText("No search results to filter. Perform a search first.")
+            self.set_message("No search results to filter. Perform a search first.")
             return
 
         if not self.verse_lists['search'].verse_items:
             print(f"❌ No verse items in search window (count: {len(self.verse_lists['search'].verse_items)})")
-            self.message_label.setText("No search results to filter. Perform a search first.")
+            self.set_message("No search results to filter. Perform a search first.")
             return
 
         print(f"✅ Found {len(self.verse_lists['search'].verse_items)} verses in search results")
@@ -1178,7 +1241,7 @@ class BibleSearchProgram(QMainWindow):
         print(f"📊 Extracted {len(word_counts)} unique words")
 
         if not word_counts:
-            self.message_label.setText("No words found in search results")
+            self.set_message("No words found in search results")
             return
 
         print("📦 Opening SearchFilterDialog...")
@@ -1196,9 +1259,9 @@ class BibleSearchProgram(QMainWindow):
 
             # Display message about filter
             if self.filtered_words:
-                self.message_label.setText(f"Filter applied: {len(self.filtered_words)} word(s) selected. Click Search to re-filter results.")
+                self.set_message(f"Filter applied: {len(self.filtered_words)} word(s) selected. Click Search to re-filter results.")
             else:
-                self.message_label.setText("All words unchecked - filter cleared")
+                self.set_message("All words unchecked - filter cleared")
 
     def _extract_phrase_patterns(self, all_results, query):
         """Extract phrase patterns for word placeholder queries.
@@ -1537,7 +1600,7 @@ class BibleSearchProgram(QMainWindow):
 
         search_term = self.search_input.currentText().strip()
         if not search_term:
-            self.message_label.setText("Please enter search terms")
+            self.set_message("Please enter search terms")
             print("❌ No search term entered")
             return
 
@@ -1570,7 +1633,7 @@ class BibleSearchProgram(QMainWindow):
             search_msg += f" in {selected_book_group}"
         if self.filtered_words is not None:
             search_msg += f" (filtered by {len(self.filtered_words)} word(s))"
-        self.message_label.setText(search_msg + "...")
+        self.set_message(search_msg + "...")
 
         print(f"📚 Book filter: {selected_book_group} ({len(book_filter)} books)")
         if self.filtered_words is not None:
@@ -1595,7 +1658,7 @@ class BibleSearchProgram(QMainWindow):
             print(f"❌ ERROR in search_controller.search(): {e}")
             import traceback
             traceback.print_exc()
-            self.message_label.setText(f"Search error: {e}")
+            self.set_message(f"Search error: {e}")
 
         # Keep filtered_words active until user clicks Filter again or clears it
         # (filter persists across multiple searches)
@@ -1717,12 +1780,12 @@ class BibleSearchProgram(QMainWindow):
                 print(f"❌ ERROR in apply_word_filter: {e}")
                 import traceback
                 traceback.print_exc()
-                self.message_label.setText(f"Filter error: {e}")
+                self.set_message(f"Filter error: {e}")
                 return
 
             # Update message if filter produced no results
             if len(verses) == 0 and original_count > 0:
-                self.message_label.setText(f"Filter active: 0 results from {original_count} verses. No verses contain the selected {len(self.filtered_words)} word(s).")
+                self.set_message(f"Filter active: 0 results from {original_count} verses. No verses contain the selected {len(self.filtered_words)} word(s).")
         else:
             # No filter - use all formatted verses
             verses = all_formatted_verses
@@ -1868,12 +1931,12 @@ class BibleSearchProgram(QMainWindow):
         if self.remaining_search_results:
             # More results still available
             remaining = len(self.remaining_search_results)
-            self.message_label.setText(f"Displaying {new_displayed} of {total_results} results | {remaining} more available")
+            self.set_message(f"Displaying {new_displayed} of {total_results} results | {remaining} more available")
             self.load_more_btn.setVisible(True)
             print(f"✅ Loaded {len(next_batch)} more results. {remaining} remaining.")
         else:
             # All results now loaded
-            self.message_label.setText(f"All {total_results} results loaded")
+            self.set_message(f"All {total_results} results loaded")
             self.load_more_btn.setVisible(False)
             print(f"✅ All {total_results} results now loaded")
 
@@ -1945,7 +2008,7 @@ class BibleSearchProgram(QMainWindow):
 
     def on_search_failed(self, error_message):
         """Handle search failure"""
-        self.message_label.setText(f"Search error: {error_message}")
+        self.set_message(f"Search error: {error_message}")
         print(f"Search error details: {error_message}")
 
     def on_search_status(self, message):
@@ -1956,7 +2019,7 @@ class BibleSearchProgram(QMainWindow):
         # IMPORTANT: all_search_results might be deduplicated if Unique Verse checkbox is checked
         # So we need to get the ORIGINAL total_count from metadata
         if not self.search_controller.all_search_results:
-            self.message_label.setText(message)
+            self.set_message(message)
             return
 
         # Calculate search time
@@ -2033,7 +2096,7 @@ class BibleSearchProgram(QMainWindow):
             self.load_more_btn.setVisible(False)
 
         print(f"📝 Custom message: {custom_message}")
-        self.message_label.setText(custom_message)
+        self.set_message(custom_message)
 
     def on_context_verses_ready(self, verses):
         """Handle context verses for reading window"""
@@ -2264,6 +2327,24 @@ class BibleSearchProgram(QMainWindow):
         """)
         license_btn.clicked.connect(lambda: (dialog.accept(), self.show_license_info()))
         layout.addWidget(license_btn)
+
+        # Button for Message Log
+        log_btn = QPushButton("📋 View Message Log")
+        log_btn.setMinimumHeight(50)
+        log_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3F51B5;
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #303F9F;
+            }
+        """)
+        log_btn.clicked.connect(lambda: (dialog.accept(), self.show_message_log()))
+        layout.addWidget(log_btn)
 
         layout.addSpacing(20)
 
@@ -3676,7 +3757,7 @@ from liability. It's the same license used by many popular open-source projects.
         """Check for application updates on GitHub"""
         try:
             # Show checking message
-            self.message_label.setText("⏳ Checking for updates...")
+            self.set_message("⏳ Checking for updates...")
             QApplication.processEvents()  # Update UI immediately
 
             # Fetch version from GitHub
@@ -3693,7 +3774,7 @@ from liability. It's the same license used by many popular open-source projects.
                     f"Error: {e}\n\n"
                     f"Please check your internet connection."
                 )
-                self.message_label.setText("❌ Update check failed")
+                self.set_message("❌ Update check failed")
                 return
 
             # Compare versions
@@ -3714,7 +3795,7 @@ from liability. It's the same license used by many popular open-source projects.
                 if reply == QMessageBox.StandardButton.Yes:
                     self.download_update()
                 else:
-                    self.message_label.setText("Update cancelled")
+                    self.set_message("Update cancelled")
             else:
                 # Already up to date
                 QMessageBox.information(
@@ -3723,7 +3804,7 @@ from liability. It's the same license used by many popular open-source projects.
                     f"You are running the latest version ({current}).\n\n"
                     f"No updates are available at this time."
                 )
-                self.message_label.setText(f"✓ Up to date (v{current})")
+                self.set_message(f"✓ Up to date (v{current})")
 
         except Exception as e:
             QMessageBox.critical(
@@ -3731,7 +3812,7 @@ from liability. It's the same license used by many popular open-source projects.
                 "Update Check Error",
                 f"An error occurred while checking for updates:\n\n{e}"
             )
-            self.message_label.setText("❌ Update check error")
+            self.set_message("❌ Update check error")
 
     def download_update(self):
         """Download and install application update"""
@@ -3789,7 +3870,7 @@ from liability. It's the same license used by many popular open-source projects.
                 f"A backup of the previous version was saved as:\n{backup_name}"
             )
 
-            self.message_label.setText("✓ Update downloaded - Please restart")
+            self.set_message("✓ Update downloaded - Please restart")
 
         except Exception as e:
             if "cancelled" not in str(e).lower():
@@ -3800,7 +3881,7 @@ from liability. It's the same license used by many popular open-source projects.
                     f"You can manually update by downloading from:\n"
                     f"https://github.com/andyinva/bible-search-lite"
                 )
-            self.message_label.setText("❌ Update failed")
+            self.set_message("❌ Update failed")
 
             # Clean up temp file if it exists
             try:
@@ -3821,13 +3902,13 @@ from liability. It's the same license used by many popular open-source projects.
         # Check if a window is active
         if active is None:
             print(f"❌ No window selected")
-            self.message_label.setText("Please click on a window (2, 3, or 4) first to select it")
+            self.set_message("Please click on a window (2, 3, or 4) first to select it")
             return
 
         # Allow copying from search (Window 2), reading (Window 3), and subject (Window 4)
         if active not in ['search', 'reading', 'subject']:
             print(f"❌ Cannot copy from window: {active}")
-            self.message_label.setText("Copy only works from Windows 2, 3, or 4")
+            self.set_message("Copy only works from Windows 2, 3, or 4")
             return
 
         if active not in self.verse_lists:
@@ -3837,7 +3918,7 @@ from liability. It's the same license used by many popular open-source projects.
         selected = self.verse_lists[active].get_selected_verses()
         print(f"📋 Selected verses: {len(selected)}")
         if not selected:
-            self.message_label.setText("No verses selected to copy")
+            self.set_message("No verses selected to copy")
             return
 
         # Build clipboard text
@@ -3852,7 +3933,7 @@ from liability. It's the same license used by many popular open-source projects.
                 text_lines.append(f"{ref} {clean_text}")
 
         if not text_lines:
-            self.message_label.setText("No verses to copy")
+            self.set_message("No verses to copy")
             return
 
         # Check size limits: warn if more than 50 verses or 50KB
@@ -3897,7 +3978,7 @@ from liability. It's the same license used by many popular open-source projects.
         print(f"📋 Unchecked all verses in Windows 2, 3, & 4")
 
         # Show success message (unlock happens automatically when boxes uncheck)
-        self.message_label.setText(f"Copied {verse_count} verse(s) to clipboard ({text_size_kb:.1f} KB)")
+        self.set_message(f"Copied {verse_count} verse(s) to clipboard ({text_size_kb:.1f} KB)")
         print(f"✅ Copy complete: {verse_count} verses, {text_size_kb:.1f} KB")
     
     def on_export_clicked(self):
@@ -3913,7 +3994,7 @@ from liability. It's the same license used by many popular open-source projects.
         from PyQt6.QtWidgets import QInputDialog
         
         if not hasattr(self, 'current_subject_id') or not self.current_subject_id:
-            self.message_label.setText("Please select a subject first")
+            self.set_message("Please select a subject first")
             return
         
         search_term, ok = QInputDialog.getText(
@@ -3933,33 +4014,33 @@ from liability. It's the same license used by many popular open-source projects.
                             found_count += 1
             
             if found_count > 0:
-                self.message_label.setText(f"Found '{search_term}' in {found_count} verse(s)")
+                self.set_message(f"Found '{search_term}' in {found_count} verse(s)")
             else:
-                self.message_label.setText(f"'{search_term}' not found")
+                self.set_message(f"'{search_term}' not found")
 
 
 
     def on_add_comment(self):
         """Add comment to selected verse - placeholder"""
-        self.message_label.setText("Comment functionality coming soon")
+        self.set_message("Comment functionality coming soon")
     
     def on_edit_comment(self):
         """Edit comment - placeholder"""
-        self.message_label.setText("Comment functionality coming soon")
+        self.set_message("Comment functionality coming soon")
     
     def on_delete_comment(self):
         """Delete comment - placeholder"""
-        self.message_label.setText("Comment functionality coming soon")
+        self.set_message("Comment functionality coming soon")
 
 
     def on_save_comment(self):
         """Save comment - placeholder"""
-        self.message_label.setText("Comment functionality coming soon")
+        self.set_message("Comment functionality coming soon")
 
 
     def on_close_comment(self):
         """Close comment editor - placeholder"""
-        self.message_label.setText("Comment functionality coming soon")
+        self.set_message("Comment functionality coming soon")
 
 
     def load_config(self):
@@ -4363,7 +4444,7 @@ from liability. It's the same license used by many popular open-source projects.
 
             if not result:
                 print(f"❌ Book '{book_full_name}' not found in database")
-                self.message_label.setText(f"Error: Book '{book_full_name}' not found")
+                self.set_message(f"Error: Book '{book_full_name}' not found")
                 return
 
             book_abbrev = result[0]
@@ -4393,7 +4474,7 @@ from liability. It's the same license used by many popular open-source projects.
             print(f"❌ Error parsing cross-reference '{reference}': {e}")
             import traceback
             traceback.print_exc()
-            self.message_label.setText(f"Error loading reference: {reference}")
+            self.set_message(f"Error loading reference: {reference}")
 
     def lock_selection_mode(self, is_ctrl_a=False):
         """
@@ -4454,7 +4535,7 @@ from liability. It's the same license used by many popular open-source projects.
 
         # Start blinking message
         self.blink_state = True
-        self.message_label.setText(message)
+        self.set_message(message)
         self.message_label.setStyleSheet("""
             background-color: #fffacd;
             padding: 10px;
@@ -4612,11 +4693,11 @@ from liability. It's the same license used by many popular open-source projects.
         subject_name = self.reading_subject_combo.currentText().strip()
 
         if not subject_name:
-            self.message_label.setText("⚠️  Enter a subject name")
+            self.set_message("⚠️  Enter a subject name")
             return
 
         if not self.subject_manager:
-            self.message_label.setText("⚠️  Subject features not initialized")
+            self.set_message("⚠️  Subject features not initialized")
             return
 
         try:
@@ -4636,24 +4717,24 @@ from liability. It's the same license used by many popular open-source projects.
                 self.subject_manager.verse_manager.current_subject = subject_name
                 self.subject_manager.verse_manager.current_subject_id = subject_id
 
-            self.message_label.setText(f"✓ Created subject: {subject_name}")
+            self.set_message(f"✓ Created subject: {subject_name}")
             print(f"✓ Created subject from Window 3: {subject_name} (ID: {subject_id})")
 
         except sqlite3.IntegrityError:
-            self.message_label.setText(f"⚠️  Subject '{subject_name}' already exists")
+            self.set_message(f"⚠️  Subject '{subject_name}' already exists")
         except Exception as e:
-            self.message_label.setText(f"⚠️  Error creating subject: {e}")
+            self.set_message(f"⚠️  Error creating subject: {e}")
 
     def on_send_to_subject(self):
         """Acquire checked verses from Window 3 (reading) to selected subject."""
         subject_name = self.reading_subject_combo.currentText().strip()
 
         if not subject_name:
-            self.message_label.setText("⚠️ Please select or create a subject")
+            self.set_message("⚠️ Please select or create a subject")
             return
 
         if not self.subject_manager:
-            self.message_label.setText("⚠️ Subject features not initialized")
+            self.set_message("⚠️ Subject features not initialized")
             return
 
         # Get checked verses from BOTH Windows 2 & 3
@@ -4662,7 +4743,7 @@ from liability. It's the same license used by many popular open-source projects.
         checked_verses = search_verses + reading_verses
 
         if not checked_verses:
-            self.message_label.setText("⚠️ No verses selected in Windows 2 or 3")
+            self.set_message("⚠️ No verses selected in Windows 2 or 3")
             return
 
         print(f"📊 Window 3 Acquire: Found {len(search_verses)} verses in Window 2, {len(reading_verses)} verses in Window 3")
@@ -4732,7 +4813,7 @@ from liability. It's the same license used by many popular open-source projects.
 
             # Update message
             if added_count > 0:
-                self.message_label.setText(
+                self.set_message(
                     f"✓ Sent {added_count} verse(s) to subject: {subject_name}"
                 )
                 print(f"✓ Added {added_count} verses to subject '{subject_name}'")
@@ -4742,12 +4823,12 @@ from liability. It's the same license used by many popular open-source projects.
                     self.subject_manager.verse_manager.current_subject == subject_name):
                     self.subject_manager.verse_manager.load_subject_verses()
             else:
-                self.message_label.setText(
+                self.set_message(
                     f"ℹ️ Verses already exist in subject: {subject_name}"
                 )
 
         except Exception as e:
-            self.message_label.setText(f"❌ Error sending verses: {str(e)}")
+            self.set_message(f"❌ Error sending verses: {str(e)}")
             print(f"Error in on_send_to_subject: {e}")
             import traceback
             traceback.print_exc()
