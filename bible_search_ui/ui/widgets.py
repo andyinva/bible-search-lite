@@ -130,7 +130,6 @@ class VerseItemWidget(QWidget):
         # Apply highlighting if terms are provided
         verse_text = self.text
         if self.highlight_terms:
-            print(f"🎨 Applying highlighting to verse {self.verse_id}: terms={self.highlight_terms}")
             verse_text = self.apply_highlighting(verse_text)
             # Use HTML formatting - escape the reference too
             import html
@@ -138,7 +137,6 @@ class VerseItemWidget(QWidget):
             combined_text = f"<span style='color: #333;'>{ref_text_escaped} - </span>{verse_text}"
             self.text_label = QLabel(combined_text)
             self.text_label.setTextFormat(Qt.TextFormat.RichText)
-            print(f"   HTML: {combined_text[:100]}...")
         else:
             # Simple plain text display without highlighting
             combined_text = f"{ref_text} - {verse_text}"
@@ -161,6 +159,7 @@ class VerseItemWidget(QWidget):
     def apply_highlighting(self, text):
         """
         Apply HTML highlighting to search terms in verse text.
+        Supports both individual words and multi-word phrases.
 
         Args:
             text (str): The verse text to highlight
@@ -174,13 +173,16 @@ class VerseItemWidget(QWidget):
         # Escape HTML characters first
         text = html.escape(text)
 
-        # Highlight each term
-        for term in self.highlight_terms:
+        # Sort terms by length (longest first) to ensure phrases are matched before individual words
+        # This prevents "Day of the Lord" from being broken into separate highlights
+        sorted_terms = sorted(self.highlight_terms, key=len, reverse=True)
+
+        # Highlight each term (phrases and words)
+        for term in sorted_terms:
             # Escape special regex characters in the term
             escaped_term = re.escape(term)
 
             # Case-insensitive search and replace with green highlight
-            # Use word boundaries for whole word matching
             pattern = re.compile(f'({escaped_term})', re.IGNORECASE)
             text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
 
