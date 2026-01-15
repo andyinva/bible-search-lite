@@ -3969,8 +3969,24 @@ from liability. It's the same license used by many popular open-source projects.
             # Restore window geometry
             if 'window_geometry' in config:
                 geom = config['window_geometry']
-                self.setGeometry(geom['x'], geom['y'], geom['width'], geom['height'])
-                print(f"✓ Restored window geometry: {geom['width']}x{geom['height']} at ({geom['x']}, {geom['y']})")
+                x = geom['x']
+                y = geom['y']
+                width = geom['width']
+                height = geom['height']
+
+                # Ensure window is not positioned off-screen (especially on Windows)
+                # Minimum y position should be at least 0 (not above screen top)
+                if y < 0:
+                    y = 0
+                    print(f"⚠️  Adjusted window y position from {geom['y']} to {y} (was off-screen)")
+
+                # Ensure x position is reasonable (not too far left)
+                if x < -100:  # Allow some negative for multi-monitor, but not extreme
+                    x = 100
+                    print(f"⚠️  Adjusted window x position from {geom['x']} to {x} (was off-screen)")
+
+                self.setGeometry(x, y, width, height)
+                print(f"✓ Restored window geometry: {width}x{height} at ({x}, {y})")
 
             # Restore main splitter sizes (after UI is created)
             if 'splitter_sizes' in config and hasattr(self, 'main_splitter'):
