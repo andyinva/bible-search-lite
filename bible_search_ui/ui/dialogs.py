@@ -308,7 +308,7 @@ class FontSettingsDialog(QDialog):
     def setup_ui(self):
         """
         Create the dialog user interface.
-        
+
         Layout structure:
         - Title bar (from QDialog)
         - Title font size group (radio buttons in vertical layout)
@@ -321,6 +321,28 @@ class FontSettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
 
+        # Set explicit styling for radio buttons (Windows compatibility)
+        radio_button_style = """
+            QRadioButton {
+                spacing: 8px;
+                font-size: 11px;
+            }
+            QRadioButton::indicator {
+                width: 16px;
+                height: 16px;
+                border: 2px solid #555;
+                border-radius: 8px;
+                background-color: white;
+            }
+            QRadioButton::indicator:checked {
+                background-color: #4CAF50;
+                border: 2px solid #45a049;
+            }
+            QRadioButton::indicator:hover {
+                border: 2px solid #4CAF50;
+            }
+        """
+
         # Title font size selector
         title_group = QGroupBox("Title Font Size")
         title_layout = QVBoxLayout()
@@ -330,11 +352,12 @@ class FontSettingsDialog(QDialog):
             label = f"Size {i+1} ({size}px)"
             if i == 0:
                 label += " - Current"
-                
+
             rb = QRadioButton(label)
+            rb.setStyleSheet(radio_button_style)
             if i == self.current_title_size:
                 rb.setChecked(True)
-                
+
             self.title_buttons.append(rb)
             title_layout.addWidget(rb)
 
@@ -350,11 +373,12 @@ class FontSettingsDialog(QDialog):
             label = f"Size {i+1} ({size}px)"
             if i == 0:
                 label += " - Current"
-                
+
             rb = QRadioButton(label)
+            rb.setStyleSheet(radio_button_style)
             if i == self.current_verse_size:
                 rb.setChecked(True)
-                
+
             self.verse_buttons.append(rb)
             verse_layout.addWidget(rb)
 

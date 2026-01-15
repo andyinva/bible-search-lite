@@ -150,6 +150,8 @@ class SubjectManager:
         self.container_widget.setFrameShadow(QFrame.Shadow.Raised)
         self.container_widget.setLineWidth(3)
         self.container_widget.setMidLineWidth(2)
+        # Set gray background for Windows compatibility (matches Linux appearance)
+        self.container_widget.setStyleSheet("QFrame { background-color: #e0e0e0; }")
 
         container_layout = QVBoxLayout(self.container_widget)
         container_layout.setContentsMargins(3, 3, 3, 3)
@@ -195,6 +197,16 @@ class SubjectManager:
 
         # Create internal splitter for Windows 4 & 5
         internal_splitter = QSplitter(Qt.Orientation.Vertical)
+        # Set gray background for splitter handle (Windows compatibility)
+        internal_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #c0c0c0;
+                height: 3px;
+            }
+            QSplitter {
+                background-color: #e0e0e0;
+            }
+        """)
         internal_splitter.addWidget(self.subject_section)
         internal_splitter.addWidget(self.comments_section)
 
