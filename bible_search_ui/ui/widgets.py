@@ -137,6 +137,8 @@ class VerseItemWidget(QWidget):
             combined_text = f"<span style='color: #333;'>{ref_text_escaped} - </span>{verse_text}"
             self.text_label = QLabel(combined_text)
             self.text_label.setTextFormat(Qt.TextFormat.RichText)
+            # Ensure text interaction is disabled so mouse events pass through to widget
+            self.text_label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         else:
             # Simple plain text display without highlighting
             combined_text = f"{ref_text} - {verse_text}"
