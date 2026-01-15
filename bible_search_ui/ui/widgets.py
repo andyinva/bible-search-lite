@@ -52,11 +52,11 @@ class VerseItemWidget(QWidget):
     selection_changed = pyqtSignal(str, bool)  # verse_id, is_selected
     verse_clicked = pyqtSignal(str)  # verse_id for navigation
     
-    def __init__(self, verse_id, translation, book_abbrev, chapter, verse_number, 
-                 text, window_id=None, parent=None):
+    def __init__(self, verse_id, translation, book_abbrev, chapter, verse_number,
+                 text, window_id=None, highlight_terms=None, parent=None):
         """
         Initialize a verse display widget.
-        
+
         Args:
             verse_id (str): Unique identifier for this verse
             translation (str): Bible translation abbreviation (e.g., "KJV")
@@ -65,6 +65,7 @@ class VerseItemWidget(QWidget):
             verse_number (int): Verse number within the chapter
             text (str): Full verse text to display
             window_id (str, optional): ID of the parent window (e.g., "search", "reading")
+            highlight_terms (list, optional): List of terms to highlight in the verse text
             parent (QWidget, optional): Parent widget
         """
         super().__init__(parent)
@@ -75,6 +76,7 @@ class VerseItemWidget(QWidget):
         self.verse_number = verse_number
         self.text = text
         self.window_id = window_id  # Store which window this verse belongs to
+        self.highlight_terms = highlight_terms or []  # Terms to highlight
         self.is_highlighted = False  # Track if this verse is highlighted for navigation
 
         self.setup_ui()
@@ -125,9 +127,19 @@ class VerseItemWidget(QWidget):
         ref_width = font_metrics.horizontalAdvance(ref_text + " - ")
         self.ref_width = ref_width  # Store for later updates
 
-        # Simple plain text display without hanging indent
-        combined_text = f"{ref_text} - {self.text}"
-        self.text_label = QLabel(combined_text)
+        # Apply highlighting if terms are provided
+        verse_text = self.text
+        if self.highlight_terms:
+            verse_text = self.apply_highlighting(verse_text)
+            # Use HTML formatting
+            combined_text = f"<span style='color: #333;'>{ref_text} - </span>{verse_text}"
+            self.text_label = QLabel(combined_text)
+            self.text_label.setTextFormat(Qt.TextFormat.RichText)
+        else:
+            # Simple plain text display without highlighting
+            combined_text = f"{ref_text} - {verse_text}"
+            self.text_label = QLabel(combined_text)
+
         self.text_label.setWordWrap(True)
         self.text_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.text_label, stretch=1)
@@ -141,6 +153,34 @@ class VerseItemWidget(QWidget):
 
         # Set height for proper scrolling - minimal
         self.setMinimumHeight(18)  # Minimal height
+
+    def apply_highlighting(self, text):
+        """
+        Apply HTML highlighting to search terms in verse text.
+
+        Args:
+            text (str): The verse text to highlight
+
+        Returns:
+            str: HTML-formatted text with highlighted search terms
+        """
+        import re
+        import html
+
+        # Escape HTML characters first
+        text = html.escape(text)
+
+        # Highlight each term
+        for term in self.highlight_terms:
+            # Escape special regex characters in the term
+            escaped_term = re.escape(term)
+
+            # Case-insensitive search and replace with green highlight
+            # Use word boundaries for whole word matching
+            pattern = re.compile(f'({escaped_term})', re.IGNORECASE)
+            text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
+
+        return text
 
     def setup_styling(self):
         """
@@ -555,7 +595,7 @@ class VerseListWidget(QWidget):
             }
         """)
 
-    def add_verse(self, verse_id, translation, book_abbrev, chapter, verse_number, text):
+    def add_verse(self, verse_id, translation, book_abbrev, chapter, verse_number, text, highlight_terms=None):
         """
         Add a verse to the list.
 
@@ -566,6 +606,7 @@ class VerseListWidget(QWidget):
             chapter (int): Chapter number
             verse_number (int): Verse number
             text (str): Full verse text
+            highlight_terms (list, optional): List of terms to highlight in the verse text
 
         Note:
             If verse_id already exists, the verse is not added again
@@ -580,7 +621,8 @@ class VerseListWidget(QWidget):
         # Create VerseItemWidget
         verse_widget = VerseItemWidget(
             verse_id, translation, book_abbrev, chapter,
-            verse_number, text, window_id=self.window_id, parent=None
+            verse_number, text, window_id=self.window_id,
+            highlight_terms=highlight_terms, parent=None
         )
         verse_widget.selection_changed.connect(self.on_verse_selection_changed)
         verse_widget.verse_clicked.connect(self.on_verse_clicked)

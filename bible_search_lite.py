@@ -2139,6 +2139,44 @@ class BibleSearchProgram(QMainWindow):
             num_verses=50
         )
 
+    def extract_highlight_terms(self, search_query):
+        """
+        Extract simple words to highlight from search query.
+        Removes operators, wildcards, and special characters.
+
+        Args:
+            search_query (str): The original search query
+
+        Returns:
+            list: List of terms to highlight
+        """
+        import re
+
+        if not search_query:
+            return []
+
+        # Remove quotes
+        query = search_query.strip().strip('"\'')
+
+        # Split on AND/OR operators
+        terms = re.split(r'\s+(?:AND|OR)\s+', query, flags=re.IGNORECASE)
+
+        highlight_terms = []
+        for term in terms:
+            term = term.strip()
+            # Remove wildcards
+            term = term.replace('*', '').replace('%', '')
+            # Remove special operators like ~, >, &
+            term = re.sub(r'[~>&]', '', term)
+            # Split multi-word terms
+            words = term.split()
+            for word in words:
+                word = word.strip()
+                if word and len(word) > 1:  # Only highlight words longer than 1 char
+                    highlight_terms.append(word)
+
+        return highlight_terms
+
     def on_search_results_ready(self, verses, metadata):
         """Handle initial search results from SearchController"""
         self.debug_print(f"\n{'='*60}")
@@ -2234,7 +2272,11 @@ class BibleSearchProgram(QMainWindow):
         verses_to_load = verses[:max_initial_load]
         remaining_verses = verses[max_initial_load:] if len(verses) > max_initial_load else []
 
-        # Add initial batch to search window
+        # Extract terms to highlight from the search query
+        highlight_terms = self.extract_highlight_terms(self.current_search_query)
+        self.debug_print(f"🎨 Highlighting terms: {highlight_terms}")
+
+        # Add initial batch to search window with highlighting
         for verse in verses_to_load:
             self.verse_lists['search'].add_verse(
                 verse.verse_id,
@@ -2242,7 +2284,8 @@ class BibleSearchProgram(QMainWindow):
                 verse.book_abbrev,
                 verse.chapter,
                 verse.verse,
-                verse.text
+                verse.text,
+                highlight_terms=highlight_terms
             )
 
         # Store remaining verses for lazy loading
@@ -2342,7 +2385,10 @@ class BibleSearchProgram(QMainWindow):
         # Get current displayed count
         current_displayed = len(self.verse_lists['search'].verse_items)
 
-        # Add to search window
+        # Extract terms to highlight (same as initial load)
+        highlight_terms = self.extract_highlight_terms(self.current_search_query)
+
+        # Add to search window with highlighting
         for verse in next_batch:
             self.verse_lists['search'].add_verse(
                 verse.verse_id,
@@ -2350,7 +2396,8 @@ class BibleSearchProgram(QMainWindow):
                 verse.book_abbrev,
                 verse.chapter,
                 verse.verse,
-                verse.text
+                verse.text,
+                highlight_terms=highlight_terms
             )
 
         # Apply font settings
