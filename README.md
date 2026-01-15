@@ -18,9 +18,15 @@ curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup.
 python3 setup.py
 ```
 
-**Windows 10/11:**
+**Windows 10/11 (PowerShell):**
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py" -OutFile "setup_win11.py"
+python setup_win11.py
+```
+
+**Windows 10/11 (Command Prompt):**
+```cmd
+curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py
 python setup_win11.py
 ```
 
