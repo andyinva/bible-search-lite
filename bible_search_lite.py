@@ -398,6 +398,17 @@ class BibleSearchProgram(QMainWindow):
         
         # Create main vertical splitter
         self.main_splitter = QSplitter(Qt.Orientation.Vertical)
+        # Style splitter handles to be visible and easy to grab
+        self.main_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #c0c0c0;
+                border: 1px solid #999;
+                height: 5px;
+            }
+            QSplitter::handle:hover {
+                background-color: #4CAF50;
+            }
+        """)
         main_layout.addWidget(self.main_splitter)
         
         # 1. Message Window with context-sensitive buttons
