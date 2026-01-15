@@ -130,11 +130,15 @@ class VerseItemWidget(QWidget):
         # Apply highlighting if terms are provided
         verse_text = self.text
         if self.highlight_terms:
+            print(f"🎨 Applying highlighting to verse {self.verse_id}: terms={self.highlight_terms}")
             verse_text = self.apply_highlighting(verse_text)
-            # Use HTML formatting
-            combined_text = f"<span style='color: #333;'>{ref_text} - </span>{verse_text}"
+            # Use HTML formatting - escape the reference too
+            import html
+            ref_text_escaped = html.escape(ref_text)
+            combined_text = f"<span style='color: #333;'>{ref_text_escaped} - </span>{verse_text}"
             self.text_label = QLabel(combined_text)
             self.text_label.setTextFormat(Qt.TextFormat.RichText)
+            print(f"   HTML: {combined_text[:100]}...")
         else:
             # Simple plain text display without highlighting
             combined_text = f"{ref_text} - {verse_text}"
