@@ -118,6 +118,9 @@ class BibleSearchProgram(QMainWindow):
         self.message_log = []
         self.max_message_log_size = 500  # Keep last 500 messages
 
+        # Debug log for Help menu (cleared on each app start)
+        self.debug_log = []
+
         # Set initial geometry (will be overridden by load_config if config exists)
         self.setGeometry(100, 100, 1200, 900)
 
@@ -301,6 +304,70 @@ class BibleSearchProgram(QMainWindow):
 
         dialog.exec()
 
+    def debug_print(self, *args, **kwargs):
+        """Capture print() calls and add to debug log with timestamp, then print to console"""
+        import builtins
+        from datetime import datetime
+
+        # Convert args to string like self.debug_print() does
+        message = ' '.join(str(arg) for arg in args)
+
+        # Add to debug log with timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] {message}"
+        self.debug_log.append(log_entry)
+
+        # Still print to console for real-time viewing
+        builtins.print(*args, **kwargs)
+
+    def show_debug_log(self):
+        """Display the debug log in a dialog"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout, QLabel
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Debug Log (Session)")
+        dialog.setMinimumSize(900, 700)
+
+        layout = QVBoxLayout(dialog)
+
+        # Info label
+        info_label = QLabel("Debug log shows technical messages from this session. Cleared on app restart.")
+        info_label.setStyleSheet("color: #666; font-size: 10px; padding: 5px;")
+        layout.addWidget(info_label)
+
+        # Text area to display log
+        log_text = QTextEdit()
+        log_text.setReadOnly(True)
+        log_text.setStyleSheet("font-family: monospace; font-size: 10px; background-color: white;")
+
+        if self.debug_log:
+            log_text.setPlainText("\n".join(self.debug_log))
+            # Scroll to bottom to show most recent messages
+            log_text.verticalScrollBar().setValue(log_text.verticalScrollBar().maximum())
+        else:
+            log_text.setPlainText("No debug messages logged yet.")
+
+        layout.addWidget(log_text)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        # Clear log button
+        clear_btn = QPushButton("Clear Log")
+        clear_btn.clicked.connect(lambda: (self.debug_log.clear(), log_text.setPlainText("Debug log cleared.")))
+        button_layout.addWidget(clear_btn)
+
+        button_layout.addStretch()
+
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        button_layout.addWidget(close_btn)
+
+        layout.addLayout(button_layout)
+
+        dialog.exec()
+
     def load_available_translations(self):
         """Load available translations from database"""
         import sqlite3
@@ -312,9 +379,9 @@ class BibleSearchProgram(QMainWindow):
             cursor.execute("SELECT abbreviation, name FROM translations ORDER BY abbreviation")
             translations = [row[0] for row in cursor.fetchall()]
             conn.close()
-            print(f"✓ Loaded {len(translations)} translations from database")
+            self.debug_print(f"✓ Loaded {len(translations)} translations from database")
         except Exception as e:
-            print(f"⚠️  Error loading translations: {e}")
+            self.debug_print(f"⚠️  Error loading translations: {e}")
             # Fallback to common translations if database read fails
             translations = ["KJV", "ASV", "WEB", "YLT"]
 
@@ -422,7 +489,7 @@ class BibleSearchProgram(QMainWindow):
 
         # Subject manager handles its own visibility based on config
         if combined_container:
-            print("✓ Subject features (Windows 4 & 5) initialized as combined unit")
+            self.debug_print("✓ Subject features (Windows 4 & 5) initialized as combined unit")
             # Sync toggle button state with current visibility
             self.subject_toggle_btn.setChecked(self.subject_manager.is_visible)
             self.update_subject_toggle_style(self.subject_manager.is_visible)
@@ -430,7 +497,7 @@ class BibleSearchProgram(QMainWindow):
             # Load subjects into Window 3's subject dropdown
             self.load_subjects_for_reading()
         else:
-            print("⚠️  Subject features not initialized")
+            self.debug_print("⚠️  Subject features not initialized")
 
         # Set initial splitter sizes
         self.main_splitter.setSizes([80, 200, 250, 200, 100])
@@ -483,10 +550,10 @@ class BibleSearchProgram(QMainWindow):
                         background-color: #45a049;
                     }
                 """)
-                print(f"Acquire button highlighted - selections available")
+                self.debug_print(f"Acquire button highlighted - selections available")
             else:
                 self.acquire_button.setStyleSheet(self.get_button_style())
-                print(f"Acquire button normal - no selections available")
+                self.debug_print(f"Acquire button normal - no selections available")
 
     def update_subject_acquire_button(self):
         """Update the Acquire button state and style in Window 4 when selections change in Windows 2 or 3"""
@@ -534,7 +601,7 @@ class BibleSearchProgram(QMainWindow):
         else:
             self.subject_manager.verse_manager.acquire_btn.setStyleSheet(normal_style)
 
-        print(f"Subject Acquire button: W4_subject={has_subject_in_window4}, W3_subject={has_subject_in_window3}, selections={has_selections}, search={search_count}, reading={reading_count}")
+        self.debug_print(f"Subject Acquire button: W4_subject={has_subject_in_window4}, W3_subject={has_subject_in_window3}, selections={has_selections}, search={search_count}, reading={reading_count}")
 
     def update_window3_acquire_style(self):
         """Update Window 3 Acquire button styling and enabled state based on selections"""
@@ -987,7 +1054,7 @@ class BibleSearchProgram(QMainWindow):
 
     def set_active_window(self, window_id):
         """Set the active verse window"""
-        print(f"Setting active window to: {window_id}")  # Debug output
+        self.debug_print(f"Setting active window to: {window_id}")  # Debug output
 
         # Store the active window id so other components can check it
         self.active_window_id = window_id
@@ -998,27 +1065,27 @@ class BibleSearchProgram(QMainWindow):
         for wid, verse_list in self.verse_lists.items():
             is_active = (wid == window_id)
             verse_list.set_active(is_active)
-            print(f"Window {wid} active state: {is_active}")  # Debug output
+            self.debug_print(f"Window {wid} active state: {is_active}")  # Debug output
 
             # Give keyboard focus to the active window for Ctrl+A to work
             if is_active:
                 verse_list.setFocus()
-                print(f"✅ Focus set to window: {wid}")
+                self.debug_print(f"✅ Focus set to window: {wid}")
 
     def update_filter_button_state(self):
         """Update the Filter button appearance based on filter active state"""
         if self.filtered_words is not None and len(self.filtered_words) > 0:
             # Filter is active - highlight the button
             self.filter_button.setStyleSheet(self.get_button_style(active=True))
-            print(f"🟢 Filter button highlighted - {len(self.filtered_words)} word(s) active")
+            self.debug_print(f"🟢 Filter button highlighted - {len(self.filtered_words)} word(s) active")
         else:
             # No filter - normal appearance
             self.filter_button.setStyleSheet(self.get_button_style(active=False))
-            print("⚪ Filter button normal - no filter active")
+            self.debug_print("⚪ Filter button normal - no filter active")
             
     def on_verse_navigation(self, verse_id):
         """Handle verse navigation between windows"""
-        print(f"Navigate to verse: {verse_id}")
+        self.debug_print(f"Navigate to verse: {verse_id}")
 
         # When verse selected in search results, show context in reading window
         if verse_id.startswith("search_"):
@@ -1034,7 +1101,7 @@ class BibleSearchProgram(QMainWindow):
                 verse_reference = f"{verse_widget.book_abbrev} {verse_widget.chapter}:{verse_widget.verse_number}"
                 # Update the cross-references dropdown
                 self.update_cross_references_dropdown(verse_reference)
-                print(f"🔗 Updated cross-references for clicked verse: {verse_reference}")
+                self.debug_print(f"🔗 Updated cross-references for clicked verse: {verse_reference}")
 
     def clear_search_and_reading(self):
         """Clear search results, reading window, references dropdown, and subject selections"""
@@ -1077,7 +1144,7 @@ class BibleSearchProgram(QMainWindow):
         
         if dialog.exec():
             self.selected_translations = dialog.get_selected_translations()
-            print(f"Selected translations: {self.selected_translations}")
+            self.debug_print(f"Selected translations: {self.selected_translations}")
             # Update button text to show count
             count = len(self.selected_translations)
             self.translations_button.setText(f"Translations ({count})")
@@ -1162,9 +1229,9 @@ class BibleSearchProgram(QMainWindow):
                             self.subject_manager.verse_manager.current_subject_id = subject_id
                             # Load the verses
                             self.subject_manager.verse_manager.load_subject_verses()
-                            print(f"✓ Auto-loaded subject '{subject_name}' verses into Window 4")
+                            self.debug_print(f"✓ Auto-loaded subject '{subject_name}' verses into Window 4")
                     except Exception as e:
-                        print(f"⚠️ Error auto-loading subject: {e}")
+                        self.debug_print(f"⚠️ Error auto-loading subject: {e}")
         else:
             self.subject_manager.hide()
             self.set_message("✓ Subject features hidden")
@@ -1221,30 +1288,30 @@ class BibleSearchProgram(QMainWindow):
 
     def show_filter_dialog(self):
         """Show filter dialog to select which word variations to include"""
-        print("🔍 Filter button clicked!")
+        self.debug_print("🔍 Filter button clicked!")
 
         # Check if there are search results
         if 'search' not in self.verse_lists:
-            print("❌ 'search' not in verse_lists")
+            self.debug_print("❌ 'search' not in verse_lists")
             self.set_message("No search results to filter. Perform a search first.")
             return
 
         if not self.verse_lists['search'].verse_items:
-            print(f"❌ No verse items in search window (count: {len(self.verse_lists['search'].verse_items)})")
+            self.debug_print(f"❌ No verse items in search window (count: {len(self.verse_lists['search'].verse_items)})")
             self.set_message("No search results to filter. Perform a search first.")
             return
 
-        print(f"✅ Found {len(self.verse_lists['search'].verse_items)} verses in search results")
+        self.debug_print(f"✅ Found {len(self.verse_lists['search'].verse_items)} verses in search results")
 
         # Extract word counts from current search results
         word_counts = self.extract_word_counts()
-        print(f"📊 Extracted {len(word_counts)} unique words")
+        self.debug_print(f"📊 Extracted {len(word_counts)} unique words")
 
         if not word_counts:
             self.set_message("No words found in search results")
             return
 
-        print("📦 Opening SearchFilterDialog...")
+        self.debug_print("📦 Opening SearchFilterDialog...")
         # Show the filter dialog
         dialog = SearchFilterDialog(self, word_counts)
         if dialog.exec():
@@ -1296,7 +1363,7 @@ class BibleSearchProgram(QMainWindow):
         # Join with \s+ (one or more whitespace)
         regex_pattern = r'\b' + r'\s+'.join(regex_parts) + r'\b'
 
-        print(f"📊 Extracting phrase patterns with regex: {regex_pattern}")
+        self.debug_print(f"📊 Extracting phrase patterns with regex: {regex_pattern}")
 
         # Extract matching phrases from all results
         for result in all_results:
@@ -1320,11 +1387,11 @@ class BibleSearchProgram(QMainWindow):
                 phrase_counts[phrase] = phrase_counts.get(phrase, 0) + 1
 
         # Print summary
-        print(f"📊 Found {len(phrase_counts)} unique phrase pattern(s) from {len(all_results)} verses:")
+        self.debug_print(f"📊 Found {len(phrase_counts)} unique phrase pattern(s) from {len(all_results)} verses:")
         for phrase, count in sorted(phrase_counts.items(), key=lambda x: (-x[1], x[0]))[:20]:
-            print(f"   {phrase}: {count}")
+            self.debug_print(f"   {phrase}: {count}")
         if len(phrase_counts) > 20:
-            print(f"   ... and {len(phrase_counts) - 20} more")
+            self.debug_print(f"   ... and {len(phrase_counts) - 20} more")
 
         return phrase_counts
 
@@ -1347,8 +1414,8 @@ class BibleSearchProgram(QMainWindow):
         all_results = self.search_controller.all_search_results
 
         if not all_results:
-            print("⚠️  No search results available in controller")
-            print("   Falling back to displayed verses only")
+            self.debug_print("⚠️  No search results available in controller")
+            self.debug_print("   Falling back to displayed verses only")
             # Fallback: use displayed verses
             all_results = []
             for verse_id, verse_item in self.verse_lists['search'].verse_items.items():
@@ -1359,7 +1426,7 @@ class BibleSearchProgram(QMainWindow):
                         self.text = text
                 all_results.append(FallbackResult(widget.text))
 
-        print(f"📊 Extracting from {len(all_results)} total search results (not just displayed {len(self.verse_lists['search'].verse_items)})")
+        self.debug_print(f"📊 Extracting from {len(all_results)} total search results (not just displayed {len(self.verse_lists['search'].verse_items)})")
 
         # Check if query contains & (word placeholder)
         query = self.current_search_query if hasattr(self, 'current_search_query') else ""
@@ -1368,7 +1435,7 @@ class BibleSearchProgram(QMainWindow):
         if contains_word_placeholder:
             # Extract phrase patterns for word placeholder queries
             # For "who & sent", extract patterns like "who had sent", "who hath sent", etc.
-            print(f"🔍 Query contains word placeholder: '{query}'")
+            self.debug_print(f"🔍 Query contains word placeholder: '{query}'")
             return self._extract_phrase_patterns(all_results, query)
 
         # Original logic for non-placeholder queries
@@ -1400,7 +1467,7 @@ class BibleSearchProgram(QMainWindow):
                 pattern = r'^' + pattern + r'$'
                 search_patterns.append(re.compile(pattern))
 
-            print(f"🔍 Search patterns for filtering: {[p.pattern for p in search_patterns]}")
+            self.debug_print(f"🔍 Search patterns for filtering: {[p.pattern for p in search_patterns]}")
 
         # Extract words from all results
         for result in all_results:
@@ -1438,11 +1505,11 @@ class BibleSearchProgram(QMainWindow):
                     word_counts[word_normalized] = word_counts.get(word_normalized, 0) + 1
 
         # Print summary of matched words
-        print(f"📊 Found {len(word_counts)} unique word(s) from {len(all_results)} verses:")
+        self.debug_print(f"📊 Found {len(word_counts)} unique word(s) from {len(all_results)} verses:")
         for word, count in sorted(word_counts.items(), key=lambda x: (-x[1], x[0]))[:20]:
-            print(f"   {word}: {count}")
+            self.debug_print(f"   {word}: {count}")
         if len(word_counts) > 20:
-            print(f"   ... and {len(word_counts) - 20} more")
+            self.debug_print(f"   ... and {len(word_counts) - 20} more")
 
         return word_counts
 
@@ -1483,7 +1550,7 @@ class BibleSearchProgram(QMainWindow):
             pattern = r'^' + pattern + r'$'
 
             patterns.append(pattern)
-            print(f"   Pattern: {term} → {pattern}")
+            self.debug_print(f"   Pattern: {term} → {pattern}")
 
         return patterns
 
@@ -1594,21 +1661,21 @@ class BibleSearchProgram(QMainWindow):
         """Perform a Bible search using SearchController"""
         import time
 
-        print(f"\n{'='*60}")
-        print(f"🔍 SEARCH BUTTON CLICKED")
-        print(f"{'='*60}")
+        self.debug_print(f"\n{'='*60}")
+        self.debug_print(f"🔍 SEARCH BUTTON CLICKED")
+        self.debug_print(f"{'='*60}")
 
         search_term = self.search_input.currentText().strip()
         if not search_term:
             self.set_message("Please enter search terms")
-            print("❌ No search term entered")
+            self.debug_print("❌ No search term entered")
             return
 
         # Record search start time and search query
         self.search_start_time = time.time()
         self.current_search_query = search_term
 
-        print(f"📝 Search term: '{search_term}'")
+        self.debug_print(f"📝 Search term: '{search_term}'")
 
         # Note: Search history is now added in on_search_results_ready(),
         # and only if the search returns results
@@ -1635,13 +1702,13 @@ class BibleSearchProgram(QMainWindow):
             search_msg += f" (filtered by {len(self.filtered_words)} word(s))"
         self.set_message(search_msg + "...")
 
-        print(f"📚 Book filter: {selected_book_group} ({len(book_filter)} books)")
+        self.debug_print(f"📚 Book filter: {selected_book_group} ({len(book_filter)} books)")
         if self.filtered_words is not None:
-            print(f"🔍 Word filter: {len(self.filtered_words)} word(s) selected: {self.filtered_words}")
+            self.debug_print(f"🔍 Word filter: {len(self.filtered_words)} word(s) selected: {self.filtered_words}")
         else:
-            print(f"🔍 Word filter: None (no filter active)")
+            self.debug_print(f"🔍 Word filter: None (no filter active)")
 
-        print(f"🚀 Calling search_controller.search()...")
+        self.debug_print(f"🚀 Calling search_controller.search()...")
 
         # Delegate to search controller
         try:
@@ -1653,23 +1720,23 @@ class BibleSearchProgram(QMainWindow):
                 translations=self.selected_translations,
                 book_filter=book_filter
             )
-            print(f"✅ search_controller.search() called successfully")
+            self.debug_print(f"✅ search_controller.search() called successfully")
         except Exception as e:
-            print(f"❌ ERROR in search_controller.search(): {e}")
+            self.debug_print(f"❌ ERROR in search_controller.search(): {e}")
             import traceback
             traceback.print_exc()
             self.set_message(f"Search error: {e}")
 
         # Keep filtered_words active until user clicks Filter again or clears it
         # (filter persists across multiple searches)
-        print(f"{'='*60}\n")
+        self.debug_print(f"{'='*60}\n")
 
 
     def load_context_verses(self, center_verse_id):
         """Load context verses around a selected verse - delegates to SearchController"""
         # Get the verse widget from search results to extract its info
         if center_verse_id not in self.verse_lists['search'].verse_items:
-            print(f"Verse {center_verse_id} not found in search results")
+            self.debug_print(f"Verse {center_verse_id} not found in search results")
             return
 
         # Clear previous highlights in Window 2 (search)
@@ -1688,14 +1755,14 @@ class BibleSearchProgram(QMainWindow):
         clicked_verse.set_highlighted(True)
         # Set blue background on the QListWidgetItem
         item.setBackground(QBrush(QColor(214, 233, 255)))  # #D6E9FF blue tint
-        print(f"🔵 Highlighted clicked verse in Window 2: {center_verse_id}")
+        self.debug_print(f"🔵 Highlighted clicked verse in Window 2: {center_verse_id}")
 
         translation = clicked_verse.translation
         book = clicked_verse.book_abbrev
         chapter = clicked_verse.chapter
         start_verse = clicked_verse.verse_number
 
-        print(f"Loading context for {translation} {book} {chapter}:{start_verse}")
+        self.debug_print(f"Loading context for {translation} {book} {chapter}:{start_verse}")
 
         # Delegate to search controller
         self.search_controller.load_context(
@@ -1708,11 +1775,11 @@ class BibleSearchProgram(QMainWindow):
 
     def on_search_results_ready(self, verses, metadata):
         """Handle initial search results from SearchController"""
-        print(f"\n{'='*60}")
-        print(f"📥 ON_SEARCH_RESULTS_READY CALLED")
-        print(f"{'='*60}")
-        print(f"Received {len(verses)} initial search results")
-        print(f"Total results in controller: {len(self.search_controller.all_search_results)}")
+        self.debug_print(f"\n{'='*60}")
+        self.debug_print(f"📥 ON_SEARCH_RESULTS_READY CALLED")
+        self.debug_print(f"{'='*60}")
+        self.debug_print(f"Received {len(verses)} initial search results")
+        self.debug_print(f"Total results in controller: {len(self.search_controller.all_search_results)}")
 
         # Track whether a filter was actually applied in this search
         # This is different from just checking filtered_words, because filtered_words
@@ -1744,17 +1811,17 @@ class BibleSearchProgram(QMainWindow):
 
             # Save config with updated search history
             try:
-                print(f"💾 Saving search to history (found {len(all_raw_results)} results)...")
+                self.debug_print(f"💾 Saving search to history (found {len(all_raw_results)} results)...")
                 self.save_config()
-                print(f"✅ Search history saved")
+                self.debug_print(f"✅ Search history saved")
             except Exception as e:
-                print(f"⚠️  Error saving config: {e}")
+                self.debug_print(f"⚠️  Error saving config: {e}")
                 # Don't let config save errors block the search display
         else:
             if search_term and len(all_raw_results) == 0:
-                print(f"⚠️  Not saving '{search_term}' to history (no results found)")
+                self.debug_print(f"⚠️  Not saving '{search_term}' to history (no results found)")
 
-        print(f"📝 Formatting ALL {len(all_raw_results)} results...")
+        self.debug_print(f"📝 Formatting ALL {len(all_raw_results)} results...")
         all_formatted_verses = []
         for i, result in enumerate(all_raw_results):
             verse_id = f"search_{i}"
@@ -1763,21 +1830,21 @@ class BibleSearchProgram(QMainWindow):
             if formatted:
                 all_formatted_verses.append(formatted)
 
-        print(f"✅ Formatted {len(all_formatted_verses)} verses")
+        self.debug_print(f"✅ Formatted {len(all_formatted_verses)} verses")
 
         # If filter is active, apply it to ALL results
         if self.filtered_words is not None:
             self.filter_was_applied = True  # Mark that filter is being applied
-            print(f"🔍 Filter active! Applying to {len(all_formatted_verses)} results...")
-            print(f"🔍 Word filter: {self.filtered_words}")
+            self.debug_print(f"🔍 Filter active! Applying to {len(all_formatted_verses)} results...")
+            self.debug_print(f"🔍 Word filter: {self.filtered_words}")
 
             # Apply filter to ALL formatted verses
             original_count = len(all_formatted_verses)
             try:
                 verses = self.apply_word_filter(all_formatted_verses)
-                print(f"After word filtering: {len(verses)} results (from {original_count} total)")
+                self.debug_print(f"After word filtering: {len(verses)} results (from {original_count} total)")
             except Exception as e:
-                print(f"❌ ERROR in apply_word_filter: {e}")
+                self.debug_print(f"❌ ERROR in apply_word_filter: {e}")
                 import traceback
                 traceback.print_exc()
                 self.set_message(f"Filter error: {e}")
@@ -1789,7 +1856,7 @@ class BibleSearchProgram(QMainWindow):
         else:
             # No filter - use all formatted verses
             verses = all_formatted_verses
-            print(f"🔍 No word filter active - loading ALL {len(verses)} results")
+            self.debug_print(f"🔍 No word filter active - loading ALL {len(verses)} results")
 
         # Clear previous results
         self.verse_lists['search'].clear_verses()
@@ -1822,12 +1889,12 @@ class BibleSearchProgram(QMainWindow):
 
         # Apply saved font settings to newly loaded search results
         self.apply_font_settings()
-        print(f"✓ Applied font settings to search results (verse_font_size={self.verse_font_size}, size={self.verse_font_sizes[self.verse_font_size]}pt)")
+        self.debug_print(f"✓ Applied font settings to search results (verse_font_size={self.verse_font_size}, size={self.verse_font_sizes[self.verse_font_size]}pt)")
 
         # QListWidget handles rendering automatically, no refresh needed
-        print(f"🔄 Loaded {len(verses_to_load)} verses into search window")
+        self.debug_print(f"🔄 Loaded {len(verses_to_load)} verses into search window")
         if remaining_verses:
-            print(f"⏳ {len(remaining_verses)} more results available (scroll to load more)")
+            self.debug_print(f"⏳ {len(remaining_verses)} more results available (scroll to load more)")
 
         # Note: Message will be set by on_search_status() which is called after this method
         # We don't set it here because it would be immediately overwritten
@@ -1835,20 +1902,20 @@ class BibleSearchProgram(QMainWindow):
         # Don't use scroll-based loading - it slows down scrolling
         # Instead, show a "Load More" prompt in the message
         if remaining_verses:
-            print(f"⏳ {len(remaining_verses)} more results available - use message bar to load more")
+            self.debug_print(f"⏳ {len(remaining_verses)} more results available - use message bar to load more")
         else:
-            print("✅ All results loaded - scroll bar enabled")
+            self.debug_print("✅ All results loaded - scroll bar enabled")
 
         # Automatically activate Window 2 (Search Results) after search completes
         # This allows user to immediately use Ctrl+A or Copy without clicking
         if len(verses) > 0:
             self.set_active_window('search')
-            print("🎯 Auto-activated Window 2 (Search Results)")
+            self.debug_print("🎯 Auto-activated Window 2 (Search Results)")
 
         # Clear filter after one use - turn off green button
         # User can click Filter again if they want to reapply or change filter
         if self.filtered_words is not None:
-            print(f"🔄 Clearing filter after use (was: {self.filtered_words})")
+            self.debug_print(f"🔄 Clearing filter after use (was: {self.filtered_words})")
             self.filtered_words = None
         self.update_filter_button_state()
 
@@ -1868,7 +1935,7 @@ class BibleSearchProgram(QMainWindow):
         next_batch = self.remaining_search_results[:batch_size]
         self.remaining_search_results = self.remaining_search_results[batch_size:]
 
-        print(f"📥 Loading {len(next_batch)} more results on scroll...")
+        self.debug_print(f"📥 Loading {len(next_batch)} more results on scroll...")
 
         # Add to window
         for verse in next_batch:
@@ -1889,17 +1956,17 @@ class BibleSearchProgram(QMainWindow):
 
         # If no more remaining, disconnect scroll handler
         if not self.remaining_search_results:
-            print("✅ All results now loaded")
+            self.debug_print("✅ All results now loaded")
             scroll_bar.valueChanged.disconnect(self.on_scroll_load_more)
 
     def load_more_results_batch(self):
         """Load the next 300 results when Load More button is clicked"""
         if not hasattr(self, 'remaining_search_results') or not self.remaining_search_results:
-            print("⚠️  No more results to load")
+            self.debug_print("⚠️  No more results to load")
             self.load_more_btn.setVisible(False)
             return
 
-        print(f"📥 Loading next batch of results...")
+        self.debug_print(f"📥 Loading next batch of results...")
 
         # Load next 300 (or whatever's left)
         batch_size = 300
@@ -1933,16 +2000,16 @@ class BibleSearchProgram(QMainWindow):
             remaining = len(self.remaining_search_results)
             self.set_message(f"Displaying {new_displayed} of {total_results} results | {remaining} more available")
             self.load_more_btn.setVisible(True)
-            print(f"✅ Loaded {len(next_batch)} more results. {remaining} remaining.")
+            self.debug_print(f"✅ Loaded {len(next_batch)} more results. {remaining} remaining.")
         else:
             # All results now loaded
             self.set_message(f"All {total_results} results loaded")
             self.load_more_btn.setVisible(False)
-            print(f"✅ All {total_results} results now loaded")
+            self.debug_print(f"✅ All {total_results} results now loaded")
 
     def load_next_results(self):
         """Load the next batch of search results when Next button is clicked"""
-        print("🔵 Next button clicked - loading more results")
+        self.debug_print("🔵 Next button clicked - loading more results")
 
         # Get current displayed count
         current_count = len(self.verse_lists['search'].verse_items)
@@ -1954,14 +2021,14 @@ class BibleSearchProgram(QMainWindow):
         to_load = min(batch_size, remaining)
 
         if to_load <= 0:
-            print("⚠️  No more results to load")
+            self.debug_print("⚠️  No more results to load")
             self.next_results_btn.setVisible(False)
             return
 
         # Get next batch
         next_batch = self.search_controller.all_search_results[current_count:current_count + to_load]
 
-        print(f"📥 Loading results {current_count + 1} to {current_count + to_load} of {total_count}")
+        self.debug_print(f"📥 Loading results {current_count + 1} to {current_count + to_load} of {total_count}")
 
         # Format and add to search window
         for i, result in enumerate(next_batch):
@@ -1983,11 +2050,11 @@ class BibleSearchProgram(QMainWindow):
         # Update message with new displayed count
         self.on_search_status("Results loaded")
 
-        print(f"✅ Loaded {to_load} more results. Now displaying {current_count + to_load} of {total_count}")
+        self.debug_print(f"✅ Loaded {to_load} more results. Now displaying {current_count + to_load} of {total_count}")
 
     def on_search_more_results_ready(self, verses, metadata):
         """Handle additional search results from lazy loading"""
-        print(f"Received {len(verses)} more search results")
+        self.debug_print(f"Received {len(verses)} more search results")
 
         # Add verses to search window (don't clear existing ones)
         for verse in verses:
@@ -2009,7 +2076,7 @@ class BibleSearchProgram(QMainWindow):
     def on_search_failed(self, error_message):
         """Handle search failure"""
         self.set_message(f"Search error: {error_message}")
-        print(f"Search error details: {error_message}")
+        self.debug_print(f"Search error details: {error_message}")
 
     def on_search_status(self, message):
         """Handle search status updates - build comprehensive message format"""
@@ -2042,7 +2109,7 @@ class BibleSearchProgram(QMainWindow):
             unique_from_metadata = first_result.get('unique_count', None)
             unique_enabled = first_result.get('unique_verses_enabled', False)
 
-            print(f"🔍 Metadata: total_count={total_from_metadata}, unique_count={unique_from_metadata}, unique_enabled={unique_enabled}")
+            self.debug_print(f"🔍 Metadata: total_count={total_from_metadata}, unique_count={unique_from_metadata}, unique_enabled={unique_enabled}")
 
             # If unique verses was enabled, use the metadata counts
             if unique_enabled and total_from_metadata is not None:
@@ -2050,12 +2117,12 @@ class BibleSearchProgram(QMainWindow):
                 total_results = total_from_metadata
                 # Unique = deduplicated count
                 unique_count = unique_from_metadata if unique_from_metadata else total_before_unique
-                print(f"✅ Using metadata: total={total_results}, unique={unique_count}")
+                self.debug_print(f"✅ Using metadata: total={total_results}, unique={unique_count}")
             else:
                 # Unique verses NOT enabled - total and unique are the same
                 total_results = total_before_unique
                 unique_count = total_before_unique
-                print(f"✅ No unique filtering: total={total_results}, unique={unique_count}")
+                self.debug_print(f"✅ No unique filtering: total={total_results}, unique={unique_count}")
         else:
             # No metadata, use length of results
             total_results = total_before_unique
@@ -2064,7 +2131,7 @@ class BibleSearchProgram(QMainWindow):
         # Get filtered count from displayed verses
         displayed_count = len(self.verse_lists['search'].verse_items) if 'search' in self.verse_lists else 0
 
-        print(f"📊 Status message: total={total_results}, unique={unique_count}, displayed={displayed_count}")
+        self.debug_print(f"📊 Status message: total={total_results}, unique={unique_count}, displayed={displayed_count}")
 
         # Build comprehensive message
         # Format: Search: "query" | Total: 5809 | Displayed: 300 | Time: 2.45s (scroll for more)
@@ -2095,12 +2162,12 @@ class BibleSearchProgram(QMainWindow):
         else:
             self.load_more_btn.setVisible(False)
 
-        print(f"📝 Custom message: {custom_message}")
+        self.debug_print(f"📝 Custom message: {custom_message}")
         self.set_message(custom_message)
 
     def on_context_verses_ready(self, verses):
         """Handle context verses for reading window"""
-        print(f"Received {len(verses)} context verses for reading window")
+        self.debug_print(f"Received {len(verses)} context verses for reading window")
 
         # Clear reading window
         self.verse_lists['reading'].clear_verses()
@@ -2128,11 +2195,11 @@ class BibleSearchProgram(QMainWindow):
                 verse_font.setPointSizeF(verse_size)
                 verse_widget.text_label.setFont(verse_font)
 
-        print(f"✓ Applied {verse_size}pt font to {len(verses)} context verses individually")
+        self.debug_print(f"✓ Applied {verse_size}pt font to {len(verses)} context verses individually")
 
         # Update size hints after font changes to prevent text cutoff
         self.verse_lists['reading'].update_item_sizes()
-        print(f"✓ Updated size hints for all verses in reading window")
+        self.debug_print(f"✓ Updated size hints for all verses in reading window")
 
         # Highlight the first verse (the one that was clicked)
         if verses:
@@ -2157,13 +2224,13 @@ class BibleSearchProgram(QMainWindow):
             first_verse = verses[0]
             verse_reference = f"{first_verse.book_abbrev} {first_verse.chapter}:{first_verse.verse}"
             self.update_cross_references_dropdown(verse_reference)
-            print(f"🔗 Loading cross-references for {verse_reference}")
+            self.debug_print(f"🔗 Loading cross-references for {verse_reference}")
 
             # NOTE: We used to auto-activate Window 3 here, but that prevented
             # Window 2 from staying active when clicking verses in it.
             # Users can click Window 3 if they want to work there.
             # self.set_active_window('reading')
-            # print("🎯 Auto-activated Window 3 (Reading Window)")
+            # self.debug_print("🎯 Auto-activated Window 3 (Reading Window)")
 
     def on_tips_clicked(self):
         """Show context-sensitive tips based on active window"""
@@ -2175,10 +2242,10 @@ class BibleSearchProgram(QMainWindow):
         for window_id, verse_list in self.verse_lists.items():
             if hasattr(verse_list, 'is_active') and verse_list.is_active:
                 active_window = window_id
-                print(f"✓ Active window detected: {window_id}")
+                self.debug_print(f"✓ Active window detected: {window_id}")
                 break
 
-        print(f"Active window result: {active_window}")
+        self.debug_print(f"Active window result: {active_window}")
 
         # If we can detect active window, show specific help
         if active_window == 'search':
@@ -2345,6 +2412,24 @@ class BibleSearchProgram(QMainWindow):
         """)
         log_btn.clicked.connect(lambda: (dialog.accept(), self.show_message_log()))
         layout.addWidget(log_btn)
+
+        # Button for Debug Log
+        debug_btn = QPushButton("🔧 View Debug Log")
+        debug_btn.setMinimumHeight(50)
+        debug_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #795548;
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #5D4037;
+            }
+        """)
+        debug_btn.clicked.connect(lambda: (dialog.accept(), self.show_debug_log()))
+        layout.addWidget(debug_btn)
 
         layout.addSpacing(20)
 
@@ -3897,26 +3982,26 @@ from liability. It's the same license used by many popular open-source projects.
 
         # Get active window
         active = getattr(self, 'active_window_id', None)
-        print(f"📋 Copy button clicked - Active window: {active}")
+        self.debug_print(f"📋 Copy button clicked - Active window: {active}")
 
         # Check if a window is active
         if active is None:
-            print(f"❌ No window selected")
+            self.debug_print(f"❌ No window selected")
             self.set_message("Please click on a window (2, 3, or 4) first to select it")
             return
 
         # Allow copying from search (Window 2), reading (Window 3), and subject (Window 4)
         if active not in ['search', 'reading', 'subject']:
-            print(f"❌ Cannot copy from window: {active}")
+            self.debug_print(f"❌ Cannot copy from window: {active}")
             self.set_message("Copy only works from Windows 2, 3, or 4")
             return
 
         if active not in self.verse_lists:
-            print(f"❌ Active window not in verse_lists")
+            self.debug_print(f"❌ Active window not in verse_lists")
             return
 
         selected = self.verse_lists[active].get_selected_verses()
-        print(f"📋 Selected verses: {len(selected)}")
+        self.debug_print(f"📋 Selected verses: {len(selected)}")
         if not selected:
             self.set_message("No verses selected to copy")
             return
@@ -3967,19 +4052,19 @@ from liability. It's the same license used by many popular open-source projects.
 
         # Copy to clipboard
         QApplication.clipboard().setText(clipboard_text)
-        print(f"📋 Copied to clipboard:")
-        print(f"   First verse: {text_lines[0][:100]}..." if text_lines else "   (empty)")
+        self.debug_print(f"📋 Copied to clipboard:")
+        self.debug_print(f"   First verse: {text_lines[0][:100]}..." if text_lines else "   (empty)")
 
         # Uncheck all boxes in Windows 2, 3, & 4 after copying (this will auto-unlock via checkbox handler)
         self.verse_lists['search'].select_none()
         self.verse_lists['reading'].select_none()
         if 'subject' in self.verse_lists:
             self.verse_lists['subject'].select_none()
-        print(f"📋 Unchecked all verses in Windows 2, 3, & 4")
+        self.debug_print(f"📋 Unchecked all verses in Windows 2, 3, & 4")
 
         # Show success message (unlock happens automatically when boxes uncheck)
         self.set_message(f"Copied {verse_count} verse(s) to clipboard ({text_size_kb:.1f} KB)")
-        print(f"✅ Copy complete: {verse_count} verses, {text_size_kb:.1f} KB")
+        self.debug_print(f"✅ Copy complete: {verse_count} verses, {text_size_kb:.1f} KB")
     
     def on_export_clicked(self):
         """Open the comprehensive export dialog"""
@@ -4059,20 +4144,20 @@ from liability. It's the same license used by many popular open-source projects.
                 # Minimum y position should be at least 0 (not above screen top)
                 if y < 0:
                     y = 0
-                    print(f"⚠️  Adjusted window y position from {geom['y']} to {y} (was off-screen)")
+                    self.debug_print(f"⚠️  Adjusted window y position from {geom['y']} to {y} (was off-screen)")
 
                 # Ensure x position is reasonable (not too far left)
                 if x < -100:  # Allow some negative for multi-monitor, but not extreme
                     x = 100
-                    print(f"⚠️  Adjusted window x position from {geom['x']} to {x} (was off-screen)")
+                    self.debug_print(f"⚠️  Adjusted window x position from {geom['x']} to {x} (was off-screen)")
 
                 self.setGeometry(x, y, width, height)
-                print(f"✓ Restored window geometry: {width}x{height} at ({x}, {y})")
+                self.debug_print(f"✓ Restored window geometry: {width}x{height} at ({x}, {y})")
 
             # Restore main splitter sizes (after UI is created)
             if 'splitter_sizes' in config and hasattr(self, 'main_splitter'):
                 self.main_splitter.setSizes(config['splitter_sizes'])
-                print(f"✓ Restored main splitter sizes: {config['splitter_sizes']}")
+                self.debug_print(f"✓ Restored main splitter sizes: {config['splitter_sizes']}")
 
             # Restore checkbox states
             if 'checkboxes' in config:
@@ -4083,7 +4168,7 @@ from liability. It's the same license used by many popular open-source projects.
                     self.unique_verse_cb.setChecked(checkboxes.get('unique_verse', False))
                 if hasattr(self, 'abbreviate_results_cb'):
                     self.abbreviate_results_cb.setChecked(checkboxes.get('abbreviate_results', False))
-                print(f"✓ Restored checkbox states: case_sensitive={checkboxes.get('case_sensitive', False)}, unique_verse={checkboxes.get('unique_verse', False)}, abbreviate={checkboxes.get('abbreviate_results', False)}")
+                self.debug_print(f"✓ Restored checkbox states: case_sensitive={checkboxes.get('case_sensitive', False)}, unique_verse={checkboxes.get('unique_verse', False)}, abbreviate={checkboxes.get('abbreviate_results', False)}")
 
             # Restore font settings
             if 'font_settings' in config:
@@ -4092,7 +4177,7 @@ from liability. It's the same license used by many popular open-source projects.
                 self.verse_font_size = font_settings.get('verse_font_size', 0)
                 # Apply the font settings
                 self.apply_font_settings()
-                print(f"✓ Restored font settings: title={self.title_font_size}, verse={self.verse_font_size}")
+                self.debug_print(f"✓ Restored font settings: title={self.title_font_size}, verse={self.verse_font_size}")
 
             # Load search history
             if 'search_history' in config:
@@ -4101,8 +4186,8 @@ from liability. It's the same license used by many popular open-source projects.
                 if hasattr(self, 'search_input') and self.search_input is not None:
                     self.search_input.clear()
                     self.search_input.addItems(self.search_history)
-                    print(f"✓ Loaded {len(self.search_history)} search history items")
-        print("✓ Configuration loaded")
+                    self.debug_print(f"✓ Loaded {len(self.search_history)} search history items")
+        self.debug_print("✓ Configuration loaded")
 
     def save_config(self):
         """Save current configuration including search history and window sizes"""
@@ -4132,7 +4217,7 @@ from liability. It's the same license used by many popular open-source projects.
             subject_splitter = self.subject_manager.container_widget.findChild(QSplitter)
             if subject_splitter:
                 config['subject_splitter_sizes'] = subject_splitter.sizes()
-                print(f"✓ Saved Windows 4 & 5 splitter sizes: {subject_splitter.sizes()}")
+                self.debug_print(f"✓ Saved Windows 4 & 5 splitter sizes: {subject_splitter.sizes()}")
 
         self.config_manager.save(config)
 
@@ -4141,11 +4226,11 @@ from liability. It's the same license used by many popular open-source projects.
         # Clear subject dropdown selections
         if hasattr(self, 'reading_subject_combo'):
             self.reading_subject_combo.setCurrentIndex(0)  # Reset to empty
-            print("✓ Cleared subject dropdown selection")
+            self.debug_print("✓ Cleared subject dropdown selection")
 
         # Save configuration (including window sizes)
         self.save_config()
-        print("✓ Configuration saved on exit")
+        self.debug_print("✓ Configuration saved on exit")
 
         event.accept()
 
@@ -4209,11 +4294,11 @@ from liability. It's the same license used by many popular open-source projects.
             references = cursor.fetchall()
             conn.close()
 
-            print(f"📖 Found {len(references)} cross-references for {full_reference}")
+            self.debug_print(f"📖 Found {len(references)} cross-references for {full_reference}")
             return references
 
         except Exception as e:
-            print(f"❌ Error loading cross-references: {e}")
+            self.debug_print(f"❌ Error loading cross-references: {e}")
             return []
 
     def update_cross_references_dropdown(self, verse_reference):
@@ -4238,7 +4323,7 @@ from liability. It's the same license used by many popular open-source projects.
 
                 # Add to history stack
                 self.cross_ref_history.append((current_verse, current_refs))
-                print(f"📚 Saved to history: {current_verse} ({len(current_refs)} refs)")
+                self.debug_print(f"📚 Saved to history: {current_verse} ({len(current_refs)} refs)")
 
         # Store the new verse reference
         self._current_cross_ref_verse = verse_reference
@@ -4305,7 +4390,7 @@ from liability. It's the same license used by many popular open-source projects.
                 }
             """)
 
-            print(f"✅ Cross-references dropdown updated with {len(references)} references")
+            self.debug_print(f"✅ Cross-references dropdown updated with {len(references)} references")
 
             # Show Go Back button if there's history
             if len(self.cross_ref_history) > 0:
@@ -4323,18 +4408,18 @@ from liability. It's the same license used by many popular open-source projects.
             # Hide Go Back button when no references
             self.go_back_btn.setVisible(False)
 
-            print(f"⚪ No cross-references found for {verse_reference}")
+            self.debug_print(f"⚪ No cross-references found for {verse_reference}")
 
     def on_go_back_references(self):
         """Restore the previous cross-reference list from history."""
         if len(self.cross_ref_history) == 0:
-            print("⚠️  No history to go back to")
+            self.debug_print("⚠️  No history to go back to")
             return
 
         # Pop the last state from history
         verse_reference, references_list = self.cross_ref_history.pop()
 
-        print(f"⬅️  Going back to: {verse_reference} ({len(references_list)} refs)")
+        self.debug_print(f"⬅️  Going back to: {verse_reference} ({len(references_list)} refs)")
 
         # Update the current verse reference
         self._current_cross_ref_verse = verse_reference
@@ -4392,7 +4477,7 @@ from liability. It's the same license used by many popular open-source projects.
         if len(self.cross_ref_history) == 0:
             self.go_back_btn.setVisible(False)
 
-        print(f"✅ Restored references for {verse_reference}")
+        self.debug_print(f"✅ Restored references for {verse_reference}")
 
     def on_cross_reference_selected(self, index):
         """
@@ -4410,7 +4495,7 @@ from liability. It's the same license used by many popular open-source projects.
         if not reference:
             return
 
-        print(f"🔗 Cross-reference selected: {reference}")
+        self.debug_print(f"🔗 Cross-reference selected: {reference}")
 
         # Parse the reference and load context
         # The reference format is like "Genesis 1:1" or "John 3:16"
@@ -4443,7 +4528,7 @@ from liability. It's the same license used by many popular open-source projects.
             conn.close()
 
             if not result:
-                print(f"❌ Book '{book_full_name}' not found in database")
+                self.debug_print(f"❌ Book '{book_full_name}' not found in database")
                 self.set_message(f"Error: Book '{book_full_name}' not found")
                 return
 
@@ -4459,7 +4544,7 @@ from liability. It's the same license used by many popular open-source projects.
             else:
                 verse = int(verse_part)
 
-            print(f"   Parsed: {translation} {book_abbrev} {chapter}:{verse}")
+            self.debug_print(f"   Parsed: {translation} {book_abbrev} {chapter}:{verse}")
 
             # Load context verses for this reference in the reading window
             self.search_controller.load_context(
@@ -4471,7 +4556,7 @@ from liability. It's the same license used by many popular open-source projects.
             )
 
         except Exception as e:
-            print(f"❌ Error parsing cross-reference '{reference}': {e}")
+            self.debug_print(f"❌ Error parsing cross-reference '{reference}': {e}")
             import traceback
             traceback.print_exc()
             self.set_message(f"Error loading reference: {reference}")
@@ -4549,7 +4634,7 @@ from liability. It's the same license used by many popular open-source projects.
         self.blink_timer.timeout.connect(self.blink_message)
         self.blink_timer.start(500)  # Blink every 500ms
 
-        print(f"🔒 Selection LOCKED - {'Ctrl+A' if is_ctrl_a else 'Manual'} mode")
+        self.debug_print(f"🔒 Selection LOCKED - {'Ctrl+A' if is_ctrl_a else 'Manual'} mode")
 
     def blink_message(self):
         """Toggle message visibility for blinking effect"""
@@ -4625,7 +4710,7 @@ from liability. It's the same license used by many popular open-source projects.
         # Restore normal message label style
         self.message_label.setStyleSheet("background-color: white; padding: 10px; border: 1px solid #ccc;")
 
-        print("🔓 Selection UNLOCKED")
+        self.debug_print("🔓 Selection UNLOCKED")
 
     def load_subjects_for_reading(self):
         """Load subjects from database into Window 3's subject dropdown."""
@@ -4643,9 +4728,9 @@ from liability. It's the same license used by many popular open-source projects.
             for subject in subjects:
                 self.reading_subject_combo.addItem(subject['name'])
 
-            print(f"✓ Loaded {len(subjects)} subjects into Window 3 dropdown")
+            self.debug_print(f"✓ Loaded {len(subjects)} subjects into Window 3 dropdown")
         except Exception as e:
-            print(f"Error loading subjects for reading: {e}")
+            self.debug_print(f"Error loading subjects for reading: {e}")
 
     def on_reading_subject_changed(self, subject_name):
         """Handle subject selection change in Window 3."""
@@ -4662,7 +4747,7 @@ from liability. It's the same license used by many popular open-source projects.
 
         has_subject = bool(subject_name and subject_name.strip())
         if has_subject:
-            print(f"✓ Reading window subject selected: {subject_name}")
+            self.debug_print(f"✓ Reading window subject selected: {subject_name}")
 
             # Sync to Window 4 and load verses
             if self.subject_manager and self.subject_manager.verse_manager:
@@ -4682,9 +4767,9 @@ from liability. It's the same license used by many popular open-source projects.
                         self.subject_manager.verse_manager.current_subject_id = subject_id
                         # Load the verses
                         self.subject_manager.verse_manager.load_subject_verses()
-                        print(f"✓ Synced Window 4 to Window 3 subject: '{subject_name}'")
+                        self.debug_print(f"✓ Synced Window 4 to Window 3 subject: '{subject_name}'")
                 except Exception as e:
-                    print(f"⚠️  Error syncing subject to Window 4: {e}")
+                    self.debug_print(f"⚠️  Error syncing subject to Window 4: {e}")
                 finally:
                     self._syncing_subjects = False
 
@@ -4718,7 +4803,7 @@ from liability. It's the same license used by many popular open-source projects.
                 self.subject_manager.verse_manager.current_subject_id = subject_id
 
             self.set_message(f"✓ Created subject: {subject_name}")
-            print(f"✓ Created subject from Window 3: {subject_name} (ID: {subject_id})")
+            self.debug_print(f"✓ Created subject from Window 3: {subject_name} (ID: {subject_id})")
 
         except sqlite3.IntegrityError:
             self.set_message(f"⚠️  Subject '{subject_name}' already exists")
@@ -4746,7 +4831,7 @@ from liability. It's the same license used by many popular open-source projects.
             self.set_message("⚠️ No verses selected in Windows 2 or 3")
             return
 
-        print(f"📊 Window 3 Acquire: Found {len(search_verses)} verses in Window 2, {len(reading_verses)} verses in Window 3")
+        self.debug_print(f"📊 Window 3 Acquire: Found {len(search_verses)} verses in Window 2, {len(reading_verses)} verses in Window 3")
 
         try:
             # Check if subject exists, create if not
@@ -4756,7 +4841,7 @@ from liability. It's the same license used by many popular open-source projects.
 
             if result:
                 subject_id = result['id']
-                print(f"✓ Found existing subject: {subject_name} (ID: {subject_id})")
+                self.debug_print(f"✓ Found existing subject: {subject_name} (ID: {subject_id})")
             else:
                 # Create new subject
                 cursor.execute(
@@ -4765,7 +4850,7 @@ from liability. It's the same license used by many popular open-source projects.
                 )
                 self.subject_manager.db_conn.commit()
                 subject_id = cursor.lastrowid
-                print(f"✓ Created new subject: {subject_name} (ID: {subject_id})")
+                self.debug_print(f"✓ Created new subject: {subject_name} (ID: {subject_id})")
 
                 # Reload subjects in both dropdowns
                 self.load_subjects_for_reading()
@@ -4803,7 +4888,7 @@ from liability. It's the same license used by many popular open-source projects.
                         if cursor.rowcount > 0:
                             added_count += 1
                     except Exception as e:
-                        print(f"Error adding verse: {e}")
+                        self.debug_print(f"Error adding verse: {e}")
 
             self.subject_manager.db_conn.commit()
 
@@ -4816,7 +4901,7 @@ from liability. It's the same license used by many popular open-source projects.
                 self.set_message(
                     f"✓ Sent {added_count} verse(s) to subject: {subject_name}"
                 )
-                print(f"✓ Added {added_count} verses to subject '{subject_name}'")
+                self.debug_print(f"✓ Added {added_count} verses to subject '{subject_name}'")
 
                 # Refresh Window 4 if it's showing this subject
                 if (self.subject_manager.verse_manager and
@@ -4829,7 +4914,7 @@ from liability. It's the same license used by many popular open-source projects.
 
         except Exception as e:
             self.set_message(f"❌ Error sending verses: {str(e)}")
-            print(f"Error in on_send_to_subject: {e}")
+            self.debug_print(f"Error in on_send_to_subject: {e}")
             import traceback
             traceback.print_exc()
 
