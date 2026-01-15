@@ -688,13 +688,14 @@ class SubjectVerseManager:
 
         # Acquire button state is managed by parent_app.update_subject_acquire_button()
         # which considers both subject selection AND verse selections in Windows 2/3
-        # So we only update it here if there are no selections in Windows 2/3
+        # Window 4 verses are already in the database and can't be acquired
+        # So we only enable Acquire when there are selections in Windows 2/3
         if self.parent_app:
             search_selections = self.parent_app.verse_lists['search'].get_selected_count()
             reading_selections = self.parent_app.verse_lists['reading'].get_selected_count()
             if search_selections == 0 and reading_selections == 0:
-                # No selections in Windows 2/3, disable Acquire if no subject
-                self.acquire_btn.setEnabled(has_subject)
+                # No selections in Windows 2/3, DISABLE Acquire (Window 4 verses can't be acquired)
+                self.acquire_btn.setEnabled(False)
 
         self.delete_btn.setEnabled(has_checked)
         self.rename_btn.setEnabled(has_subject)
