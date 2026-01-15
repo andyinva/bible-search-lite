@@ -3835,10 +3835,12 @@ from liability. It's the same license used by many popular open-source projects.
         print(f"📋 Copied to clipboard:")
         print(f"   First verse: {text_lines[0][:100]}..." if text_lines else "   (empty)")
 
-        # Uncheck all boxes in both Windows 2 & 3 after copying (this will auto-unlock via checkbox handler)
+        # Uncheck all boxes in Windows 2, 3, & 4 after copying (this will auto-unlock via checkbox handler)
         self.verse_lists['search'].select_none()
         self.verse_lists['reading'].select_none()
-        print(f"📋 Unchecked all verses in Windows 2 & 3")
+        if 'subject' in self.verse_lists:
+            self.verse_lists['subject'].select_none()
+        print(f"📋 Unchecked all verses in Windows 2, 3, & 4")
 
         # Show success message (unlock happens automatically when boxes uncheck)
         self.message_label.setText(f"Copied {verse_count} verse(s) to clipboard ({text_size_kb:.1f} KB)")
