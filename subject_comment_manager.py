@@ -358,9 +358,11 @@ class SubjectCommentManager:
     def update_button_states(self):
         """Update button enabled/disabled states based on context."""
         is_editing = self.editing_mode
+        has_verse_selected = bool(self.current_verse_id)
         has_comment = bool(self.current_verse_id and self.comments_editor.toPlainText())
 
-        self.add_btn.setEnabled(not is_editing)
+        # Add Comment button: enabled when verse is selected AND not editing
+        self.add_btn.setEnabled(has_verse_selected and not is_editing)
         self.edit_btn.setEnabled(has_comment and not is_editing)
         self.save_btn.setEnabled(is_editing)
         self.delete_btn.setEnabled(has_comment and not is_editing)
