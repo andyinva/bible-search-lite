@@ -174,6 +174,11 @@ class SubjectVerseManager:
         self.subject_verse_list.selection_changed.connect(
             self.on_subject_selection_changed
         )
+        # Also update Copy button when Window 4 selections change
+        if hasattr(self.parent_app, 'update_copy_button_style'):
+            self.subject_verse_list.selection_changed.connect(
+                self.parent_app.update_copy_button_style
+            )
 
         # Register with parent app
         self.parent_app.verse_lists['subject'] = self.subject_verse_list

@@ -331,6 +331,7 @@ class BibleSearchProgram(QMainWindow):
         search_verses.verse_navigation_requested.connect(self.on_verse_navigation)
         search_verses.selection_changed.connect(self.update_subject_acquire_button)
         search_verses.selection_changed.connect(self.update_window3_acquire_style)
+        search_verses.selection_changed.connect(self.update_copy_button_style)
         self.verse_lists['search'] = search_verses
         self.selection_manager.register_window("search", search_verses)
 
@@ -344,6 +345,7 @@ class BibleSearchProgram(QMainWindow):
         reading_verses.verse_navigation_requested.connect(self.on_verse_navigation)
         reading_verses.selection_changed.connect(self.update_subject_acquire_button)
         reading_verses.selection_changed.connect(self.update_window3_acquire_style)
+        reading_verses.selection_changed.connect(self.update_copy_button_style)
         self.verse_lists['reading'] = reading_verses
         self.selection_manager.register_window("reading", reading_verses)
 
@@ -504,6 +506,54 @@ class BibleSearchProgram(QMainWindow):
             self.send_btn.setStyleSheet(green_style)
         else:
             self.send_btn.setStyleSheet(normal_style)
+
+    def update_copy_button_style(self):
+        """Update Copy button styling based on selections in Windows 2, 3, or 4"""
+        # Check if there are any selected verses in Windows 2, 3, or 4
+        search_count = self.verse_lists['search'].get_selected_count()
+        reading_count = self.verse_lists['reading'].get_selected_count()
+        subject_count = self.verse_lists.get('subject', None)
+        subject_count = subject_count.get_selected_count() if subject_count else 0
+
+        has_selections = (search_count > 0) or (reading_count > 0) or (subject_count > 0)
+
+        # Green style for title button (matches create_title_button style)
+        green_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: 1px solid #45a049;
+                border-radius: 3px;
+                padding: 2px 8px;
+                font-size: 10px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+                border: 1px solid #3d8b40;
+            }
+        """
+
+        # Normal title button style
+        normal_style = """
+            QPushButton {
+                background-color: white;
+                border: 1px solid #999;
+                border-radius: 3px;
+                padding: 2px 8px;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+                border: 1px solid #666;
+            }
+        """
+
+        # Apply green style if selections exist, otherwise normal
+        if has_selections:
+            self.copy_btn.setStyleSheet(green_style)
+        else:
+            self.copy_btn.setStyleSheet(normal_style)
 
     def create_title_button(self, text):
         """Create a standardized button for section title bars"""
