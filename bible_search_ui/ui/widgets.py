@@ -233,10 +233,12 @@ class VerseItemWidget(QWidget):
         font.setPointSizeF(font_size)
         self.text_label.setFont(font)
 
-        # Recalculate hanging indent for the current font size
-        # Update text with plain text (no HTML)
-        combined_text = f"{self.reference_text} - {self.text}"
-        self.text_label.setText(combined_text)
+        # Only update text if NOT using highlighting (to preserve HTML)
+        if not self.highlight_terms:
+            # Recalculate hanging indent for the current font size
+            # Update text with plain text (no HTML)
+            combined_text = f"{self.reference_text} - {self.text}"
+            self.text_label.setText(combined_text)
 
         # Remove line-height to prevent blank lines after multi-line verses
         self.text_label.setStyleSheet("""
