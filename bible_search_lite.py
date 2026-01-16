@@ -1832,11 +1832,37 @@ class BibleSearchProgram(QMainWindow):
                 if not term:
                     continue
 
-                # Convert wildcard * to regex pattern
-                # For example: "sen*" becomes "^sen.*$"
-                pattern = re.escape(term.lower())
-                pattern = pattern.replace(r'\*', '.*')
-                pattern = r'^' + pattern + r'$'
+                # Convert wildcard pattern to regex with word boundaries
+                # For example: "*sing?" becomes "\w*sing\w" to match "blessings"
+                # For example: "sen*" becomes "^sen\w*$" to match "sent", "sending"
+                term_lower = term.lower()
+                pattern_parts = []
+
+                # Track if term starts/ends with wildcard
+                starts_with_wildcard = term_lower.startswith('*') or term_lower.startswith('%')
+
+                # Add start anchor/boundary
+                if starts_with_wildcard:
+                    pattern_parts.append(r'^')
+                else:
+                    pattern_parts.append(r'^')
+
+                # Convert term character by character
+                i = 0
+                while i < len(term_lower):
+                    char = term_lower[i]
+                    if char in ('*', '%'):
+                        pattern_parts.append(r'\w*')  # Match word characters
+                    elif char == '?':
+                        pattern_parts.append(r'\w')   # Match single word character
+                    else:
+                        pattern_parts.append(re.escape(char))
+                    i += 1
+
+                # Add end anchor
+                pattern_parts.append(r'$')
+
+                pattern = ''.join(pattern_parts)
                 search_patterns.append(re.compile(pattern))
 
             self.debug_print(f"🔍 Search patterns for filtering: {[p.pattern for p in search_patterns]}")
@@ -1914,13 +1940,30 @@ class BibleSearchProgram(QMainWindow):
             if not term:
                 continue
 
-            # Convert wildcard * to regex .*
-            pattern = re.escape(term)
-            pattern = pattern.replace(r'\*', '.*')
+            # Convert wildcard pattern to regex with word boundaries
+            # Handle *, %, and ? wildcards properly
+            term_lower = term.lower()
+            pattern_parts = []
 
-            # Match from start of word (not whole word, so partial matches work)
-            pattern = r'^' + pattern + r'$'
+            # Add start anchor
+            pattern_parts.append(r'^')
 
+            # Convert term character by character
+            i = 0
+            while i < len(term_lower):
+                char = term_lower[i]
+                if char in ('*', '%'):
+                    pattern_parts.append(r'\w*')  # Match word characters
+                elif char == '?':
+                    pattern_parts.append(r'\w')   # Match single word character
+                else:
+                    pattern_parts.append(re.escape(char))
+                i += 1
+
+            # Add end anchor
+            pattern_parts.append(r'$')
+
+            pattern = ''.join(pattern_parts)
             patterns.append(pattern)
             self.debug_print(f"   Pattern: {term} → {pattern}")
 
@@ -1948,14 +1991,31 @@ class BibleSearchProgram(QMainWindow):
         if ' ' in search_term:
             search_term = search_term.split()[0]
 
-        # Convert wildcard * to regex .*
-        # Escape other special regex characters
-        pattern = re.escape(search_term)
-        pattern = pattern.replace(r'\*', '.*')
+        # Convert wildcard pattern to regex with word boundaries
+        # Handle *, %, and ? wildcards properly
+        pattern_parts = []
+        starts_with_wildcard = search_term.startswith('*') or search_term.startswith('%')
 
-        # Match whole word
-        pattern = r'\b' + pattern + r'\b'
+        # Add word boundary at start if not starting with wildcard
+        if not starts_with_wildcard:
+            pattern_parts.append(r'\b')
 
+        # Convert term character by character
+        i = 0
+        while i < len(search_term):
+            char = search_term[i]
+            if char in ('*', '%'):
+                pattern_parts.append(r'\w*')  # Match word characters
+            elif char == '?':
+                pattern_parts.append(r'\w')   # Match single word character
+            else:
+                pattern_parts.append(re.escape(char))
+            i += 1
+
+        # Always add word boundary at end
+        pattern_parts.append(r'\b')
+
+        pattern = ''.join(pattern_parts)
         return pattern
 
     def apply_word_filter(self, verses):
