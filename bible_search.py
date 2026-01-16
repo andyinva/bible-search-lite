@@ -1162,8 +1162,8 @@ class BibleSearch:
 
         for term in self._wildcard_terms:
             # Convert wildcard term to regex with word boundaries
-            # * and % mean "any characters"
-            # ? means "single character"
+            # * and % mean "any word characters" (not any characters)
+            # ? means "single word character"
 
             pattern_parts = []
             i = 0
@@ -1178,7 +1178,7 @@ class BibleSearch:
             while i < len(term):
                 char = term[i]
                 if char in ('*', '%'):
-                    # Match any word characters
+                    # Match any word characters (stays within word boundaries)
                     pattern_parts.append(r'\w*')
                 elif char == '?':
                     # Match single word character
@@ -1188,9 +1188,10 @@ class BibleSearch:
                     pattern_parts.append(re.escape(char))
                 i += 1
 
-            # Add word boundary at end if term doesn't end with wildcard
-            if not ends_with_wildcard:
-                pattern_parts.append(r'\b')
+            # Always add word boundary at end
+            # sent* means "words starting with sent", so we need \bsent\w*\b
+            # This ensures "sent" is at a word boundary, and * only matches within the word
+            pattern_parts.append(r'\b')
 
             pattern = ''.join(pattern_parts)
 
