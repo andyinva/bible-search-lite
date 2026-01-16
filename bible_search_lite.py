@@ -1140,6 +1140,12 @@ class BibleSearchProgram(QMainWindow):
             # Update button states in Window 4
             self.subject_manager.verse_manager.update_button_states()
 
+        # Clear remaining search results and hide Load More button
+        self.remaining_search_results = []
+        if hasattr(self, 'all_formatted_verses'):
+            self.all_formatted_verses = []
+        self.load_more_btn.setVisible(False)
+
         # Stop blinking message if selection was locked
         self.unlock_selection_mode()
 
