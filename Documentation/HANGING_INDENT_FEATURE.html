@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanging Indent Feature</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hanging Indent for Verse Text - Improved Readability</h1>
+
+<h2>Problem Description</h2>
+
+<p>
+When verses wrapped to multiple lines, the continuation lines started at the left edge, aligned with the verse reference:
+</p>
+
+<pre><code>KJV Isa 2:12 - For the day of the Lord of hosts shall be upon every one that is proud and lofty, and upon
+<p>
+every one that is lifted up; and he shall be brought low:</code></pre>
+</p>
+
+<p>
+This made it harder to visually distinguish where one verse ended and another began, especially with long verses.
+</p>
+
+<h2>Desired Behavior</h2>
+
+<p>
+The user requested that wrapped lines should indent to align with where the <strong>verse text</strong> begins (after the reference and " - "):
+</p>
+
+<pre><code>KJV Isa 2:12 - For the day of the Lord of hosts shall be upon every one that is proud and lofty, and upon
+<p>
+               every one that is lifted up; and he shall be brought low:</code></pre>
+</p>
+
+<p>
+This is called a <strong>hanging indent</strong> or <strong>first-line outdent</strong>.
+</p>
+
+<h2>Solution Implemented</h2>
+
+<h3>How It Works</h3>
+<ol><li><strong>Calculate Reference Width</strong></li>
+</ol><ul><li>Measure the pixel width of "KJV Isa 2:12 - " using Qt's font metrics</li>
+<li>This width becomes the indent for continuation lines</li>
+</ul>
+<ol><li><strong>Apply HTML Formatting</strong></li>
+</ol><ul><li>Format the text as HTML with CSS styling</li>
+<li>Use <code>text-indent: -Npx</code> to pull the first line left</li>
+<li>Use <code>padding-left: Npx</code> to push all lines right</li>
+<li>Net effect: First line at position 0, continuation lines at position N</li>
+</ul>
+<ol><li><strong>Dynamic Adjustment</strong></li>
+</ol><ul><li>Recalculate indent when font size changes</li>
+<li>Maintains proper alignment at any font size</li>
+</ul>
+<h2>Changes Made to widgets.py</h2>
+
+<h3>Location 1: Initial Setup (Lines 119-150)</h3>
+
+<strong>Before:</strong>
+<pre><code>ref_text = f"{self.translation} {self.book_abbrev} {self.chapter}:{self.verse_number}"
+<p>
+combined_text = f"{ref_text} - {self.text}"
+self.text_label = QLabel(combined_text)
+self.text_label.setWordWrap(True)</code></pre>
+</p>
+
+<strong>After:</strong>
+<pre><code>ref_text = f"{self.translation} {self.book_abbrev} {self.chapter}:{self.verse_number}"
+
+<h1>Calculate reference width for hanging indent</h1>
+<p>
+temp_font = QFont("IBM Plex Mono", 9)
+from PyQt6.QtGui import QFontMetrics
+font_metrics = QFontMetrics(temp_font)
+ref_width = font_metrics.horizontalAdvance(ref_text + " - ")
+</p>
+
+<h1>Format with HTML for hanging indent</h1>
+<p>
+combined_html = f'''
+&lt;div style="text-indent: -{ref_width}px; padding-left: {ref_width}px;"&gt;
+{ref_text} - {self.text}
+&lt;/div&gt;
+'''
+</p>
+
+<p>
+self.text_label = QLabel(combined_html)
+self.text_label.setTextFormat(Qt.TextFormat.RichText)  # Enable HTML
+self.text_label.setWordWrap(True)</code></pre>
+</p>
+
+<h3>Location 2: Font Size Changes (Lines 199-216)</h3>
+
+<p>
+When font size changes, recalculate the indent:
+</p>
+
+<pre><code>font.setPointSizeF(font_size)
+<p>
+self.text_label.setFont(font)
+</p>
+
+<h1>Recalculate hanging indent for new font size</h1>
+<p>
+font_metrics = QFontMetrics(font)
+ref_width = font_metrics.horizontalAdvance(self.reference_text + " - ")
+self.ref_width = ref_width
+</p>
+
+<h1>Update HTML with new indent</h1>
+<p>
+combined_html = f'''
+&lt;div style="text-indent: -{ref_width}px; padding-left: {ref_width}px;"&gt;
+{self.reference_text} - {self.text}
+&lt;/div&gt;
+'''
+self.text_label.setText(combined_html)</code></pre>
+</p>
+
+<h3>Location 3: Search Highlighting (Lines 419-431)</h3>
+
+<p>
+Maintain hanging indent when highlighting search terms:
+</p>
+
+<pre><code>text = self.text
+<p>
+for term in search_terms:
+    text = text.replace(term, f"&lt;b&gt;&lt;u&gt;{term}&lt;/u&gt;&lt;/b&gt;")
+</p>
+
+<h1>Maintain hanging indent</h1>
+<p>
+combined_html = f'''
+&lt;div style="text-indent: -{self.ref_width}px; padding-left: {self.ref_width}px;"&gt;
+{self.reference_text} - {text}
+&lt;/div&gt;
+'''
+self.text_label.setText(combined_html)</code></pre>
+</p>
+
+<h2>Technical Details</h2>
+
+<h3>CSS Hanging Indent Technique</h3>
+
+<pre><code>text-indent: -100px;   /<em> Pull first line 100px to the LEFT </em>/
+<p>
+padding-left: 100px;   /<em> Push ALL lines 100px to the RIGHT </em>/</code></pre>
+</p>
+
+<strong>Result:</strong>
+<ul><li>Line 1: -100px + 100px = 0px (starts at left edge)</li>
+<li>Line 2+: 0px + 100px = 100px (indented)</li>
+</ul>
+<h3>Font Metrics Calculation</h3>
+
+<pre><code>font_metrics = QFontMetrics(font)
+<p>
+width = font_metrics.horizontalAdvance("KJV Isa 2:12 - ")</code></pre>
+</p>
+
+<p>
+This gives the <strong>exact pixel width</strong> of the reference text in the current font:
+</p>
+<ul><li>Font size 9pt: ~85px</li>
+<li>Font size 10pt: ~95px</li>
+<li>Font size 11pt: ~105px</li>
+</ul>
+<h3>Dynamic Updates</h3>
+
+<p>
+The indent is recalculated in three situations:
+</p>
+<ol><li><strong>Initial creation</strong> (line 127)</li>
+</ol><ul><li>When verse widget is first created</li>
+<li>Uses default font size (9pt)</li>
+</ul>
+<ol><li><strong>Font size change</strong> (line 206)</li>
+</ol><ul><li>When user changes font settings</li>
+<li>Recalculates with new font size</li>
+</ul>
+<ol><li><strong>Search highlighting</strong> (line 426)</li>
+</ol><ul><li>When search terms are highlighted</li>
+<li>Maintains current indent value</li>
+</ul>
+<h2>Visual Examples</h2>
+
+<h3>Short Reference (KJV Gen 1:1):</h3>
+<pre><code>KJV Gen 1:1 - In the beginning God created the heaven and the earth.</code></pre>
+<p>
+Indent width: ~75px
+</p>
+
+<h3>Medium Reference (KJV Psa 119:105):</h3>
+<pre><code>KJV Psa 119:105 - Thy word is a lamp unto my feet, and a light unto my path.</code></pre>
+<p>
+Indent width: ~95px
+</p>
+
+<h3>Long Reference (KJV 1Thess 5:23):</h3>
+<pre><code>KJV 1Thess 5:23 - And the very God of peace sanctify you wholly; and I pray God your whole spirit and soul
+<p>
+                   and body be preserved blameless unto the coming of our Lord Jesus Christ.</code></pre>
+Indent width: ~105px
+</p>
+
+<p>
+Each verse gets the <strong>exact indent</strong> it needs based on its reference length!
+</p>
+
+<h2>Benefits</h2>
+
+<p>
+✅ <strong>Improved Readability</strong>
+</p>
+<ul><li>Easy to see where each verse begins</li>
+<li>Continuation lines clearly belong to the verse above</li>
+<li>Visual hierarchy is clearer</li>
+</ul>
+<p>
+✅ <strong>Professional Appearance</strong>
+</p>
+<ul><li>Matches standard Bible formatting</li>
+<li>Looks like printed Bibles</li>
+<li>Clean, organized layout</li>
+</ul>
+<p>
+✅ <strong>Dynamic Adaptation</strong>
+</p>
+<ul><li>Works with any translation abbreviation length</li>
+<li>Adapts to font size changes</li>
+<li>Maintains alignment at all window widths</li>
+</ul>
+<p>
+✅ <strong>Preserved Functionality</strong>
+</p>
+<ul><li>Copy/paste still gives plain text</li>
+<li>Search highlighting still works</li>
+<li>Selection and navigation unchanged</li>
+</ul>
+<h2>Important Notes</h2>
+
+<h3>Plain Text Preserved</h3>
+
+<p>
+The original verse text is still stored as plain text in <code>self.text</code>:
+</p>
+<pre><code>self.text = "For the day of the Lord..."  # Plain text, no HTML</code></pre>
+
+<p>
+HTML formatting is <strong>only</strong> for display. When copying or exporting:
+</p>
+<ul><li>The plain text is used</li>
+<li>No HTML tags appear</li>
+<li>Original verse text is intact</li>
+</ul>
+<h3>HTML/Rich Text</h3>
+
+<p>
+The label uses <code>Qt.TextFormat.RichText</code> to interpret HTML:
+</p>
+<pre><code>self.text_label.setTextFormat(Qt.TextFormat.RichText)</code></pre>
+
+<p>
+This enables:
+</p>
+<ul><li>CSS styling (for hanging indent)</li>
+<li>Bold/underline (for search highlighting)</li>
+<li>Color formatting (if needed in future)</li>
+</ul>
+<h3>Performance</h3>
+
+<p>
+The hanging indent has <strong>minimal performance impact</strong>:
+</p>
+<ul><li>Width calculated once per verse</li>
+<li>Only recalculated on font changes (rare)</li>
+<li>HTML rendering is fast in Qt</li>
+<li>No impact on scrolling performance</li>
+</ul>
+<h2>Installation</h2>
+<ol><li><strong>Backup current file:</strong></li>
+</ol>   ``<code>bash
+<p>
+   cd ~/projects/bible-search-lite
+   cp bible_search_ui/ui/widgets.py bible_search_ui/ui/widgets.py.backup4
+</p>
+   </code>`<code>
+<ol><li><strong>Replace with updated file:</strong></li>
+</ol>   </code>`<code>bash
+<p>
+   cp /path/to/widgets.py bible_search_ui/ui/widgets.py
+</p>
+   </code>`<code>
+<ol><li><strong>Clear Python cache:</strong></li>
+</ol>   </code>`<code>bash
+<p>
+   find ~/projects/bible-search-lite -name "__pycache__" -type d -exec rm -rf {} +
+</p>
+   </code>`<code>
+<ol><li><strong>Restart application:</strong></li>
+</ol>   </code>`<code>bash
+<p>
+   python bible_search_lite.py
+</p>
+   </code>`<code>
+
+<h2>Testing</h2>
+<ol><li><strong>Test basic wrapping:</strong></li>
+</ol><ul><li>Search for "Isa 2:12-22"</li>
+<li>Verify long verses (2:12, 2:19, 2:20, 2:21) have hanging indent</li>
+<li>Check that continuation lines align with verse text start</li>
+</ul>
+<ol><li><strong>Test different translations:</strong></li>
+</ol><ul><li>Try short abbreviations (KJV, ESV, NIV)</li>
+<li>Try longer abbreviations (if any)</li>
+<li>Verify indent adjusts to reference length</li>
+</ul>
+<ol><li><strong>Test font sizes:</strong></li>
+</ol><ul><li>Change verse font size in settings</li>
+<li>Verify indent adjusts proportionally</li>
+<li>Check alignment is still correct</li>
+</ul>
+<ol><li><strong>Test search highlighting:</strong></li>
+</ol><ul><li>Search for "day of the Lord"</li>
+<li>Verify highlighted words maintain hanging indent</li>
+<li>Check that bold/underline works correctly</li>
+</ul>
+<ol><li><strong>Test copy/paste:</strong></li>
+</ol><ul><li>Select and copy verses</li>
+<li>Paste into text editor</li>
+<li>Verify plain text (no HTML) is copied</li>
+</ul>
+<h2>Troubleshooting</h2>
+
+<h3>Indent Too Large/Small</h3>
+
+<p>
+If the indent seems wrong:
+</p>
+<ul><li>Check that font is "IBM Plex Mono" (monospace)</li>
+<li>Verify font size matches what's displayed</li>
+<li>Clear cache and restart application</li>
+</ul>
+<h3>HTML Shows as Text</h3>
+
+<p>
+If you see </code><div style=...><code> in the display:
+</p>
+<ul><li>Check that </code>setTextFormat(Qt.TextFormat.RichText)<code> is called</li>
+<li>Verify HTML syntax is correct</li>
+<li>Look for syntax errors in the HTML string</li>
+</ul>
+<h3>Copy Includes HTML</h3>
+
+<p>
+If copying produces HTML instead of plain text:
+</p>
+<ul><li>Check that </code>self.text<code> stores plain text</li>
+<li>Verify copy operation uses </code>self.text`, not label text</li>
+<li>Look at copy implementation in main file</li>
+</ul>
+<h2>Summary</h2>
+
+<p>
+The hanging indent feature:
+</p>
+<ul><li><strong>Aligns continuation lines</strong> with verse text start</li>
+<li><strong>Calculates dynamically</strong> based on reference width</li>
+<li><strong>Adapts to font changes</strong> automatically</li>
+<li><strong>Improves readability</strong> significantly</li>
+<li><strong>Maintains all functionality</strong> (copy, search, select)</li>
+</ul>
+<strong>Result: Professional Bible formatting with clear visual hierarchy!</strong>
+
+</body>
+</html>

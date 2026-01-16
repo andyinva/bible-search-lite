@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Operators</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite - Search Operators Reference</h1>
+
+<h2>Wildcard Operators</h2>
+
+<h3>Asterisk (*) - Multiple Characters Wildcard</h3>
+<p>
+Matches any number of characters (0 or more).
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>love*</code> → love, loved, loving, lover, loves, loveth</li>
+<li><code>bless*</code> → bless, blessed, blessing, blessings, blessedness</li>
+<li><code>*ness</code> → righteousness, holiness, goodness, kindness</li>
+</ul>
+<h3>Percent Sign (%) - Stem/Root Wildcard</h3>
+<p>
+Same as asterisk (*), matches word stems and variations.
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>believ%</code> → believe, believed, believer, believing, believeth</li>
+<li><code>lov%</code> → love, loved, loves, lover, loving, loveth</li>
+<li><code>pray%</code> → pray, prayed, prayer, prayers, praying</li>
+</ul>
+<strong>Note:</strong> * and % work identically - use whichever you prefer
+
+<h3>Question Mark (?) - Single Character Wildcard</h3>
+<p>
+Matches exactly one character.
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>l?ve</code> → love, live (not leave or believe)</li>
+<li><code>m?n</code> → man, men, min, mon</li>
+</ul>
+<h2>Special Operators</h2>
+
+<h3>Ampersand (&) - Word Placeholder</h3>
+<p>
+Matches any single word. Use for patterns where you want exactly one word between search terms.
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>who & sent</code> → "who had sent", "who hath sent", "who will send"</li>
+<li><code>I & you</code> → "I tell you", "I command you", "I say you"</li>
+<li><code>who & & sent</code> → "who will then send" (two words between)</li>
+<li><code>love & & God</code> → "love dwelleth in God", "love is of God"</li>
+</ul>
+<strong>Tip:</strong> Combine with wildcards: <code>who & sen*</code> → "who had sent", "who will send"
+
+<h3>Greater Than (>) - Ordered Words</h3>
+<p>
+Ensures words appear in the specified order (but not necessarily consecutive).
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>love > neighbour</code> → "love thy neighbour" (love before neighbour)</li>
+<li><code>faith > works</code> → verses where "faith" comes before "works"</li>
+<li><code>God > love > man</code> → three words in sequence</li>
+<li><code>lov% > God</code> → "love the Lord thy God" (with wildcard)</li>
+</ul>
+<strong>Note:</strong> Order matters! "love > God" gives different results than "God > love"
+
+<h3>Tilde (~N) - Proximity Operator</h3>
+<p>
+Finds words within N words or less of each other. The number specifies the maximum word distance (range: 0 to N).
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>love ~0 God</code> → "love God" (adjacent words only) - 5 results</li>
+<li><code>love ~2 God</code> → "love of God", "love the God" (0-2 words between) - 26 results</li>
+<li><code>love ~4 God</code> → "love the Lord thy God" (0-4 words between) - 44 results</li>
+<li><code>faith ~5 works</code> → "faith" and "works" within 5 words - 8 results</li>
+<li><code>believ% ~3 Jesus</code> → any "believe" form within 3 words of "Jesus" - 15 results</li>
+</ul>
+<strong>Tip:</strong> Smaller numbers give more precise matches. ~0 means adjacent, ~10 allows wide spacing.
+
+<h2>Boolean Operators</h2>
+
+<h3>AND</h3>
+<p>
+Both terms must appear in the verse (in any order).
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>faith AND works</code> → verses containing both words</li>
+<li><code>prayer AND fasting</code> → both terms present</li>
+</ul>
+<strong>Note:</strong> Use CAPITAL letters for AND/OR operators
+
+<h3>OR</h3>
+<p>
+Either term (or both) must appear.
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>peace OR joy</code> → verses with either or both</li>
+<li><code>angel OR messenger</code> → either term</li>
+</ul>
+<h2>Exact Phrases</h2>
+
+<p>
+Use quotation marks for exact word order.
+</p>
+
+<strong>Examples:</strong>
+<ul><li><code>"in the beginning"</code> → exact phrase only</li>
+<li><code>"love the Lord"</code> → exact phrase in this order</li>
+<li><code>"I am"</code> → exact two-word phrase</li>
+</ul>
+<h2>Combining Operators</h2>
+
+<p>
+Mix different operators for powerful searches:
+</p>
+<ul><li><code>"faith without" AND works</code> → exact phrase plus word</li>
+<li><code>love* AND neighbor</code> → any form of "love" with "neighbor"</li>
+<li><code>"Holy Spirit" OR "Spirit of God"</code> → either phrase</li>
+<li><code>believ% > Jesus</code> → any "believe" form before "Jesus"</li>
+<li><code>I & lov% > God</code> → "I [word] love/loved God"</li>
+<li><code>believ% ~3 Jesus</code> → any "believe" form within 3 words of "Jesus"</li>
+<li><code>pray% ~5 faith</code> → any "pray" form within 5 words of "faith"</li>
+</ul>
+<h2>Quick Reference Table</h2>
+
+<p>
+| Operator | Purpose | Example |
+|----------|---------|---------|
+| <code><em></code> | Multiple characters wildcard | <code>love</em></code> → loved, loving |
+| <code>%</code> | Stem/root wildcard (same as *) | <code>believ%</code> → believe, believed |
+| <code>?</code> | Single character wildcard | <code>m?n</code> → man, men |
+| <code>&</code> | Word placeholder (exactly one word) | <code>who & sent</code> → "who had sent" |
+| <code>></code> | Ordered words (must be in sequence) | <code>love > God</code> → love before God |
+| <code>~N</code> | Proximity (words within N words) | <code>love ~4 God</code> → within 4 words |
+| <code>AND</code> | Both terms required | <code>faith AND works</code> |
+| <code>OR</code> | Either term (or both) | <code>peace OR joy</code> |
+| <code>" "</code> | Exact phrase | <code>"in the beginning"</code> |
+</p>
+
+<h2>Test Files</h2>
+
+<p>
+The following test files demonstrate each operator:
+</p>
+<ul><li><code>test_stem_wildcard.py</code> - Tests for % operator</li>
+<li><code>test_word_placeholder.py</code> - Tests for & operator</li>
+<li><code>test_ordered_words.py</code> - Tests for > operator</li>
+<li><code>test_proximity.py</code> - Tests for ~N operator</li>
+<li><code>test_filter_pattern.py</code> - Tests for pattern filtering</li>
+<li><code>test_filter_who_sen.py</code> - Tests for filter with wildcards</li>
+<li><code>test_filter_with_placeholder.py</code> - Tests for filter with placeholders</li>
+<li><code>test_book_filter.py</code> - Tests for book filtering</li>
+<li><code>test_load_more.py</code> - Tests for load more functionality</li>
+</ul>
+<p>
+Run any test file with: <code>python3 test_<name>.py</code>
+</p>
+
+</body>
+</html>

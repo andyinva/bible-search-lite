@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite - Installation Guide</h1>
+
+<h2>For End Users: Quick Install</h2>
+
+<h3>One-Command Installation</h3>
+
+<pre><code>python3 setup.py</code></pre>
+
+<p>
+That's it! The installer will:
+</p>
+<ol><li>Download the Bible database (~150MB compressed)</li>
+<li>Verify the download integrity</li>
+<li>Set up the SQLite database</li>
+<li>Download all application files</li>
+<li>Install Python dependencies</li>
+</ol>
+<h3>Requirements</h3>
+<ul><li>Python 3.7 or higher</li>
+<li>Internet connection</li>
+<li><code>sqlite3</code> command-line tool</li>
+<li><code>gzip</code> utility</li>
+</ul>
+<p>
+On Ubuntu/Debian:
+</p>
+<pre><code>sudo apt-get install python3 sqlite3 gzip python3-pip</code></pre>
+
+<p>
+On macOS:
+</p>
+<pre><code>brew install python sqlite3</code></pre>
+
+<h3>Running Bible Search Lite</h3>
+
+<p>
+After installation completes:
+</p>
+
+<pre><code>./run_bible_search.sh</code></pre>
+
+<p>
+Or:
+</p>
+
+<pre><code>python3 bible_search_lite.py</code></pre>
+
+<hr>
+
+<h2>For Developers: Creating a Release</h2>
+
+<h3>Step 1: Export the Database</h3>
+
+<p>
+Run the exporter script:
+</p>
+
+<pre><code>python3 export_bible_data.py</code></pre>
+
+<p>
+This creates:
+</p>
+<ul><li><code>data/bible_data.sql.gz</code> - Compressed database (~150MB)</li>
+<li><code>data/checksums.txt</code> - SHA256 checksums</li>
+</ul>
+<h3>Step 2: Create GitHub Release</h3>
+<ol><li>Go to: https://github.com/andyinva/bible-search-lite/releases</li>
+<li>Click "Draft a new release"</li>
+<li>Create a new tag (e.g., <code>v1.0</code>)</li>
+<li>Upload these files to the release:</li>
+</ol><ul><li><code>data/bible_data.sql.gz</code></li>
+<li><code>data/checksums.txt</code></li>
+</ul>5. Publish the release
+
+<h3>Step 3: Update setup.py</h3>
+
+<p>
+Edit <code>setup.py</code> and update the version:
+</p>
+
+<pre><code>RELEASE_VERSION = "v1.0"  # Match your release tag</code></pre>
+
+<p>
+Commit and push the change.
+</p>
+
+<h3>Step 4: Test the Installer</h3>
+
+<p>
+In a clean directory:
+</p>
+
+<pre><code>curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup.py
+<p>
+python3 setup.py</code></pre>
+</p>
+
+<hr>
+
+<h2>Architecture</h2>
+
+<h3>Export Process</h3>
+
+<pre><code>bibles.db (453 MB)
+<p>
+    ↓ sqlite3 .dump
+bible_data.sql (1.2 GB)
+    ↓ gzip -9
+bible_data.sql.gz (~150 MB)
+    ↓ upload to GitHub Releases
+Distribution ready!</code></pre>
+</p>
+
+<h3>Install Process</h3>
+
+<pre><code>Download bible_data.sql.gz from GitHub Releases
+<p>
+    ↓ verify SHA256 checksum
+    ↓ gunzip
+bible_data.sql
+    ↓ sqlite3 &lt; bible_data.sql
+bibles.db (453 MB)
+    ↓ download app files from GitHub
+Complete installation!</code></pre>
+</p>
+
+<hr>
+
+<h2>Files Structure</h2>
+
+<pre><code>bible-search-lite/
+<p>
+├── export_bible_data.py    # Developer: Export database
+├── setup.py                 # End user: Install everything
+├── data/                    # Created by export script
+│   ├── bible_data.sql.gz   # Upload to GitHub Releases
+│   └── checksums.txt       # Upload to GitHub Releases
+├── database/
+│   ├── bibles.db           # Created by setup.py
+│   └── subjects.db         # User data
+├── bible_search_lite.py    # Main application
+├── bible_search_ui/        # UI components
+└── ...</code></pre>
+</p>
+
+<hr>
+
+<h2>Troubleshooting</h2>
+
+<h3>Setup fails to download</h3>
+<ul><li>Check your internet connection</li>
+<li>Verify the GitHub Release exists: https://github.com/andyinva/bible-search-lite/releases</li>
+<li>Make sure <code>RELEASE_VERSION</code> in setup.py matches the release tag</li>
+</ul>
+<h3>Checksum verification fails</h3>
+<ul><li>Re-download setup.py</li>
+<li>Try downloading again (file may have been corrupted)</li>
+<li>Verify checksums.txt was uploaded correctly to the release</li>
+</ul>
+<h3>Missing sqlite3 or gzip</h3>
+
+<p>
+Install the required tools:
+</p>
+
+<strong>Ubuntu/Debian:</strong>
+<pre><code>sudo apt-get install sqlite3 gzip</code></pre>
+
+<strong>macOS:</strong>
+<pre><code>brew install sqlite3</code></pre>
+
+<strong>Windows (WSL):</strong>
+<pre><code>sudo apt-get install sqlite3 gzip</code></pre>
+
+<hr>
+
+<h2>Size Information</h2>
+<ul><li><strong>Original database</strong>: 453 MB (SQLite)</li>
+<li><strong>SQL dump</strong>: ~1.2 GB (uncompressed)</li>
+<li><strong>Compressed</strong>: ~150 MB (gzip -9)</li>
+<li><strong>Download time</strong>: ~2-5 minutes on typical connection</li>
+</ul>
+<p>
+The compressed file is small enough for GitHub Releases (2GB limit) and reasonable for users to download.
+</p>
+
+<hr>
+
+<h2>Advanced: Manual Installation</h2>
+
+<p>
+If the automated installer doesn't work, you can install manually:
+</p>
+<ol><li>Download database:</li>
+</ol>   ``<code>bash
+<p>
+   wget https://github.com/andyinva/bible-search-lite/releases/download/v1.0/bible_data.sql.gz
+</p>
+   </code>`<code>
+<ol><li>Decompress:</li>
+</ol>   </code>`<code>bash
+<p>
+   gunzip bible_data.sql.gz
+</p>
+   </code>`<code>
+<ol><li>Create database:</li>
+</ol>   </code>`<code>bash
+<p>
+   mkdir -p database
+   sqlite3 database/bibles.db < bible_data.sql
+</p>
+   </code>`<code>
+<ol><li>Download application files from GitHub</li>
+<li>Install dependencies:</li>
+</ol>   </code>`<code>bash
+<p>
+   pip install PyQt6
+</p>
+   </code>`<code>
+<ol><li>Run:</li>
+</ol>   </code>`<code>bash
+<p>
+   python3 bible_search_lite.py
+</p>
+   </code>``
+
+<hr>
+
+<h2>Questions?</h2>
+
+<p>
+Open an issue on GitHub: https://github.com/andyinva/bible-search-lite/issues
+</p>
+
+</body>
+</html>

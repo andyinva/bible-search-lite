@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Development Workflow</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite - Development Workflow</h1>
+
+<h2>Quick Reference Guide</h2>
+
+<h3>Daily Development Cycle</h3>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+<p>
+│  1. DEVELOP                                         │
+│     - Edit code in your IDE                         │
+│     - Test changes                                  │
+│     - Run bible_search_lite.py to verify            │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│  2. COMMIT (using dev_manager.py)                   │
+│     - Open dev_manager.py                           │
+│     - Tab: 📝 Commits                               │
+│     - Stage All Changes                             │
+│     - Write commit message                          │
+│     - Click "Commit"                                │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│  3. PUSH TO GITHUB                                  │
+│     - Click "Push to GitHub"                        │
+│     - Now your code is backed up online             │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│  4. REPEAT                                          │
+│     - Go back to step 1                             │
+│     - Do this many times (multiple commits)         │
+└─────────────────────────────────────────────────────┘</code></pre>
+</p>
+
+<h3>Release Cycle (When Ready for Users)</h3>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+<p>
+│  1. PREPARE FOR RELEASE                             │
+│     - Make sure all commits are pushed              │
+│     - Test everything thoroughly                    │
+│     - Update documentation if needed                │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│  2. CREATE RELEASE (using dev_manager.py)           │
+│     - Tab: 🚀 Releases                              │
+│     - Enter version (e.g., v1.0.6)                  │
+│     - Write release notes                           │
+│     - Click "Create Release on GitHub"              │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│  3. UPLOAD FILES (on GitHub.com)                    │
+│     - Go to GitHub → Releases                       │
+│     - Find your new tag                             │
+│     - Click "Create release from tag"               │
+│     - Upload: bible_data.sql.gz, checksums.txt      │
+│     - Publish release                               │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│  4. ANNOUNCE                                        │
+│     - Users can now download this version           │
+│     - Update any installation instructions          │
+└─────────────────────────────────────────────────────┘</code></pre>
+</p>
+
+<h2>File Organization</h2>
+
+<h3>Your Repository Structure</h3>
+
+<pre><code>bible-search-lite/
+<p>
+├── .git/                          (Git repository data - don't touch)
+├── bible_search_lite.py           (Main application - USERS GET THIS)
+├── bible_search.py                (Core search logic - USERS GET THIS)
+├── bible_search_ui/               (UI components - USERS GET THIS)
+├── database/
+│   ├── bibles.db                  (Bible database - USERS GET THIS)
+│   └── subjects.db                (User data - created by app)
+├── dev_manager.py                 (THIS TOOL - DEVELOPERS ONLY)
+├── DEV_MANAGER_GUIDE.md           (This guide - DEVELOPERS ONLY)
+├── setup.py                       (Linux installer - USERS GET THIS)
+├── setup_win11.py                 (Windows installer - USERS GET THIS)
+├── VERSION.txt                    (Version number - USERS GET THIS)
+└── README.md                      (Documentation - USERS GET THIS)</code></pre>
+</p>
+
+<h3>What Users Download</h3>
+
+<p>
+When you create a release, users download:
+</p>
+<ul><li>Application files (bible_search_lite.py, etc.)</li>
+<li>Database (bible_data.sql.gz)</li>
+<li>Installer (setup.py or setup_win11.py)</li>
+<li>Documentation (README.md)</li>
+</ul>
+<p>
+They do NOT get:
+</p>
+<ul><li>dev_manager.py</li>
+<li>DEV_MANAGER_GUIDE.md</li>
+<li>Your .git folder</li>
+</ul>
+<h2>Git Concepts Visualized</h2>
+
+<h3>Commits = Save Points</h3>
+
+<pre><code>Time ────────────────────────────────────────▶
+
+<p>
+Commit 1         Commit 2         Commit 3
+"Fix bug"        "Add feature"    "Update docs"
+    │                │                │
+    ●────────────────●────────────────●  ← main branch</code></pre>
+</p>
+
+<p>
+Each commit is a snapshot of your entire codebase at that moment.
+</p>
+
+<h3>Tags = Version Labels</h3>
+
+<pre><code>Commit 1    Commit 2    Commit 3    Commit 4    Commit 5
+<p>
+    │           │           │           │           │
+    ●───────────●───────────●───────────●───────────●
+                            │                       │
+                         v1.0.4                  v1.0.5
+                         (tag)                   (tag)</code></pre>
+</p>
+
+<p>
+Tags mark specific commits as releases.
+</p>
+
+<h3>Development vs Released</h3>
+
+<pre><code>GITHUB
+<p>
+┌────────────────────────────────────────────────────┐
+│  Commits (Development)                             │
+│  ●───●───●───●───●───●───●                         │
+│                  │       │                         │
+│               v1.0.4  v1.0.5                       │
+│                  │       │                         │
+│  Releases (Users Download)                         │
+│  📦 v1.0.4      📦 v1.0.5                          │
+└────────────────────────────────────────────────────┘</code></pre>
+</p>
+
+<p>
+Users only see the releases (📦).
+Developers see all commits (●).
+</p>
+
+<h2>Example Scenarios</h2>
+
+<h3>Scenario 1: Daily Bug Fix</h3>
+
+<pre><code>Morning:
+<ol><li>Find bug in search highlighting</li>
+<li>Edit widgets.py to fix it</li>
+<li>Test - it works!</li>
+<li>Open dev_manager.py</li>
+<li>Stage changes</li>
+<li>Commit: "Fix highlighting bug"</li>
+<li>Push to GitHub</li>
+</ol>✅ Done! Bug fix is now backed up on GitHub</code></pre>
+
+<h3>Scenario 2: Multiple Features</h3>
+
+<pre><code>Week of development:
+<p>
+Monday:    Commit "Add regex support"      ─┐
+Tuesday:   Commit "Improve performance"     │
+Wednesday: Commit "Fix edge case"           ├─ Multiple commits
+Thursday:  Commit "Add tests"               │
+Friday:    Commit "Update documentation"   ─┘
+</p>
+
+<p>
+Friday afternoon:
+</p>
+<ol><li>All commits pushed to GitHub ✓</li>
+<li>Everything tested ✓</li>
+<li>Ready for release!</li>
+<li>Open dev_manager.py → Releases tab</li>
+<li>Create v1.1.0 (minor version - new features)</li>
+<li>Write release notes listing all changes</li>
+<li>Upload database to GitHub release</li>
+<li>Announce to users</li>
+</ol>
+<p>
+✅ Done! Users can download v1.1.0</code></pre>
+</p>
+
+<h3>Scenario 3: Emergency Hotfix</h3>
+
+<pre><code>User reports critical bug:
+<ol><li>Fix the bug immediately</li>
+<li>Test thoroughly</li>
+<li>Commit: "Fix critical database corruption bug"</li>
+<li>Push to GitHub</li>
+<li>Create v1.0.6 (patch version - bug fix)</li>
+<li>Upload to GitHub releases</li>
+<li>Notify users of urgent update</li>
+</ol>
+<p>
+✅ Done! Critical fix deployed quickly</code></pre>
+</p>
+
+<h2>Best Practices</h2>
+
+<h3>Commit Messages</h3>
+
+<p>
+❌ Bad:
+</p>
+<pre><code>"Fixed stuff"
+<p>
+"Update"
+"Changes"</code></pre>
+</p>
+
+<p>
+✅ Good:
+</p>
+<pre><code>"Fix mouse event handling in highlighted verses
+<ul><li>Added setTextInteractionFlags to prevent label from capturing clicks</li>
+<li>Ensures verse clicks properly trigger comment editor"</code></pre></li>
+</ul>
+<h3>Version Numbers</h3>
+
+<pre><code>v1.0.4 → v1.0.5   Small bug fix
+<p>
+v1.0.5 → v1.1.0   New feature added
+v1.9.0 → v2.0.0   Major rewrite</code></pre>
+</p>
+
+<h3>Release Notes</h3>
+
+<p>
+✅ Good release notes:
+</p>
+<pre><code>## What's New in v1.0.5
+<ul><li>✨ Search term highlighting now preserves quoted phrases</li>
+<li>🐛 Fixed comment functionality in Window 5</li>
+<li>⚡ Improved search performance by 20%</li>
+</ul>
+<h2>Bug Fixes</h2>
+<ul><li>Mouse clicks on highlighted verses now work correctly</li>
+<li>Phrase matching no longer splits on individual words</li>
+</ul>
+<h2>Installation</h2>
+
+<p>
+Download and run setup_win11.py (Windows) or setup.py (Linux)</code></pre>
+</p>
+
+<h2>Cheat Sheet</h2>
+
+<h3>Common Commands (via dev_manager.py)</h3>
+
+<p>
+| Task | Steps |
+|------|-------|
+| Save changes | Commits tab → Stage All → Commit → Push |
+| Create release | Releases tab → Enter version → Write notes → Create |
+| View history | History tab → See commits and releases |
+</p>
+
+<h3>When to Create a Release</h3>
+<ul><li>✅ After fixing critical bugs</li>
+<li>✅ After adding significant features</li>
+<li>✅ When users request a feature you've implemented</li>
+<li>✅ On a regular schedule (e.g., monthly)</li>
+<li>❌ After every single commit (too many releases!)</li>
+<li>❌ When code isn't tested</li>
+</ul>
+<h3>Troubleshooting Quick Reference</h3>
+
+<p>
+| Problem | Solution |
+|---------|----------|
+| "Not a git repository" | Run from bible-search-lite folder |
+| Can't push | Check internet, configure git credentials |
+| Tag exists | Use next version number |
+| No changes to commit | Make sure you edited and saved files |
+</p>
+
+<h2>Getting Help</h2>
+<ol><li><strong>Read DEV_MANAGER_GUIDE.md</strong> - Comprehensive guide</li>
+<li><strong>Check this workflow</strong> - Visual reference</li>
+<li><strong>Git documentation</strong> - https://git-scm.com/doc</li>
+<li><strong>GitHub guides</strong> - https://guides.github.com</li>
+</ol>
+<hr>
+
+<strong>Remember:</strong> The tool makes git easier, but understanding these concepts will make you a better developer!
+
+<strong>Next Steps:</strong>
+<ol><li>Read DEV_MANAGER_GUIDE.md for detailed instructions</li>
+<li>Try creating a test commit</li>
+<li>Practice the workflow on non-critical changes</li>
+<li>Create your first release when ready!</li>
+</ol>
+</body>
+</html>

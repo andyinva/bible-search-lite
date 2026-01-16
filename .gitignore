@@ -22,8 +22,8 @@ INTEGRATION_PACKAGE/
 Amnt/
 mnt/
 
-# Documentation source files (consolidated into README.md)
-Documentation/
+# Documentation is now included (HTML documentation system)
+# Documentation/
 
 # Development/migration documentation files
 CLEANUP_SUMMARY.txt

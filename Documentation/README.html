@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Readme</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite</h1>
+
+<strong>Version</strong>: 1.0
+<strong>Release Date</strong>: January 2026
+<strong>License</strong>: MIT
+
+<p>
+A powerful, feature-rich Bible search application with advanced search operators, 37 Bible translations, and an intuitive multi-window interface.
+</p>
+
+<hr>
+
+<h2>Quick Start</h2>
+
+<h3>Installation (One-Command Setup)</h3>
+
+<strong>Linux/macOS:</strong>
+<pre><code>curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup.py
+<p>
+python3 setup.py</code></pre>
+</p>
+
+<strong>Windows 10/11 (PowerShell):</strong>
+<pre><code>Invoke-WebRequest -Uri "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py" -OutFile "setup_win11.py"
+<p>
+python setup_win11.py</code></pre>
+</p>
+
+<strong>Windows 10/11 (Command Prompt):</strong>
+<pre><code>curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py
+<p>
+python setup_win11.py</code></pre>
+</p>
+
+<p>
+The installer will:
+</p>
+<ul><li>✅ Download Bible database from GitHub Release (~79 MB)</li>
+<li>✅ Verify download integrity with checksums</li>
+<li>✅ Extract and create SQLite database (405 MB)</li>
+<li>✅ Download all application files</li>
+<li>✅ Install PyQt6 automatically</li>
+<li>✅ Create platform-specific launcher</li>
+</ul>
+<strong>Requirements:</strong>
+<ul><li>Python 3.7+ (Windows: enable "Add Python to PATH" during install)</li>
+<li>Internet connection (one-time download)</li>
+<li>~500 MB disk space</li>
+</ul>
+<h3>Running</h3>
+
+<strong>Linux/macOS:</strong>
+<pre><code>./run_bible_search.sh</code></pre>
+
+<strong>Windows:</strong>
+<ul><li>Double-click: <code>run_bible_search.bat</code></li>
+<li>Or run: <code>python bible_search_lite.py</code></li>
+</ul>
+<strong>All platforms:</strong>
+<pre><code>python3 bible_search_lite.py</code></pre>
+
+<hr>
+
+<h2>Features</h2>
+
+<h3>Advanced Search Operators</h3>
+<ul><li><strong><code><em></code> and <code>%</code></strong> - Wildcard matching (e.g., <code>love</em></code> finds love, loved, loving)</li>
+<li><strong><code>&</code></strong> - Word placeholder (e.g., <code>who & sent</code> finds "who had sent")</li>
+<li><strong><code>></code></strong> - Ordered words (e.g., <code>love > God</code> ensures order)</li>
+<li><strong><code>~N</code></strong> - Proximity search (e.g., <code>love ~4 God</code> finds words within 4 words)</li>
+<li><strong><code>AND/OR</code></strong> - Boolean operators</li>
+<li><strong><code>" "</code></strong> - Exact phrase matching</li>
+</ul>
+<p>
+See <a href="SEARCH_OPERATORS.md">SEARCH_OPERATORS.md</a> for complete documentation.
+</p>
+
+<h3>37 Bible Translations</h3>
+<p>
+Including KJV (1611), ASV, Darby, Geneva Bible, and many historical translations from 1395-2000, with publication dates shown.
+</p>
+
+<h3>Multi-Window Interface</h3>
+<ul><li><strong>Window 1: Message</strong> - Status and controls</li>
+<li><strong>Window 2: Search Results</strong> - Your search findings</li>
+<li><strong>Window 3: Reading Window</strong> - Context and verse navigation</li>
+<li><strong>Window 4: Subject Verses</strong> - Organize verses by topic</li>
+<li><strong>Window 5: Subject Comments</strong> - Add rich-text notes</li>
+</ul>
+<h3>Smart Features</h3>
+<ul><li><strong>Multi-translation search</strong> - Search across multiple versions simultaneously</li>
+<li><strong>Context loading</strong> - Click a verse to see surrounding verses</li>
+<li><strong>Subject management</strong> - Organize verses with notes</li>
+<li><strong>Export</strong> - Export to text, markdown, or formatted documents</li>
+<li><strong>Book filters</strong> - Search specific books or groups</li>
+<li><strong>Search history</strong> - Quick access to successful searches</li>
+</ul>
+<hr>
+
+<h2>Search Examples</h2>
+
+<h3>Basic</h3>
+<pre><code>love                    - Find all verses with "love"
+<p>
+"in the beginning"      - Exact phrase
+faith AND works         - Both words present</code></pre>
+</p>
+
+<h3>Advanced</h3>
+<pre><code>love*                   - love, loved, loving, lover
+<p>
+believ%                 - believe, believed, believer
+who &amp; sent              - "who had sent", "who hath sent"
+love &gt; neighbour        - "love" before "neighbour"
+love ~4 God             - "love" and "God" within 4 words</code></pre>
+</p>
+
+<hr>
+
+<h2>Requirements</h2>
+<ul><li>Python 3.7 or higher</li>
+<li>PyQt6 (installed automatically)</li>
+<li><strong>Linux/macOS</strong>: SQLite3 (auto-installed if missing)</li>
+<li><strong>Windows</strong>: Use <code>setup_win11.py</code> (no additional tools needed)</li>
+</ul>
+<hr>
+
+<h2>Documentation</h2>
+<ul><li><strong><a href="INSTALLATION.md">INSTALLATION.md</a></strong> - Detailed installation guide</li>
+<li><strong><a href="SEARCH_OPERATORS.md">SEARCH_OPERATORS.md</a></strong> - Complete search reference</li>
+<li><strong><a href="DISTRIBUTION_GUIDE.md">DISTRIBUTION_GUIDE.md</a></strong> - Technical documentation</li>
+</ul>
+<hr>
+
+<h2>Database</h2>
+<ul><li><strong>37 Bible translations</strong></li>
+<li><strong>~31,000 verses per translation</strong></li>
+<li><strong>1.1+ million total verses</strong></li>
+<li><strong>405 MB SQLite database</strong></li>
+<li><strong>Compressed download: ~79 MB</strong></li>
+</ul>
+<hr>
+
+<h2>License</h2>
+
+<p>
+MIT License - see <a href="LICENSE">LICENSE</a> file for details.
+</p>
+
+<p>
+Copyright (c) 2026 Andrew Hopkins
+</p>
+
+<p>
+Free to use for any purpose (personal, commercial, ministry). Free to modify and distribute.
+</p>
+
+<hr>
+
+<h2>Support</h2>
+<ul><li><strong>Issues</strong>: https://github.com/andyinva/bible-search-lite/issues</li>
+<li><strong>Discussions</strong>: https://github.com/andyinva/bible-search-lite/discussions</li>
+</ul>
+<hr>
+
+<strong>Enjoy studying the Word! 📖</strong>
+
+</body>
+</html>

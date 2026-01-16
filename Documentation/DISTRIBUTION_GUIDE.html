@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribution Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite - Distribution System</h1>
+
+<h2>Overview</h2>
+
+<p>
+I've created a complete two-app distribution system for Bible Search Lite:
+</p>
+
+<h3>📤 App 1: <code>export_bible_data.py</code> (Developer Tool)</h3>
+<strong>Purpose</strong>: Export the database for distribution
+<strong>Who uses it</strong>: You (the developer)
+<strong>What it does</strong>:
+<ul><li>Exports SQLite database to SQL dump</li>
+<li>Compresses with gzip (-9 for maximum compression)</li>
+<li>Generates SHA256 checksums for verification</li>
+<li>Creates files ready to upload to GitHub Releases</li>
+</ul>
+<h3>📥 App 2: <code>setup.py</code> (End User Installer)</h3>
+<strong>Purpose</strong>: One-command installation
+<strong>Who uses it</strong>: End users
+<strong>What it does</strong>:
+<ul><li>Downloads compressed database from GitHub Releases</li>
+<li>Verifies download integrity with checksums</li>
+<li>Decompresses and imports into SQLite</li>
+<li>Downloads all application files</li>
+<li>Installs Python dependencies</li>
+<li>Creates complete working installation</li>
+</ul>
+<hr>
+
+<h2>Quick Start for Developers</h2>
+
+<h3>1. Export Database</h3>
+
+<pre><code>python3 export_bible_data.py</code></pre>
+
+<p>
+Output:
+</p>
+<pre><code>data/bible_data.sql.gz    (~150 MB)
+<p>
+data/checksums.txt</code></pre>
+</p>
+
+<h3>2. Create GitHub Release</h3>
+<ol><li>Go to: https://github.com/andyinva/bible-search-lite/releases</li>
+<li>Click "Draft a new release"</li>
+<li>Tag: <code>v1.0</code> (or your version)</li>
+<li>Upload:</li>
+</ol><ul><li><code>data/bible_data.sql.gz</code></li>
+<li><code>data/checksums.txt</code></li>
+</ul>5. Publish
+
+<h3>3. Users Install With</h3>
+
+<pre><code>python3 setup.py</code></pre>
+
+<p>
+Done! They have a complete installation.
+</p>
+
+<hr>
+
+<h2>Quick Start for End Users</h2>
+
+<h3>Installation (One Command)</h3>
+
+<pre><code>curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup.py
+<p>
+python3 setup.py</code></pre>
+</p>
+
+<p>
+The installer does everything automatically:
+</p>
+<ul><li>✅ Downloads Bible database</li>
+<li>✅ Verifies integrity</li>
+<li>✅ Sets up SQLite</li>
+<li>✅ Downloads app files</li>
+<li>✅ Installs dependencies</li>
+</ul>
+<h3>Running</h3>
+
+<pre><code>./run_bible_search.sh</code></pre>
+
+<p>
+Or:
+</p>
+
+<pre><code>python3 bible_search_lite.py</code></pre>
+
+<hr>
+
+<h2>Technical Details</h2>
+
+<h3>Database Size Breakdown</h3>
+
+<p>
+| Stage | Size | Format |
+|-------|------|--------|
+| Original | 453 MB | SQLite binary |
+| SQL Dump | ~1.2 GB | Uncompressed SQL |
+| Compressed | ~150 MB | gzip -9 |
+| Download | ~150 MB | What users download |
+| Final DB | 453 MB | SQLite after import |
+</p>
+
+<h3>Why GitHub Releases?</h3>
+<ul><li>✅ Designed for large binary files (2GB limit)</li>
+<li>✅ Free CDN distribution</li>
+<li>✅ Automatic checksums</li>
+<li>✅ Version tracking</li>
+<li>✅ Download statistics</li>
+<li>❌ Regular repo has 100MB file limit</li>
+</ul>
+<h3>Export Process Flow</h3>
+
+<pre><code>1. export_bible_data.py runs
+<ol><li>sqlite3 bibles.db .dump &gt; bible_data.sql</li>
+<li>gzip -9 bible_data.sql (maximum compression)</li>
+<li>Calculate SHA256 checksum</li>
+<li>Create checksums.txt</li>
+<li>Files ready in data/ directory</li>
+<li>Upload to GitHub Releases</code></pre></li>
+</ol>
+<h3>Install Process Flow</h3>
+
+<pre><code>1. setup.py downloads checksums.txt
+<ol><li>Downloads bible_data.sql.gz from Release</li>
+<li>Verifies SHA256 checksum</li>
+<li>gunzip bible_data.sql.gz</li>
+<li>sqlite3 bibles.db &lt; bible_data.sql</li>
+<li>Downloads app files from main branch</li>
+<li>pip install PyQt6</li>
+<li>Complete!</code></pre></li>
+</ol>
+<hr>
+
+<h2>Files Created</h2>
+
+<h3>New Files</h3>
+
+<pre><code>export_bible_data.py        Developer: Export database
+<p>
+setup.py                    End user: Install everything
+INSTALLATION.md             Installation instructions
+DISTRIBUTION_GUIDE.md       This file</code></pre>
+</p>
+
+<h3>Generated Files (by export script)</h3>
+
+<pre><code>data/
+<p>
+├── bible_data.sql.gz      Upload to GitHub Releases
+└── checksums.txt          Upload to GitHub Releases</code></pre>
+</p>
+
+<h3>Created by Installer</h3>
+
+<pre><code>database/
+<p>
+├── bibles.db              453 MB - Bible translations
+└── subjects.db            User data (empty template)
+temp/                      Temporary files (auto-cleaned)</code></pre>
+</p>
+
+<hr>
+
+<h2>Workflow</h2>
+
+<h3>For Each New Release</h3>
+<ol><li><strong>Make your changes</strong> to the application</li>
+<li><strong>Test thoroughly</strong></li>
+<li><strong>Export database</strong>:</li>
+</ol>   <pre><code>   python3 export_bible_data.py
+<p>
+   ``<code>
+</p>
+<ol><li><strong>Create GitHub Release</strong> (v1.0, v1.1, etc.)</li>
+<li><strong>Upload</strong> </code>data/bible_data.sql.gz<code> and </code>data/checksums.txt<code></li>
+<li><strong>Update</strong> </code>RELEASE_VERSION<code> in </code>setup.py<code></li>
+<li><strong>Commit and push</strong> setup.py change</li>
+<li><strong>Announce</strong> to users</li>
+</ol>
+<p>
+Users then run:</code></pre>bash
+python3 setup.py
+</p>
+<pre><code>
+<hr>
+
+<h2>Advantages of This Approach</h2>
+
+<h3>For Users</h3>
+<ul><li>✅ One-command installation</li>
+<li>✅ Automatic dependency installation</li>
+<li>✅ Download verification (checksums)</li>
+<li>✅ Progress indicators</li>
+<li>✅ Clear error messages</li>
+<li>✅ No manual steps</li>
+</ul>
+<h3>For You (Developer)</h3>
+<ul><li>✅ Simple export process</li>
+<li>✅ No repo bloat (files in Releases)</li>
+<li>✅ Version control for database</li>
+<li>✅ Easy to update</li>
+<li>✅ Automatic distribution via GitHub CDN</li>
+<li>✅ Download statistics</li>
+</ul>
+<h3>Technical</h3>
+<ul><li>✅ Preserves schema, indexes, data</li>
+<li>✅ Cross-platform (Linux, macOS, WSL)</li>
+<li>✅ Verifiable downloads</li>
+<li>✅ Efficient compression</li>
+<li>✅ Standard tools (sqlite3, gzip)</li>
+</ul>
+<hr>
+
+<h2>Future Enhancements</h2>
+
+<p>
+Possible improvements:
+</p>
+<ol><li><strong>Progress bar</strong> - Add </code>tqdm<code> for better download progress</li>
+<li><strong>Resume downloads</strong> - Support interrupted downloads</li>
+<li><strong>Mirror support</strong> - Multiple download sources</li>
+<li><strong>Incremental updates</strong> - Only download changes</li>
+<li><strong>Auto-updater</strong> - Check for new versions</li>
+<li><strong>GUI installer</strong> - PyQt6-based installer</li>
+<li><strong>Windows .exe</strong> - PyInstaller bundle</li>
+<li><strong>Snap/Flatpak</strong> - Linux app store distribution</li>
+</ol>
+<hr>
+
+<h2>Comparison to Other Approaches</h2>
+
+<h3>Option A: Store DB in Repo ❌</h3>
+<ul><li>Pros: Simple</li>
+<li>Cons: 453MB exceeds 100MB limit, bloats repo history</li>
+</ul>
+<h3>Option B: Git LFS ❌</h3>
+<ul><li>Pros: Handles large files</li>
+<li>Cons: Costs money, complex, bandwidth limits</li>
+</ul>
+<h3>Option C: External hosting ❌</h3>
+<ul><li>Pros: No GitHub limits</li>
+<li>Cons: Costs money, maintenance, reliability</li>
+</ul>
+<h3>Option D: GitHub Releases ✅ <strong>CHOSEN</strong></h3>
+<ul><li>Pros: Free, CDN, version tracking, reliable</li>
+<li>Cons: Manual release process (but scripted!)</li>
+</ul>
+<hr>
+
+<h2>Testing</h2>
+
+<h3>Test Export</h3>
+</code></pre>bash
+<p>
+python3 export_bible_data.py
+ls -lh data/
+</p>
+<pre><code>
+<p>
+Expected:
+</p>
+<ul><li></code>bible_data.sql.gz<code> (~150 MB)</li>
+<li></code>checksums.txt<code> (small text file)</li>
+</ul>
+<h3>Test Install (In Clean Directory)</h3>
+</code></pre>bash
+<p>
+mkdir test_install
+cd test_install
+curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup.py
+python3 setup.py
+</p>
+</code>``
+
+<p>
+Expected:
+</p>
+<ul><li>Downloads complete</li>
+<li>Database created</li>
+<li>App files downloaded</li>
+<li>Dependencies installed</li>
+<li>Ready to run</li>
+</ul>
+<hr>
+
+<h2>Support</h2>
+
+<p>
+If users have issues:
+</p>
+<ol><li>Check INSTALLATION.md</li>
+<li>Verify GitHub Release exists</li>
+<li>Test checksums manually</li>
+<li>Check internet connection</li>
+<li>Verify required tools installed</li>
+</ol>
+<hr>
+
+<h2>Summary</h2>
+
+<p>
+You now have a professional distribution system:
+</p>
+<ul><li><strong>export_bible_data.py</strong> - One command to export</li>
+<li><strong>setup.py</strong> - One command for users to install</li>
+<li><strong>INSTALLATION.md</strong> - Complete instructions</li>
+<li><strong>GitHub Releases</strong> - Free, reliable distribution</li>
+</ul>
+<p>
+This is the same approach used by many professional open-source projects!
+</p>
+
+</body>
+</html>

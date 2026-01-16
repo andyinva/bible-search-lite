@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Quick Start</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite - Windows Quick Start</h1>
+
+<h2>Installation (3 Simple Steps)</h2>
+
+<h3>Step 1: Download Installer</h3>
+
+<p>
+Open PowerShell and run:
+</p>
+<pre><code>Invoke-WebRequest -Uri "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py" -OutFile "setup_win11.py"</code></pre>
+
+<h3>Step 2: Run Installer</h3>
+
+<pre><code>python setup_win11.py</code></pre>
+
+<p>
+This will:
+</p>
+<ul><li>Download the Bible database from GitHub Release v1.0 (~90 MB)</li>
+<li>Verify the download with checksums</li>
+<li>Extract and create the SQLite database</li>
+<li>Download all application files</li>
+<li>Install PyQt6</li>
+<li>Create <code>run_bible_search.bat</code> launcher</li>
+</ul>
+<h3>Step 3: Launch Application</h3>
+
+<p>
+Double-click:
+</p>
+<pre><code>run_bible_search.bat</code></pre>
+
+<hr>
+
+<h2>Requirements</h2>
+<ul><li><strong>Python 3.7+</strong> (with "Add Python to PATH" enabled)</li>
+<li><strong>Internet connection</strong> (for one-time download)</li>
+<li><strong>~500 MB disk space</strong></li>
+</ul>
+<hr>
+
+<h2>What Gets Installed</h2>
+
+<pre><code>bible-search-lite/
+<p>
+├── database/
+│   ├── bibles.db          (453 MB - 44 translations)
+│   └── subjects.db        (User notes and subjects)
+├── bible_search_lite.py   (Main application)
+├── bible_search.py        (Search engine)
+├── bible_search_service.py
+├── subject_manager.py
+├── bible_search_ui/       (UI components)
+├── run_bible_search.bat   (Windows launcher)
+└── README.md              (Full documentation)</code></pre>
+</p>
+
+<hr>
+
+<h2>Troubleshooting</h2>
+
+<strong>Python not found?</strong>
+<ul><li>Download from https://www.python.org/downloads/</li>
+<li>During install, check "Add Python to PATH"</li>
+</ul>
+<strong>Download fails?</strong>
+<ul><li>Check internet connection</li>
+<li>Make sure you can access github.com</li>
+</ul>
+<strong>PyQt6 won't install?</strong>
+<pre><code>python -m pip install --upgrade pip
+<p>
+python -m pip install PyQt6</code></pre>
+</p>
+
+<hr>
+
+<strong>Enjoy! 📖</strong>
+
+</body>
+</html>

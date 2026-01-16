@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Notes V1.0.4</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite v1.0.4 Release Notes</h1>
+
+<strong>Release Date:</strong> January 10, 2026
+
+<h2>What's New in v1.0.4</h2>
+
+<h3>🎯 Enhanced Verse Highlighting</h3>
+<ul><li><strong>Visual Feedback for Clicked Verses</strong>: Verses in Window 3 (Reading Window) now highlight in gray when clicked, making it easy to see which verse is active for cross-reference lookup</li>
+<li><strong>Smart Highlight Management</strong>: Only one verse is highlighted at a time across all windows - previous highlights are automatically cleared when clicking a new verse</li>
+<li><strong>Seamless Navigation</strong>: Clicking verses in Window 2 or Window 3 now provides consistent visual feedback</li>
+</ul>
+<h3>🖱️ Improved Window Interaction</h3>
+<ul><li><strong>Click Anywhere to Activate</strong>: Window 2 (Search Results) now activates when you click anywhere in it, not just on the sidebar</li>
+<li><strong>Better Event Handling</strong>: Added event filter for QListWidget viewport to capture all mouse clicks reliably</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul><li><strong>Fixed Persistent Highlights</strong>: Resolved issue where blue-highlighted verses from Window 2 clicks would remain highlighted when clicking verses in Window 3</li>
+<li><strong>Unified Styling System</strong>: Created a single styling method that properly handles all verse states (highlighted, checked, normal) with correct priority</li>
+<li><strong>Cross-Window State Management</strong>: Highlights now properly clear across both Window 2 and Window 3</li>
+</ul>
+<h3>🔧 Technical Improvements</h3>
+<ul><li>Added <code>is_highlighted</code> property to track navigation highlights separately from checkbox selection</li>
+<li>Created <code>apply_current_style()</code> method with proper state priority: highlighted → checked → normal</li>
+<li>Enhanced <code>set_highlighted_verse()</code> to clear both old blue highlights and new gray highlights</li>
+<li>Improved event propagation for more reliable click detection</li>
+</ul>
+<h2>Upgrade Instructions</h2>
+
+<h3>Automatic Update (Recommended)</h3>
+<ol><li>Click the "Check for Updates" button in the Help menu</li>
+<li>If prompted, click "Download Update"</li>
+<li>The new version will be downloaded and applied automatically</li>
+</ol>
+<h3>Manual Update</h3>
+<ol><li>Download the latest release from: https://github.com/andyinva/bible-search-lite</li>
+<li>Extract the files to your bible-search-lite directory</li>
+<li>Run <code>python3 bible_search_lite.py</code></li>
+</ol>
+<h2>Previous Versions</h2>
+<ul><li><a href="RELEASE_NOTES_v1.0.3.md">v1.0.3</a> - Auto-update improvements and enhanced setup script</li>
+<li><a href="RELEASE_NOTES_v1.0.2.md">v1.0.2</a> - Version display in window title</li>
+<li><a href="RELEASE_NOTES_v1.0.1.md">v1.0.1</a> - Initial release</li>
+</ul>
+<hr>
+
+<p>
+For full documentation, see <a href="README.md">README.md</a>
+</p>
+
+<p>
+For installation instructions, see <a href="INSTALLATION.md">INSTALLATION.md</a>
+</p>
+
+</body>
+</html>
