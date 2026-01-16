@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Install</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite - Windows Installation Guide</h1>
+
+<p>
+Simple installation guide for Windows 10 and Windows 11 users.
+</p>
+
+<hr>
+
+<h2>Quick Install</h2>
+
+<h3>Step 1: Download Installer</h3>
+
+<p>
+Open PowerShell and run:
+</p>
+
+<pre><code>Invoke-WebRequest -Uri "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup_win11.py" -OutFile "setup_win11.py"</code></pre>
+
+<p>
+Or download manually from:
+https://github.com/andyinva/bible-search-lite/blob/main/setup_win11.py
+</p>
+
+<h3>Step 2: Run Installer</h3>
+
+<pre><code>python setup_win11.py</code></pre>
+
+<p>
+The installer will:
+</p>
+<ul><li>✅ Check Python version</li>
+<li>✅ Download Bible database (~90 MB)</li>
+<li>✅ Verify download integrity</li>
+<li>✅ Extract and create SQLite database</li>
+<li>✅ Download application files</li>
+<li>✅ Install PyQt6</li>
+<li>✅ Create Windows launcher</li>
+</ul>
+<h3>Step 3: Run Application</h3>
+
+<p>
+Double-click:
+</p>
+<pre><code>run_bible_search.bat</code></pre>
+
+<p>
+Or run from PowerShell:
+</p>
+<pre><code>python bible_search_lite.py</code></pre>
+
+<hr>
+
+<h2>Requirements</h2>
+<ul><li><strong>Python 3.7 or higher</strong> - Download from https://www.python.org/downloads/</li>
+<li><strong>Internet connection</strong> - For downloading database (one-time)</li>
+<li><strong>~500 MB disk space</strong> - For database and application</li>
+</ul>
+<hr>
+
+<h2>Troubleshooting</h2>
+
+<h3>Python Not Found</h3>
+
+<strong>Error:</strong> <code>python: command not found</code>
+
+<strong>Solution:</strong> Install Python from https://www.python.org/downloads/
+<ul><li>✅ Check "Add Python to PATH" during installation</li>
+</ul>
+<h3>Download Fails</h3>
+
+<strong>Error:</strong> <code>Failed to download database</code>
+
+<strong>Solutions:</strong>
+<ol><li>Check internet connection</li>
+<li>Make sure GitHub Release v1.0 exists</li>
+<li>Try downloading manually from GitHub Releases</li>
+</ol>
+<h3>PyQt6 Installation Fails</h3>
+
+<strong>Error:</strong> <code>Failed to install PyQt6</code>
+
+<strong>Solution:</strong>
+<pre><code>pip install PyQt6</code></pre>
+
+<p>
+If that fails, try:
+</p>
+<pre><code>python -m pip install --upgrade pip
+<p>
+python -m pip install PyQt6</code></pre>
+</p>
+
+<h3>Application Won't Start</h3>
+
+<strong>Error:</strong> <code>ModuleNotFoundError: No module named 'PyQt6'</code>
+
+<strong>Solution:</strong> Install PyQt6 manually (see above)
+
+<hr>
+
+<h2>Alternative: WSL2</h2>
+
+<p>
+If you prefer a Linux environment on Windows:
+</p>
+
+<h3>Install WSL2</h3>
+<ol><li>Open PowerShell as Administrator</li>
+<li>Run:</li>
+</ol>   ``<code>powershell
+<p>
+   wsl --install
+</p>
+   </code>`<code>
+<ol><li>Restart computer</li>
+<li>Open Ubuntu from Start Menu</li>
+<li>Run Linux installer:</li>
+</ol>   </code>`<code>bash
+<p>
+   python3 setup.py
+</p>
+   </code>``
+
+<p>
+WSL2 provides a full Linux environment and works great for development!
+</p>
+
+<hr>
+
+<h2>Features</h2>
+
+<p>
+See <a href="README.md">README.md</a> for full feature list including:
+</p>
+<ul><li>44 Bible translations</li>
+<li>Advanced search operators (wildcards, proximity, boolean)</li>
+<li>Multi-window interface</li>
+<li>Subject management with notes</li>
+<li>Export to multiple formats</li>
+</ul>
+<hr>
+
+<h2>Support</h2>
+<ul><li><strong>Issues</strong>: https://github.com/andyinva/bible-search-lite/issues</li>
+<li><strong>Documentation</strong>: See README.md and SEARCH_OPERATORS.md</li>
+<li><strong>Discussions</strong>: https://github.com/andyinva/bible-search-lite/discussions</li>
+</ul>
+<hr>
+
+<strong>Enjoy studying the Word! 📖</strong>
+
+</body>
+</html>

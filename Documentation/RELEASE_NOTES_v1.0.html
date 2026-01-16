@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Notes V1.0</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Search Lite v1.0 - Initial Release</h1>
+
+<h2>🎉 Welcome to Bible Search Lite!</h2>
+
+<p>
+A powerful, feature-rich Bible search application with advanced search operators, 44 Bible translations, and an intuitive multi-window interface.
+</p>
+
+<hr>
+
+<h2>✨ Key Features</h2>
+
+<h3>Advanced Search Operators</h3>
+<ul><li><strong><code><em></code> and <code>%</code></strong> - Wildcard matching for word variations (e.g., <code>love</em></code> finds love, loved, loving)</li>
+<li><strong><code>&</code></strong> - Word placeholder for exact patterns (e.g., <code>who & sent</code> finds "who had sent")</li>
+<li><strong><code>></code></strong> - Ordered words operator (e.g., <code>love > God</code> ensures order)</li>
+<li><strong><code>~N</code></strong> - Proximity search (e.g., <code>love ~4 God</code> finds words within 4 words of each other)</li>
+<li><strong><code>AND/OR</code></strong> - Boolean operators for complex queries</li>
+<li><strong><code>" "</code></strong> - Exact phrase matching</li>
+</ul>
+<h3>44 Bible Translations</h3>
+<p>
+Including KJV (1611), NIV, ESV, NASB, and many historical translations from 1382-2023, with publication dates shown.
+</p>
+
+<h3>Powerful Interface</h3>
+<ul><li><strong>5 Windows</strong>: Message, Search Results, Reading, Subject Verses, Subject Comments</li>
+<li><strong>Multi-translation search</strong> - Search across multiple Bible versions simultaneously</li>
+<li><strong>Context loading</strong> - Click a verse to see surrounding context</li>
+<li><strong>Subject management</strong> - Organize verses by topic with notes</li>
+<li><strong>Export features</strong> - Export to text, markdown, or formatted documents</li>
+<li><strong>Smart filtering</strong> - Filter results by book, testament, or custom groups</li>
+</ul>
+<h3>Search Enhancements</h3>
+<ul><li><strong>Book filters</strong> - Search within specific books or groups (Pentateuch, Gospels, Prophets, etc.)</li>
+<li><strong>Word frequency filter</strong> - See which word variations appear in results</li>
+<li><strong>Case-sensitive search</strong> - Optional exact matching</li>
+<li><strong>Unique verse mode</strong> - Show each verse only once across translations</li>
+<li><strong>Search history</strong> - Quick access to recent successful searches</li>
+</ul>
+<hr>
+
+<h2>📥 Installation</h2>
+
+<h3>One-Command Install</h3>
+
+<pre><code>curl -O https://raw.githubusercontent.com/andyinva/bible-search-lite/main/setup.py
+<p>
+python3 setup.py</code></pre>
+</p>
+
+<p>
+The installer will:
+</p>
+<ul><li>✅ Download the Bible database (~150MB compressed)</li>
+<li>✅ Verify download integrity</li>
+<li>✅ Set up SQLite database with all 44 translations</li>
+<li>✅ Download all application files</li>
+<li>✅ Install Python dependencies</li>
+</ul>
+<h3>Requirements</h3>
+<ul><li>Python 3.7 or higher</li>
+<li>SQLite3</li>
+<li>PyQt6 (installed automatically)</li>
+</ul>
+<h3>Running</h3>
+<pre><code>./run_bible_search.sh</code></pre>
+
+<p>
+Or:
+</p>
+<pre><code>python3 bible_search_lite.py</code></pre>
+
+<hr>
+
+<h2>📚 Database Information</h2>
+
+<strong>File</strong>: <code>bible_data.sql.gz</code>
+<ul><li><strong>Compressed size</strong>: ~150 MB</li>
+<li><strong>Uncompressed</strong>: ~1.2 GB SQL dump</li>
+<li><strong>Final database</strong>: 453 MB SQLite</li>
+<li><strong>Translations</strong>: 44 complete Bible versions</li>
+<li><strong>Verses</strong>: ~31,000 verses per translation</li>
+<li><strong>Total records</strong>: 1.3+ million verses</li>
+<li><strong>Verified</strong>: SHA256 checksum included</li>
+</ul>
+<hr>
+
+<h2>🔍 Search Examples</h2>
+
+<h3>Basic Searches</h3>
+<ul><li><code>love</code> - Find all verses containing "love"</li>
+<li><code>"in the beginning"</code> - Exact phrase</li>
+<li><code>faith AND works</code> - Both words present</li>
+</ul>
+<h3>Advanced Searches</h3>
+<ul><li><code>love*</code> - love, loved, loving, lover, etc.</li>
+<li><code>believ%</code> - believe, believed, believer, believing</li>
+<li><code>who & sent</code> - "who had sent", "who hath sent"</li>
+<li><code>love > neighbour</code> - "love" appears before "neighbour"</li>
+<li><code>love ~4 God</code> - "love" and "God" within 4 words</li>
+</ul>
+<h3>Filtered Searches</h3>
+<ul><li>Search only in Gospels</li>
+<li>Search only in Old Testament</li>
+<li>Search across all translations simultaneously</li>
+</ul>
+<hr>
+
+<h2>📖 Documentation</h2>
+<ul><li><strong>README.md</strong> - Comprehensive user guide</li>
+<li><strong>SEARCH_OPERATORS.md</strong> - Complete search operator reference</li>
+<li><strong>INSTALLATION.md</strong> - Detailed installation instructions</li>
+<li><strong>DISTRIBUTION_GUIDE.md</strong> - Technical documentation</li>
+</ul>
+<hr>
+
+<h2>🛠️ Technical Details</h2>
+
+<h3>Architecture</h3>
+<ul><li><strong>Language</strong>: Python 3.7+</li>
+<li><strong>GUI Framework</strong>: PyQt6</li>
+<li><strong>Database</strong>: SQLite 3</li>
+<li><strong>Platform</strong>: Linux, macOS, Windows (via WSL)</li>
+</ul>
+<h3>Components</h3>
+<ul><li><code>bible_search_lite.py</code> - Main application</li>
+<li><code>bible_search.py</code> - Search engine</li>
+<li><code>bible_search_service.py</code> - Database service</li>
+<li><code>subject_manager.py</code> - Subject/topic management</li>
+<li><code>bible_search_ui/</code> - UI components (widgets, dialogs, controllers)</li>
+</ul>
+<h3>Database Schema</h3>
+<ul><li><code>translations</code> - Bible version metadata</li>
+<li><code>verses</code> - All Bible verses (1.3M+ records)</li>
+<li><code>cross_references</code> - Verse cross-references</li>
+<li><code>subjects</code> - User-created topics</li>
+<li><code>subject_verses</code> - Verses linked to subjects</li>
+</ul>
+<hr>
+
+<h2>🚀 What's New in v1.0</h2>
+
+<p>
+This is the initial release with:
+</p>
+<ul><li>✅ 44 Bible translations with publication dates</li>
+<li>✅ Advanced search operators (%, &, >, ~N)</li>
+<li>✅ Multi-window interface</li>
+<li>✅ Subject management system</li>
+<li>✅ Export functionality</li>
+<li>✅ Smart search history (only saves successful searches)</li>
+<li>✅ Book group filters</li>
+<li>✅ Professional one-command installer</li>
+<li>✅ Cross-platform support</li>
+</ul>
+<hr>
+
+<h2>📝 License</h2>
+
+<strong>MIT License</strong>
+
+<p>
+Copyright (c) 2026 Andrew Hopkins
+</p>
+
+<p>
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+</p>
+
+<p>
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+</p>
+
+<p>
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</p>
+
+<hr>
+
+<strong>In simple terms:</strong>
+<ul><li>✅ Free to use for any purpose (personal, commercial, ministry)</li>
+<li>✅ Free to modify and distribute</li>
+<li>✅ Free to include in other projects</li>
+<li>✅ No warranty or liability</li>
+<li>ℹ️ Just keep the copyright notice</li>
+</ul>
+<hr>
+
+<h2>🙏 Acknowledgments</h2>
+
+<p>
+Bible translations are from public domain sources and various modern translations with appropriate permissions.
+</p>
+
+<p>
+Special thanks to the open-source community for tools and libraries that made this possible.
+</p>
+
+<hr>
+
+<h2>🐛 Known Issues</h2>
+<ul><li>Cursor may disappear on some WSL2/X11 configurations (workaround: use native Linux or Windows)</li>
+<li>First search may be slower (database warming up)</li>
+</ul>
+<hr>
+
+<h2>📞 Support</h2>
+<ul><li><strong>Documentation</strong>: See README.md and INSTALLATION.md</li>
+<li><strong>Issues</strong>: https://github.com/andyinva/bible-search-lite/issues</li>
+<li><strong>Discussions</strong>: https://github.com/andyinva/bible-search-lite/discussions</li>
+</ul>
+<hr>
+
+<h2>🎯 Quick Start Guide</h2>
+<ol><li><strong>Install</strong>: <code>python3 setup.py</code></li>
+<li><strong>Run</strong>: <code>./run_bible_search.sh</code></li>
+<li><strong>Search</strong>: Type "love" and click Search</li>
+<li><strong>Click a verse</strong>: See context in Reading Window</li>
+<li><strong>Explore</strong>: Try advanced operators like <code>love ~4 God</code></li>
+<li><strong>Create subjects</strong>: Organize verses by topic</li>
+<li><strong>Export</strong>: Share your findings</li>
+</ol>
+<hr>
+
+<strong>Enjoy studying the Word! 📖✨</strong>
+
+<em>Bible Search Lite v1.0 - January 2026</em>
+
+</body>
+</html>

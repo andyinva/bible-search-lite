@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Manager Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        h4 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 90%;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            font-style: italic;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        em {
+            color: #7f8c8d;
+        }
+
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Development Manager Tool Guide</h1>
+
+<h2>What is This Tool?</h2>
+
+<code>dev_manager.py</code> is a GUI tool for managing Bible Search Lite development. It helps you:
+<ul><li>View and create git commits</li>
+<li>Push changes to GitHub</li>
+<li>Create versioned releases for distribution</li>
+<li>See what's in development vs what's released</li>
+</ul>
+<strong>⚠️ IMPORTANT:</strong> This tool is for developers only. It is NOT included in Bible Search Lite distributions.
+
+<h2>Installation</h2>
+
+<p>
+No installation needed! Just make sure you have:
+</p>
+<ul><li>Python 3.7+</li>
+<li>PyQt6 (<code>pip install PyQt6</code>)</li>
+<li>Git configured on your system</li>
+</ul>
+<h2>Running the Tool</h2>
+
+<p>
+From the <code>bible-search-lite</code> directory:
+</p>
+
+<pre><code>python3 dev_manager.py</code></pre>
+
+<p>
+Or on Windows:
+</p>
+
+<pre><code>python dev_manager.py</code></pre>
+
+<h2>Understanding the Interface</h2>
+
+<h3>Tab 1: 📝 Commits</h3>
+
+<strong>Purpose:</strong> Manage your day-to-day development work
+
+<strong>What You'll See:</strong>
+<ul><li>Current branch (should usually be <code>main</code>)</li>
+<li>Uncommitted changes (files you've modified)</li>
+<li>Area to create commits</li>
+</ul>
+<strong>How to Use:</strong>
+<ol><li>Make changes to your code</li>
+<li>Click "🔄 Refresh Status" to see changed files</li>
+<li>Click "📎 Stage All Changes" to prepare files for commit</li>
+<li>Enter a commit message describing what you changed</li>
+<li>Click "✅ Commit" to save the changes</li>
+<li>Click "⬆️ Push to GitHub" to upload to GitHub</li>
+</ol>
+<strong>Example Commit Message:</strong>
+<pre><code>Fix search highlighting bug
+<ul><li>Fixed phrase matching in quoted searches</li>
+<li>Improved performance of highlight rendering</code></pre></li>
+</ul>
+<h3>Tab 2: 🚀 Releases</h3>
+
+<strong>Purpose:</strong> Create official versions for users to download
+
+<strong>What You'll See:</strong>
+<ul><li>Current version number</li>
+<li>Form to create a new release</li>
+</ul>
+<strong>How to Use:</strong>
+<ol><li><strong>Version Tag:</strong> Enter version like <code>v1.0.5</code></li>
+</ol><ul><li>Use format: <code>v</code> + major.minor.patch</li>
+<li>Examples: <code>v1.0.5</code>, <code>v1.1.0</code>, <code>v2.0.0</code></li>
+</ul>
+<ol><li><strong>Release Notes:</strong> Describe what's new</li>
+</ol>   <pre><code>   ## What's New
+<ul><li>Added search term highlighting</li>
+<li>Improved comment functionality</li>
+</ul>
+<p>
+   ## Bug Fixes
+</p>
+<ul><li>Fixed mouse event handling</li>
+<li>Fixed phrase matching in searches</li>
+</ul>   ``<code>
+<ol><li><strong>Release Type:</strong></li>
+</ol><ul><li><strong>Latest</strong> - Stable release for all users (most common)</li>
+<li><strong>Pre-release</strong> - Beta/testing version</li>
+</ul>
+<ol><li>Click "🚀 Create Release on GitHub"</li>
+<li><strong>Next Steps</strong> (shown in success message):</li>
+</ol><ul><li>Go to GitHub.com → Your repository → Releases</li>
+<li>Find your new tag</li>
+<li>Click "Create release from tag"</li>
+<li>Upload files (bible_data.sql.gz, checksums.txt)</li>
+<li>Publish the release</li>
+</ul>
+<h3>Tab 3: 📊 History</h3>
+
+<strong>Purpose:</strong> See what's been committed and released
+
+<strong>What You'll See:</strong>
+<ul><li><strong>Development Commits:</strong> Recent changes not yet in a release</li>
+<li><strong>Released Versions:</strong> All published versions with dates</li>
+</ul>
+<strong>How to Use:</strong>
+<ul><li>Review recent commits to see what's changed</li>
+<li>Check release history to see version progression</li>
+<li>Click "🔄 Refresh History" to update</li>
+</ul>
+<h2>GitHub Concepts Explained</h2>
+
+<h3>Commits</h3>
+<p>
+Think of commits as "save points" in your development:
+</p>
+<ul><li>You change code → Stage changes → Commit with message → Push to GitHub</li>
+<li>Each commit has a unique ID and message</li>
+<li>You can always go back to any commit</li>
+</ul>
+<h3>Tags</h3>
+<p>
+Tags are labels on specific commits:
+</p>
+<ul><li>Example: Tag </code>v1.0.5<code> points to a specific commit</li>
+<li>Tags mark "this is version 1.0.5 for users"</li>
+<li>Tags don't change (unlike branches)</li>
+</ul>
+<h3>Releases</h3>
+<p>
+Releases are GitHub's way of packaging software for users:
+</p>
+<ul><li>Based on tags (e.g., tag v1.0.5 → Release v1.0.5)</li>
+<li>Include release notes</li>
+<li>Can attach downloadable files (database, installers)</li>
+<li>Show up on the "Releases" page of your repo</li>
+</ul>
+<h3>Workflow</code></pre></h3>
+<ol><li>Make code changes</li>
+<li>Create commits (development)</li>
+<li>Push commits to GitHub (backup/share)</li>
+<li>When ready for users: Create release tag</li>
+<li>Upload release files to GitHub release</li>
+<li>Users download from Releases page</li>
+</ol><pre><code>
+<h2>Common Workflows</h2>
+
+<h3>Daily Development</h3>
+<ol><li>Open </code>dev_manager.py<code></li>
+<li>Make code changes in your editor</li>
+<li>Go to "📝 Commits" tab</li>
+<li>Click "Refresh Status"</li>
+<li>Review changed files</li>
+<li>Click "Stage All Changes"</li>
+<li>Write commit message</li>
+<li>Click "Commit"</li>
+<li>Click "Push to GitHub"</li>
+</ol>
+<h3>Creating a New Version</h3>
+<ol><li>Make sure all development commits are done</li>
+<li>Go to "🚀 Releases" tab</li>
+<li>Enter version (e.g., </code>v1.0.6<code>)</li>
+<li>Write release notes describing changes</li>
+<li>Select "Latest"</li>
+<li>Click "Create Release on GitHub"</li>
+<li>Follow instructions to upload files on GitHub</li>
+</ol>
+<h3>Checking What's New</h3>
+<ol><li>Go to "📊 History" tab</li>
+<li>Look at "Development Commits" section</li>
+<li>These are changes since last release</li>
+<li>When you create a release, these become "released"</li>
+</ol>
+<h2>Version Numbering Guide</h2>
+
+<p>
+Use semantic versioning: </code>vMAJOR.MINOR.PATCH<code>
+</p>
+<ul><li><strong>MAJOR</strong> (v2.0.0): Breaking changes, major redesign</li>
+<li><strong>MINOR</strong> (v1.1.0): New features, backward-compatible</li>
+<li><strong>PATCH</strong> (v1.0.5): Bug fixes, small improvements</li>
+</ul>
+<p>
+Examples:
+</p>
+<ul><li></code>v1.0.4<code> → </code>v1.0.5<code>: Fixed bugs</li>
+<li></code>v1.0.5<code> → </code>v1.1.0<code>: Added new feature</li>
+<li></code>v1.5.0<code> → </code>v2.0.0<code>: Major rewrite</li>
+</ul>
+<h2>Troubleshooting</h2>
+
+<h3>"Not a git repository" Error</h3>
+<ul><li>Make sure you're running from the </code>bible-search-lite<code> directory</li>
+<li>Check that </code>.git<code> folder exists</li>
+</ul>
+<h3>"Failed to push" Error</h3>
+<ul><li>Make sure you have internet connection</li>
+<li>Check that you've configured git credentials</li>
+<li>Try: </code>git config --global user.name "Your Name"<code></li>
+<li>Try: </code>git config --global user.email "your@email.com"<code></li>
+</ul>
+<h3>"Failed to create commit" Error</h3>
+<ul><li>Make sure you clicked "Stage All Changes" first</li>
+<li>Make sure you entered a commit message</li>
+<li>Check that files were actually changed</li>
+</ul>
+<h3>"Tag already exists" Error</h3>
+<ul><li>You've already created this version tag</li>
+<li>Use a different version number (e.g., v1.0.6 instead of v1.0.5)</li>
+</ul>
+<h2>Git Configuration (First Time)</h2>
+
+<p>
+If this is your first time using git, configure it:
+</p>
+</code></pre>bash
+<p>
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
+</p>
+<pre><code>
+<p>
+For GitHub authentication, you may need a Personal Access Token:
+</p>
+<ol><li>GitHub → Settings → Developer settings → Personal access tokens</li>
+<li>Generate new token (classic)</li>
+<li>Select scopes: </code>repo<code> (full control)</li>
+<li>Copy token</li>
+<li>Use as password when git asks</li>
+</ol>
+<h2>Safety Features</h2>
+<ul><li>Tool always shows what will be committed before committing</li>
+<li>Push requires confirmation</li>
+<li>Release creation shows next steps</li>
+<li>Can't accidentally delete history</li>
+<li>All operations use standard git commands</li>
+</ul>
+<h2>What This Tool Does NOT Do</h2>
+<ul><li>Does NOT upload release files (database, installers)</li>
+</ul>  → You do this manually on GitHub.com
+<ul><li>Does NOT manage multiple branches</li>
+</ul>  → Assumes you work on </code>main<code> branch
+<ul><li>Does NOT resolve merge conflicts</li>
+</ul>  → Use git command line if conflicts occur
+
+<h2>Tips</h2>
+<ol><li><strong>Commit Often:</strong> Small commits are better than large ones</li>
+<li><strong>Good Messages:</strong> Explain WHY you changed something, not just WHAT</li>
+<li><strong>Test Before Release:</strong> Make sure everything works before creating a release</li>
+<li><strong>Update VERSION.txt:</strong> Tool does this automatically</li>
+<li><strong>Keep Release Notes:</strong> Users appreciate detailed notes</li>
+</ol>
+<h2>Example Development Session</h2>
+</code></pre>
+<p>
+9:00 AM - Fix highlighting bug
+  → Edit widgets.py
+  → Commit: "Fix mouse event handling for highlighted verses"
+  → Push to GitHub
+</p>
+
+<p>
+10:30 AM - Add new feature
+  → Edit bible_search_lite.py
+  → Commit: "Add support for regex searches"
+  → Push to GitHub
+</p>
+
+<p>
+2:00 PM - Ready for release
+  → Test everything
+  → Create release v1.0.5
+  → Upload database to GitHub release
+  → Announce to users
+</p>
+</code>``
+
+<h2>Support</h2>
+
+<p>
+For questions about:
+</p>
+<ul><li><strong>This tool:</strong> Check this guide</li>
+<li><strong>Git concepts:</strong> https://git-scm.com/doc</li>
+<li><strong>GitHub releases:</strong> https://docs.github.com/en/repositories/releasing-projects-on-github</li>
+<li><strong>Bible Search Lite:</strong> See main README.md</li>
+</ul>
+<hr>
+
+<strong>Remember:</strong> This tool simplifies git/GitHub but doesn't replace understanding the basics. Take time to learn git concepts - it will make development much easier!
+
+</body>
+</html>
