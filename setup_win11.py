@@ -410,6 +410,68 @@ pause
     except Exception as e:
         print(f"  ⚠️  Warning: Could not create launcher: {e}")
 
+def check_directory_empty():
+    """Check if directory contains files other than the installer"""
+    print("Checking installation directory...")
+
+    # Get list of all files and directories in current directory
+    current_files = set(os.listdir('.'))
+
+    # Files that are OK to have (installer and temp files)
+    allowed_files = {
+        'setup_win11.py',
+        '__pycache__',
+        '.git',
+        '.gitignore'
+    }
+
+    # Check for other files
+    extra_files = current_files - allowed_files
+
+    if extra_files:
+        print(f"  ❌ Directory is not empty!")
+        print(f"\n  Found existing files/folders:")
+        for item in sorted(extra_files):
+            print(f"    • {item}")
+        print(f"\n  ⚠️  This installer requires an empty directory to avoid conflicts.")
+        print(f"  Please:")
+        print(f"    1. Delete all files except setup_win11.py")
+        print(f"    2. Or run the installer in a new empty directory")
+        print()
+        return False
+
+    print(f"  ✅ Directory is empty")
+    return True
+
+def check_internet_connection():
+    """Check if internet connection is available"""
+    print("Checking internet connection...")
+
+    test_urls = [
+        "https://raw.githubusercontent.com",
+        "https://github.com"
+    ]
+
+    for url in test_urls:
+        try:
+            # Try to connect with a short timeout
+            urllib.request.urlopen(url, timeout=5)
+            print(f"  ✅ Internet connection available")
+            return True
+        except urllib.error.URLError:
+            continue
+        except Exception:
+            continue
+
+    print(f"  ❌ No internet connection detected!")
+    print(f"\n  This installer requires internet to:")
+    print(f"    • Download Bible database from GitHub")
+    print(f"    • Download application files")
+    print(f"    • Install Python dependencies")
+    print(f"\n  Please check your internet connection and try again.")
+    print()
+    return False
+
 def main():
     """Main installation process"""
     print_header("Bible Search Lite - Windows 11 Installer")
@@ -420,6 +482,25 @@ def main():
         print("   For Linux/macOS, use: python3 setup.py")
         sys.exit(1)
 
+    # EARLY CHECKS - before user confirmation
+    print("Running pre-installation checks...\n")
+
+    # Check Python version
+    if not check_python_version():
+        sys.exit(1)
+    print()
+
+    # Check if directory is empty
+    if not check_directory_empty():
+        sys.exit(1)
+    print()
+
+    # Check internet connection
+    if not check_internet_connection():
+        sys.exit(1)
+    print()
+
+    print(f"All pre-installation checks passed! ✅\n")
     print(f"This installer will:")
     print(f"  • Download Bible database from GitHub Release {RELEASE_VERSION}")
     print(f"  • Set up SQLite database with all translations")
@@ -430,10 +511,6 @@ def main():
     input("Press Enter to continue...")
 
     try:
-        # Check Python version
-        if not check_python_version():
-            sys.exit(1)
-        print()
 
         # Setup database
         setup_database()
