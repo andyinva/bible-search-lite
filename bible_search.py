@@ -378,10 +378,23 @@ class BibleSearch:
             
             # Remove quotes from exact phrases
             if part.startswith('"') and part.endswith('"'):
-                search_term = part[1:-1]
-                # For quoted terms, use word boundary matching
-                # We'll use multiple LIKE conditions to ensure word boundaries
-                quoted_term = True
+                search_term = part[1:-1]  # Remove quotes
+
+                # Check if quoted term contains wildcards
+                # "sent*" means words starting with "sent" (with word boundaries)
+                if '*' in search_term or '%' in search_term or '?' in search_term:
+                    # Quoted wildcard - treat as wildcard with word boundaries
+                    quoted_term = False
+                    # Store for word boundary filtering
+                    if not hasattr(self, '_wildcard_terms'):
+                        self._wildcard_terms = []
+                    self._wildcard_terms.append(search_term)
+                    self._wildcard_case_sensitive = case_sensitive
+                    # Apply wildcard conversion
+                    search_term = self.convert_wildcard_to_sql(search_term)
+                else:
+                    # Quoted exact phrase without wildcards
+                    quoted_term = True
             else:
                 quoted_term = False
                 # Store original term if it contains wildcards for word boundary filtering
