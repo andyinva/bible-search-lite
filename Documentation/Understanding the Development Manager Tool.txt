@@ -1,0 +1,48 @@
+Understanding the Development Manager Tool
+The Development Manager is a visual tool I created to help you manage your Bible Search Lite project on GitHub without needing to memorize complex command-line git commands. Think of it as a control panel for your development work.
+The Basic Concept
+When you're working on Bible Search Lite, you go through two distinct phases:
+Development Phase: You're actively writing code, fixing bugs, and making improvements. During this phase, you're creating what git calls "commits" - these are like snapshots or save points of your work. Each time you complete a logical piece of work (fix a bug, add a feature), you create a commit that describes what you did.
+Release Phase: When you've accumulated enough improvements and everything is tested and working well, you create a "release" - this is a special package that users can download. Releases have version numbers like v1.0.5 or v1.1.0, and they represent stable, tested versions of your software.
+Using the Tool Day-to-Day
+Let's walk through a typical development session. You've just fixed a bug in your Bible search highlighting feature. Here's what you do:
+First, you open the Development Manager by running python3 dev_manager.py from your bible-search-lite directory. The program opens with three tabs across the top.
+The Commits Tab is where you'll spend most of your time during daily development. When you first look at it, you'll see which branch you're on (this should almost always say "main" - don't worry too much about branches for now). Below that, there's a section showing "Uncommitted Changes" - this lists all the files you've modified since your last commit.
+After you've edited your code and saved your files, click the "Refresh Status" button to see what's changed. You'll see a list of modified files. When you're ready to save this work as a commit, click "Stage All Changes" - this is like gathering up all your changes and getting them ready to be saved together.
+Now you write a commit message. This is important because it helps you (and anyone else) understand what you did. A good commit message has a brief title on the first line, then details below. For example:
+Fix search highlighting bug
+
+- Fixed phrase matching in quoted searches
+- Improved performance of highlight rendering
+After writing your message, click "Commit" to save this snapshot. Finally, click "Push to GitHub" to upload your commit to GitHub's servers. This backs up your work and makes it available if you're working with others.
+Creating a Release for Users
+After you've made several commits over days or weeks and you're ready to give users a new version, you switch to the Releases Tab.
+Here you'll enter a version number. Version numbers follow a pattern: they start with 'v' and then have three numbers separated by periods, like v1.0.5. The pattern is v[MAJOR].[MINOR].[PATCH]:
+* Change the PATCH number (rightmost) when you fix bugs: v1.0.4 ? v1.0.5
+* Change the MINOR number (middle) when you add new features: v1.0.5 ? v1.1.0
+* Change the MAJOR number (leftmost) for big redesigns: v1.9.0 ? v2.0.0
+In the Release Notes field, you describe what's new in this version. Users really appreciate knowing what changed. Write something like:
+## What's New
+- Added search term highlighting
+- Improved comment functionality
+
+## Bug Fixes
+- Fixed mouse event handling for highlighted verses
+Select "Latest" for the release type (this is the normal choice; you'd only use "Pre-release" for beta versions you're still testing).
+Click "Create Release on GitHub" and the tool will create a tag in your git repository and push it to GitHub. A dialog box will then remind you of the final steps: you need to go to GitHub's website, find your new release, and upload the actual files users need (like your database file). The tool can't do this file upload part automatically, but it guides you through what to do.
+Checking Your History
+The History Tab helps you see what you've been doing. It shows two lists:
+The top list, "Development Commits," shows recent commits you've made that aren't part of a release yet. This helps you see what improvements have accumulated since your last release.
+The bottom list, "Released Versions," shows all the official versions you've published, with their dates. This is useful for tracking your project's progression.
+The Underlying Logic
+What makes this tool helpful is that it translates between what you want to do and what git commands are needed. When you click "Stage All Changes," it runs git add . behind the scenes. When you commit, it runs git commit with your message. When you push, it runs git push.
+The tool also adds some nice touches automatically. For instance, it adds a credit line to each commit showing it was "Generated with Claude Code," which acknowledges the AI assistance in your development. It also validates version numbers and updates your VERSION.txt file automatically.
+What Happens on GitHub
+When you push commits, they appear in your repository's commit history on GitHub. Anyone looking at your project can see the progression of changes.
+When you create a release, GitHub creates a special "Releases" page where users can download specific versions. Each release is frozen in time - users downloading v1.0.5 will always get exactly the code as it existed when you created that release, even if you've since made more changes.
+Safety and Reversibility
+The tool is designed to be safe. It always shows you what's changed before you commit. It asks for confirmation before pushing to GitHub. And importantly, git never deletes history - every commit you make is preserved, so you can always go back if needed.
+When to Use What
+Use the tool daily as you develop. Commit whenever you complete a logical unit of work - maybe fixing one bug, or adding one feature. You might make several commits in a day, or just one every few days, depending on your pace.
+Create releases less frequently - perhaps monthly, or whenever you've accumulated several improvements worth sharing with users. There's no fixed rule, but releases should represent stable, tested versions you'd be happy for users to download.
+The tool won't help with everything - if you need to resolve merge conflicts or work with branches, you'll need the command-line git tools. But for the core workflow of developing, committing, and releasing, this tool handles everything you need with a clear visual interface.
