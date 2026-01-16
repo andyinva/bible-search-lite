@@ -611,50 +611,35 @@ class BibleSearch:
             else:
                 # Handle wildcard terms
                 if '*' in term or '?' in term or '%' in term:
-                    # Convert wildcard pattern to regex to match SQL behavior exactly
-                    # SQL _ matches ANY single character including spaces
-                    # SQL % matches any sequence of characters including spaces
-                    # * is converted to % by our system, so they're equivalent
+                    # Convert wildcard pattern to regex with word boundaries
+                    # This matches the filtering logic in _matches_wildcard_word_boundaries
 
-                    # For highlighting, we need to match patterns that can span across words
-                    # but still highlight individual words that are part of the match
-
-                    # Build regex pattern character by character
+                    # Build regex pattern with word boundaries
                     regex_parts = []
+                    starts_with_wildcard = term.startswith('*') or term.startswith('%')
+
+                    # Add word boundary at start if term doesn't start with wildcard
+                    if not starts_with_wildcard:
+                        regex_parts.append(r'\b')
+
+                    # Convert term character by character
                     for char in term:
                         if char == '*' or char == '%':
-                            regex_parts.append(r'.*?')     # Match any characters including spaces (non-greedy)
+                            regex_parts.append(r'\w*')     # Match word characters only
                         elif char == '?':
-                            regex_parts.append(r'.')       # Match any single character including space
+                            regex_parts.append(r'\w')      # Match single word character
                         else:
                             regex_parts.append(re.escape(char))
-                    
+
+                    # Always add word boundary at end
+                    regex_parts.append(r'\b')
+
                     wildcard_pattern = ''.join(regex_parts)
-                    
-                    # Find matches that can span across word boundaries
+
+                    # Find matches at word boundaries
                     for match in re.finditer(wildcard_pattern, text, flags=re.IGNORECASE):
                         matched_text = match.group(0)
-                        
-                        # For patterns with ?, we need to highlight meaningful words involved
-                        if '?' in term and not '*' in term:
-                            # Extract individual words from the match that are substantial (2+ chars)
-                            words_in_match = re.findall(r'\b\w{2,}(?:\'[ts])?\b', matched_text)
-                            
-                            # Find position of each word and add to highlights
-                            search_pos = match.start()
-                            remaining_text = text[search_pos:]
-                            
-                            for word in words_in_match:
-                                word_match = re.search(r'\b' + re.escape(word) + r'\b', remaining_text)
-                                if word_match:
-                                    word_start = search_pos + word_match.start()
-                                    word_end = search_pos + word_match.end()
-                                    matches_to_highlight.append((word_start, word_end, word))
-                                    # Update search position to after this word
-                                    search_pos += word_match.end()
-                        else:
-                            # For * patterns or mixed patterns, highlight the whole match
-                            matches_to_highlight.append((match.start(), match.end(), matched_text))
+                        matches_to_highlight.append((match.start(), match.end(), matched_text))
                 else:
                     # Regular term without wildcards
                     clean_term = term.strip('"')
