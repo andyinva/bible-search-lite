@@ -2171,8 +2171,8 @@ class BibleSearchProgram(QMainWindow):
             # Get the quoted phrase (from either single or double quotes)
             phrase = match.group(1) or match.group(2)
             if phrase and phrase.strip():
-                # Remove wildcards from the phrase
-                phrase = phrase.replace('*', '').replace('%', '')
+                # Keep wildcards in quoted phrases for word boundary matching
+                # "sent*" should highlight words starting with "sent"
                 highlight_terms.append(phrase.strip())
 
         # Remove quoted phrases from query to process remaining terms
@@ -2186,9 +2186,9 @@ class BibleSearchProgram(QMainWindow):
             term = term.strip()
             if not term:
                 continue
-            # Remove wildcards
-            term = term.replace('*', '').replace('%', '')
-            # Remove special operators like ~, >, &
+            # Keep wildcards for proper highlighting
+            # *sing? should highlight matching patterns
+            # Remove special operators like ~, >, & (but keep wildcards *, %, ?)
             term = re.sub(r'[~>&]', '', term)
             # Split multi-word terms
             words = term.split()
