@@ -384,34 +384,41 @@ class BibleSearch:
                 quoted_term = True
             else:
                 quoted_term = False
+                # Store original term if it contains wildcards for word boundary filtering
+                if '*' in part or '%' in part or '?' in part:
+                    if not hasattr(self, '_wildcard_terms'):
+                        self._wildcard_terms = []
+                    self._wildcard_terms.append(part)
+                    self._wildcard_case_sensitive = case_sensitive
+
                 # Apply wildcard conversion
                 search_term = self.convert_wildcard_to_sql(part)
-            
+
             if quoted_term:
                 # For quoted terms, we'll do a broader search and filter for exact matches in Python
                 # This is simpler and more reliable than complex SQL word boundary logic
                 like_pattern = f"%{search_term}%"
-                
+
                 if case_sensitive:
                     condition = "text LIKE ?"
                 else:
                     condition = "LOWER(text) LIKE LOWER(?)"
-                
+
                 if not_search:
                     condition = f"NOT ({condition})"
-                
+
                 sql_conditions.append(condition)
                 search_terms.append(like_pattern)
                 # Note: We'll filter for exact word matches in the results processing
             else:
                 # Regular wildcard search
                 like_pattern = f"%{search_term}%"
-                
+
                 if case_sensitive:
                     condition = "text LIKE ?"
                 else:
                     condition = "LOWER(text) LIKE LOWER(?)"
-                
+
                 if not_search:
                     condition = f"NOT ({condition})"
                 
@@ -912,6 +919,8 @@ class BibleSearch:
         self._ordered_words_case_sensitive = False
         self._proximity_pattern = None
         self._proximity_case_sensitive = False
+        self._wildcard_terms = []  # Store wildcard terms for word boundary filtering
+        self._wildcard_case_sensitive = False
 
         where_clause, search_terms = self.build_word_search_query(query, case_sensitive)
         results = []
@@ -953,6 +962,10 @@ class BibleSearch:
                 for row in rows:
                     # Filter results to ensure quoted terms are exact word matches
                     if not self._contains_exact_quoted_terms(row[3], query, case_sensitive):
+                        continue
+
+                    # Filter results for wildcard terms with word boundaries
+                    if not self._matches_wildcard_word_boundaries(row[3]):
                         continue
 
                     # Filter results for proximity patterns (queries with ~N)
@@ -1133,27 +1146,81 @@ class BibleSearch:
 
         return match is not None
 
+    def _matches_wildcard_word_boundaries(self, text: str) -> bool:
+        """Check if wildcard terms match with word boundaries.
+
+        For example:
+        - sent* should match "sent", "sentence" but NOT "present"
+        - *sent should match "sent", "resent" but NOT "sentence"
+        - *sent* should match "present", "sentence", "resent"
+        """
+        if not hasattr(self, '_wildcard_terms') or not self._wildcard_terms:
+            return True
+
+        case_sensitive = getattr(self, '_wildcard_case_sensitive', False)
+        flags = 0 if case_sensitive else re.IGNORECASE
+
+        for term in self._wildcard_terms:
+            # Convert wildcard term to regex with word boundaries
+            # * and % mean "any characters"
+            # ? means "single character"
+
+            pattern_parts = []
+            i = 0
+            starts_with_wildcard = term.startswith('*') or term.startswith('%')
+            ends_with_wildcard = term.endswith('*') or term.endswith('%')
+
+            # Add word boundary at start if term doesn't start with wildcard
+            if not starts_with_wildcard:
+                pattern_parts.append(r'\b')
+
+            # Convert the term character by character
+            while i < len(term):
+                char = term[i]
+                if char in ('*', '%'):
+                    # Match any word characters
+                    pattern_parts.append(r'\w*')
+                elif char == '?':
+                    # Match single word character
+                    pattern_parts.append(r'\w')
+                else:
+                    # Literal character
+                    pattern_parts.append(re.escape(char))
+                i += 1
+
+            # Add word boundary at end if term doesn't end with wildcard
+            if not ends_with_wildcard:
+                pattern_parts.append(r'\b')
+
+            pattern = ''.join(pattern_parts)
+
+            # Check if this pattern matches in the text
+            if not re.search(pattern, text, flags):
+                return False
+
+        return True
+
     def _contains_exact_quoted_terms(self, text: str, query: str, case_sensitive: bool) -> bool:
         """Check if text contains all quoted terms as exact word matches."""
         # Extract quoted terms from query
         quoted_terms = re.findall(r'"([^"]*)"', query)
-        
+
         if not quoted_terms:
             # No quoted terms, so no filtering needed
             return True
-        
+
         # Check each quoted term for exact word match
         for term in quoted_terms:
             if not term.strip():
                 continue
-            
+
             # Create word boundary pattern
             pattern = r'\b' + re.escape(term) + r'\b'
             flags = 0 if case_sensitive else re.IGNORECASE
-            
+
             if not re.search(pattern, text, flags):
                 return False
-        
+
         return True
     
     def _filter_unique_verses(self, results: List[SearchResult]) -> List[SearchResult]:
