@@ -181,11 +181,36 @@ class VerseItemWidget(QWidget):
 
         # Highlight each term (phrases and words)
         for term in sorted_terms:
-            # Escape special regex characters in the term
-            escaped_term = re.escape(term)
+            # Check if term contains wildcards
+            if '*' in term or '%' in term or '?' in term:
+                # Handle wildcard patterns with word boundaries
+                pattern_parts = []
+                starts_with_wildcard = term.startswith('*') or term.startswith('%')
+
+                # Add word boundary at start if term doesn't start with wildcard
+                if not starts_with_wildcard:
+                    pattern_parts.append(r'\b')
+
+                # Convert term character by character
+                for char in term:
+                    if char == '*' or char == '%':
+                        pattern_parts.append(r'\w*')     # Match word characters only
+                    elif char == '?':
+                        pattern_parts.append(r'\w')      # Match single word character
+                    else:
+                        pattern_parts.append(re.escape(char))
+
+                # Always add word boundary at end
+                pattern_parts.append(r'\b')
+
+                wildcard_pattern = ''.join(pattern_parts)
+                pattern = re.compile(f'({wildcard_pattern})', re.IGNORECASE)
+            else:
+                # Regular term without wildcards - escape special regex characters
+                escaped_term = re.escape(term)
+                pattern = re.compile(f'({escaped_term})', re.IGNORECASE)
 
             # Case-insensitive search and replace with green highlight
-            pattern = re.compile(f'({escaped_term})', re.IGNORECASE)
             text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
 
         return text
