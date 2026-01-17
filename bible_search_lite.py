@@ -1828,42 +1828,52 @@ class BibleSearchProgram(QMainWindow):
                 terms = terms[0].split()
 
             for term in terms:
-                term = term.strip().strip('"\'')
+                term = term.strip()
                 if not term:
                     continue
 
-                # Convert wildcard pattern to regex with word boundaries
-                # For example: "*sing?" becomes "\w*sing\w" to match "blessings"
-                # For example: "sen*" becomes "^sen\w*$" to match "sent", "sending"
-                term_lower = term.lower()
-                pattern_parts = []
+                # Check if term is quoted (for exact matching)
+                is_quoted = (term.startswith('"') and term.endswith('"')) or \
+                           (term.startswith("'") and term.endswith("'"))
 
-                # Track if term starts/ends with wildcard
-                starts_with_wildcard = term_lower.startswith('*') or term_lower.startswith('%')
+                # Remove quotes for pattern building
+                term_clean = term.strip('"\'')
+                if not term_clean:
+                    continue
 
-                # Add start anchor/boundary
-                if starts_with_wildcard:
-                    pattern_parts.append(r'^')
+                term_lower = term_clean.lower()
+
+                # Build pattern based on whether term is quoted
+                if is_quoted:
+                    # Quoted term: exact word match only (strict)
+                    # Pattern: ^word$ matches only the exact word
+                    pattern = r'^' + re.escape(term_lower) + r'$'
+                    search_patterns.append(re.compile(pattern))
                 else:
-                    pattern_parts.append(r'^')
+                    # Unquoted term: partial match (matches word containing the term)
+                    # For unquoted terms, match words CONTAINING the search term
+                    # Example: "sent" matches "sent", "presents", "sentries", "resent"
+                    if '*' in term_lower or '%' in term_lower or '?' in term_lower:
+                        # Has wildcards - convert to regex pattern
+                        pattern_parts = []
+                        pattern_parts.append(r'^')
 
-                # Convert term character by character
-                i = 0
-                while i < len(term_lower):
-                    char = term_lower[i]
-                    if char in ('*', '%'):
-                        pattern_parts.append(r'\w*')  # Match word characters
-                    elif char == '?':
-                        pattern_parts.append(r'\w')   # Match single word character
+                        for char in term_lower:
+                            if char in ('*', '%'):
+                                pattern_parts.append(r'\w*')
+                            elif char == '?':
+                                pattern_parts.append(r'\w')
+                            else:
+                                pattern_parts.append(re.escape(char))
+
+                        pattern_parts.append(r'$')
+                        pattern = ''.join(pattern_parts)
+                        search_patterns.append(re.compile(pattern))
                     else:
-                        pattern_parts.append(re.escape(char))
-                    i += 1
-
-                # Add end anchor
-                pattern_parts.append(r'$')
-
-                pattern = ''.join(pattern_parts)
-                search_patterns.append(re.compile(pattern))
+                        # No wildcards - match words containing this term
+                        # Pattern: ^\w*term\w*$ matches any word containing "term"
+                        pattern = r'^\w*' + re.escape(term_lower) + r'\w*$'
+                        search_patterns.append(re.compile(pattern))
 
             self.debug_print(f"🔍 Search patterns for filtering: {[p.pattern for p in search_patterns]}")
 
