@@ -181,6 +181,20 @@ class VerseItemWidget(QWidget):
 
         # Highlight each term (phrases and words)
         for term in sorted_terms:
+            # Check if term is quoted (exact match required)
+            is_quoted = (term.startswith('"') and term.endswith('"')) or \
+                       (term.startswith("'") and term.endswith("'"))
+
+            if is_quoted:
+                # Quoted term: use exact word boundary matching
+                # Remove quotes for pattern building
+                clean_term = term.strip('"\'')
+                escaped_term = re.escape(clean_term)
+                # Exact word match only - no partial matching
+                pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
+                text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
+                continue
+
             # Check if term contains wildcards
             if '*' in term or '%' in term or '?' in term:
                 # Handle wildcard patterns with word boundaries
