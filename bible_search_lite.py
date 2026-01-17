@@ -2253,9 +2253,10 @@ class BibleSearchProgram(QMainWindow):
             # Get the quoted phrase (from either single or double quotes)
             phrase = match.group(1) or match.group(2)
             if phrase and phrase.strip():
-                # Keep wildcards in quoted phrases for word boundary matching
-                # "sent*" should highlight words starting with "sent"
-                highlight_terms.append(phrase.strip())
+                # Keep quotes around the phrase to indicate exact matching
+                # This tells the UI to use word boundaries, not partial matching
+                # "sent" will be treated differently from sent (without quotes)
+                highlight_terms.append(f'"{phrase.strip()}"')
 
         # Remove quoted phrases from query to process remaining terms
         query_without_quotes = re.sub(quoted_pattern, '', search_query)
