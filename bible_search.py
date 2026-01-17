@@ -654,36 +654,30 @@ class BibleSearch:
                         matched_text = match.group(0)
                         matches_to_highlight.append((match.start(), match.end(), matched_text))
                 else:
-                    # Regular term without wildcards
+                    # Regular term without wildcards (unquoted)
+                    # For unquoted terms, use partial matching (matches "sent" in "presents")
                     clean_term = term.strip('"')
                     if clean_term:
-                        # First try exact word matches
-                        exact_pattern = r'\b' + re.escape(clean_term) + r'\b'
-                        exact_matches = list(re.finditer(exact_pattern, text, flags=re.IGNORECASE))
-                        
-                        if exact_matches:
-                            # Use exact matches if found
-                            for match in exact_matches:
+                        # For unquoted terms, find words containing the search term (like SQL LIKE %term%)
+                        # This is more intuitive - unquoted = broader match, quoted = exact match
+                        if len(clean_term) <= 2:
+                            # For very short terms (1-2 chars), only highlight if they appear at word boundaries
+                            # This prevents "I" from highlighting "Israel", "David", etc.
+                            boundary_pattern = r'\b' + re.escape(clean_term) + r'(?=\W|$)'
+                            for match in re.finditer(boundary_pattern, text, flags=re.IGNORECASE):
                                 matches_to_highlight.append((match.start(), match.end(), match.group(0)))
                         else:
-                            # If no exact matches, find words containing the search term (like SQL LIKE %term%)
-                            # But be more restrictive with short terms to avoid false matches
-                            if len(clean_term) <= 2:
-                                # For very short terms (1-2 chars), only highlight if they appear at word boundaries
-                                # This prevents "I" from highlighting "Israel", "David", etc.
-                                boundary_pattern = r'\b' + re.escape(clean_term) + r'(?=\W|$)'
-                                for match in re.finditer(boundary_pattern, text, flags=re.IGNORECASE):
-                                    matches_to_highlight.append((match.start(), match.end(), match.group(0)))
-                            else:
-                                # For longer terms, find words containing the search term
-                                containing_pattern = r'\b\w*' + re.escape(clean_term) + r'\w*\b'
-                                for word_match in re.finditer(containing_pattern, text, flags=re.IGNORECASE):
-                                    # Highlight the entire word that contains the search term
-                                    # This ensures "fruitful" is bracketed as "[fruitful]" not "[fruit]ful"
-                                    word_text = word_match.group(0)
-                                    word_start = word_match.start()
-                                    word_end = word_match.end()
-                                    matches_to_highlight.append((word_start, word_end, word_text))
+                            # For longer terms, find words containing the search term
+                            # Pattern: \b\w*term\w*\b matches whole words containing "term"
+                            # Example: "sent" matches "sent", "presents", "sentries", "resent"
+                            containing_pattern = r'\b\w*' + re.escape(clean_term) + r'\w*\b'
+                            for word_match in re.finditer(containing_pattern, text, flags=re.IGNORECASE):
+                                # Highlight the entire word that contains the search term
+                                # This ensures "presents" is bracketed as "[presents]" not "pre[sent]s"
+                                word_text = word_match.group(0)
+                                word_start = word_match.start()
+                                word_end = word_match.end()
+                                matches_to_highlight.append((word_start, word_end, word_text))
         
         # Sort matches by position (reverse order for easier processing)
         matches_to_highlight.sort(key=lambda x: x[0], reverse=True)

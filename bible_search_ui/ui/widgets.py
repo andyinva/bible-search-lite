@@ -206,11 +206,21 @@ class VerseItemWidget(QWidget):
                 wildcard_pattern = ''.join(pattern_parts)
                 pattern = re.compile(f'({wildcard_pattern})', re.IGNORECASE)
             else:
-                # Regular term without wildcards - escape special regex characters
-                # Add word boundaries to ensure exact word matching (not partial matches)
-                # For example, "who" should match "who" but not "whose" or "whole"
+                # Regular term without wildcards (unquoted)
+                # For unquoted terms, use partial matching - matches "sent" in "presents"
+                # This is more intuitive: unquoted = broader match, quoted = exact match
                 escaped_term = re.escape(term)
-                pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
+
+                # For longer terms (3+ chars), match words containing the term
+                # For short terms (1-2 chars), require word boundaries to avoid false matches
+                if len(term) <= 2:
+                    # Short term: exact word boundary match only
+                    # Prevents "I" from highlighting "Is", "It", etc.
+                    pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
+                else:
+                    # Longer term: match whole words containing the term
+                    # Example: "sent" matches "sent", "presents", "sentries", "resent"
+                    pattern = re.compile(fr'\b(\w*{escaped_term}\w*)\b', re.IGNORECASE)
 
             # Case-insensitive search and replace with green highlight
             text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
