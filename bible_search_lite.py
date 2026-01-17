@@ -4664,6 +4664,21 @@ from liability. It's the same license used by many popular open-source projects.
                     self.abbreviate_results_cb.setChecked(checkboxes.get('abbreviate_results', False))
                 self.debug_print(f"✓ Restored checkbox states: case_sensitive={checkboxes.get('case_sensitive', False)}, unique_verse={checkboxes.get('unique_verse', False)}, abbreviate={checkboxes.get('abbreviate_results', False)}")
 
+            # Restore selected translations
+            if 'selected_translations' in config:
+                saved_translations = config['selected_translations']
+                # Validate that saved translations exist in current database
+                available_abbreviations = [t.abbreviation for t in self.search_controller.bible_search.translations]
+                valid_translations = [t for t in saved_translations if t in available_abbreviations]
+                if valid_translations:
+                    self.selected_translations = valid_translations
+                    # Update button text to show count
+                    count = len(self.selected_translations)
+                    self.translations_button.setText(f"Translations ({count})")
+                    self.debug_print(f"✓ Restored {len(self.selected_translations)} selected translations: {self.selected_translations}")
+                else:
+                    self.debug_print(f"⚠️  No valid translations in saved config, using default [KJV]")
+
             # Restore font settings
             if 'font_settings' in config:
                 font_settings = config['font_settings']
