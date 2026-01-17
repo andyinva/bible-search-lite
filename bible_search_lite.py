@@ -1845,10 +1845,29 @@ class BibleSearchProgram(QMainWindow):
 
                 # Build pattern based on whether term is quoted
                 if is_quoted:
-                    # Quoted term: exact word match only (strict)
-                    # Pattern: ^word$ matches only the exact word
-                    pattern = r'^' + re.escape(term_lower) + r'$'
-                    search_patterns.append(re.compile(pattern))
+                    # Check if quoted term contains wildcards
+                    # "sing*" should match words starting with "sing"
+                    if '*' in term_lower or '%' in term_lower or '?' in term_lower:
+                        # Quoted wildcard - build pattern with word boundaries
+                        pattern_parts = []
+                        pattern_parts.append(r'^')
+
+                        for char in term_lower:
+                            if char in ('*', '%'):
+                                pattern_parts.append(r'\w*')
+                            elif char == '?':
+                                pattern_parts.append(r'\w')
+                            else:
+                                pattern_parts.append(re.escape(char))
+
+                        pattern_parts.append(r'$')
+                        pattern = ''.join(pattern_parts)
+                        search_patterns.append(re.compile(pattern))
+                    else:
+                        # Quoted term without wildcards: exact word match only (strict)
+                        # Pattern: ^word$ matches only the exact word
+                        pattern = r'^' + re.escape(term_lower) + r'$'
+                        search_patterns.append(re.compile(pattern))
                 else:
                     # Unquoted term: partial match (matches word containing the term)
                     # For unquoted terms, match words CONTAINING the search term
