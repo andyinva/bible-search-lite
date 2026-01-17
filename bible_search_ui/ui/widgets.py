@@ -224,46 +224,22 @@ class VerseItemWidget(QWidget):
                 text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
                 continue
 
-            # Check if term contains wildcards
-            if '*' in term or '%' in term or '?' in term:
-                # Handle wildcard patterns with word boundaries
-                pattern_parts = []
-                starts_with_wildcard = term.startswith('*') or term.startswith('%')
+            # Unquoted term - wildcards are NOT supported
+            # Treat *, ?, % as literal characters
+            # For unquoted terms, use partial matching - matches "sent" in "presents"
+            # This is more intuitive: unquoted = broader match, quoted = exact match
+            escaped_term = re.escape(term)
 
-                # Add word boundary at start if term doesn't start with wildcard
-                if not starts_with_wildcard:
-                    pattern_parts.append(r'\b')
-
-                # Convert term character by character
-                for char in term:
-                    if char == '*' or char == '%':
-                        pattern_parts.append(r'\w*')     # Match word characters only
-                    elif char == '?':
-                        pattern_parts.append(r'\w')      # Match single word character
-                    else:
-                        pattern_parts.append(re.escape(char))
-
-                # Always add word boundary at end
-                pattern_parts.append(r'\b')
-
-                wildcard_pattern = ''.join(pattern_parts)
-                pattern = re.compile(f'({wildcard_pattern})', re.IGNORECASE)
+            # For longer terms (3+ chars), match words containing the term
+            # For short terms (1-2 chars), require word boundaries to avoid false matches
+            if len(term) <= 2:
+                # Short term: exact word boundary match only
+                # Prevents "I" from highlighting "Is", "It", etc.
+                pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
             else:
-                # Regular term without wildcards (unquoted)
-                # For unquoted terms, use partial matching - matches "sent" in "presents"
-                # This is more intuitive: unquoted = broader match, quoted = exact match
-                escaped_term = re.escape(term)
-
-                # For longer terms (3+ chars), match words containing the term
-                # For short terms (1-2 chars), require word boundaries to avoid false matches
-                if len(term) <= 2:
-                    # Short term: exact word boundary match only
-                    # Prevents "I" from highlighting "Is", "It", etc.
-                    pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
-                else:
-                    # Longer term: match whole words containing the term
-                    # Example: "sent" matches "sent", "presents", "sentries", "resent"
-                    pattern = re.compile(fr'\b(\w*{escaped_term}\w*)\b', re.IGNORECASE)
+                # Longer term: match whole words containing the term
+                # Example: "sent" matches "sent", "presents", "sentries", "resent"
+                pattern = re.compile(fr'\b(\w*{escaped_term}\w*)\b', re.IGNORECASE)
 
             # Case-insensitive search and replace with green highlight
             text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
