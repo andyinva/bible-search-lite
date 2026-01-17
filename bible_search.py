@@ -377,6 +377,7 @@ class BibleSearch:
                 continue
             
             # Remove quotes from exact phrases
+            quoted_wildcard = False  # Track if this is a quoted wildcard term
             if part.startswith('"') and part.endswith('"'):
                 search_term = part[1:-1]  # Remove quotes
 
@@ -385,6 +386,7 @@ class BibleSearch:
                 if '*' in search_term or '%' in search_term or '?' in search_term:
                     # Quoted wildcard - treat as wildcard with word boundaries
                     quoted_term = False
+                    quoted_wildcard = True  # Mark as quoted wildcard
                     # Store for word boundary filtering
                     if not hasattr(self, '_wildcard_terms'):
                         self._wildcard_terms = []
@@ -425,7 +427,15 @@ class BibleSearch:
                 # Note: We'll filter for exact word matches in the results processing
             else:
                 # Regular wildcard search
-                like_pattern = f"%{search_term}%"
+                # For quoted wildcards, don't add extra % signs - the pattern is already precise
+                # For unquoted wildcards, add % to match partial words
+                if quoted_wildcard:
+                    # Quoted wildcard like "sing*" - already has precise boundaries
+                    # Pattern is already "sing%" so we want it to match at word start only
+                    like_pattern = f"%{search_term}"  # Allow anything before, but not after
+                else:
+                    # Unquoted wildcard or regular term - allow matches anywhere
+                    like_pattern = f"%{search_term}%"
 
                 if case_sensitive:
                     condition = "text LIKE ?"
@@ -434,7 +444,7 @@ class BibleSearch:
 
                 if not_search:
                     condition = f"NOT ({condition})"
-                
+
                 sql_conditions.append(condition)
                 search_terms.append(like_pattern)
         
@@ -1230,7 +1240,12 @@ class BibleSearch:
             if not term.strip():
                 continue
 
-            # Create word boundary pattern
+            # Skip quoted wildcards - they're handled by _matches_wildcard_word_boundaries
+            # "sing*" should be filtered by wildcard matching, not exact matching
+            if '*' in term or '%' in term or '?' in term:
+                continue
+
+            # Create word boundary pattern for non-wildcard quoted terms
             pattern = r'\b' + re.escape(term) + r'\b'
             flags = 0 if case_sensitive else re.IGNORECASE
 
