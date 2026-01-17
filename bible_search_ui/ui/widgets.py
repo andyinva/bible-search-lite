@@ -207,8 +207,10 @@ class VerseItemWidget(QWidget):
                 pattern = re.compile(f'({wildcard_pattern})', re.IGNORECASE)
             else:
                 # Regular term without wildcards - escape special regex characters
+                # Add word boundaries to ensure exact word matching (not partial matches)
+                # For example, "who" should match "who" but not "whose" or "whole"
                 escaped_term = re.escape(term)
-                pattern = re.compile(f'({escaped_term})', re.IGNORECASE)
+                pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
 
             # Case-insensitive search and replace with green highlight
             text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
