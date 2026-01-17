@@ -398,16 +398,11 @@ class BibleSearch:
                     # Quoted exact phrase without wildcards
                     quoted_term = True
             else:
+                # Unquoted term - wildcards are NOT supported
+                # Treat wildcards as literal characters
+                # "sing*" without quotes should search for the literal text "sing*"
                 quoted_term = False
-                # Store original term if it contains wildcards for word boundary filtering
-                if '*' in part or '%' in part or '?' in part:
-                    if not hasattr(self, '_wildcard_terms'):
-                        self._wildcard_terms = []
-                    self._wildcard_terms.append(part)
-                    self._wildcard_case_sensitive = case_sensitive
-
-                # Apply wildcard conversion
-                search_term = self.convert_wildcard_to_sql(part)
+                search_term = part  # Use as-is, no wildcard conversion
 
             if quoted_term:
                 # For quoted terms, we'll do a broader search and filter for exact matches in Python
@@ -655,62 +650,31 @@ class BibleSearch:
                         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
                             matches_to_highlight.append((match.start(), match.end(), match.group(0)))
             else:
-                # Handle wildcard terms
-                if '*' in term or '?' in term or '%' in term:
-                    # Convert wildcard pattern to regex with word boundaries
-                    # This matches the filtering logic in _matches_wildcard_word_boundaries
-
-                    # Build regex pattern with word boundaries
-                    regex_parts = []
-                    starts_with_wildcard = term.startswith('*') or term.startswith('%')
-
-                    # Add word boundary at start if term doesn't start with wildcard
-                    if not starts_with_wildcard:
-                        regex_parts.append(r'\b')
-
-                    # Convert term character by character
-                    for char in term:
-                        if char == '*' or char == '%':
-                            regex_parts.append(r'\w*')     # Match word characters only
-                        elif char == '?':
-                            regex_parts.append(r'\w')      # Match single word character
-                        else:
-                            regex_parts.append(re.escape(char))
-
-                    # Always add word boundary at end
-                    regex_parts.append(r'\b')
-
-                    wildcard_pattern = ''.join(regex_parts)
-
-                    # Find matches at word boundaries
-                    for match in re.finditer(wildcard_pattern, text, flags=re.IGNORECASE):
-                        matched_text = match.group(0)
-                        matches_to_highlight.append((match.start(), match.end(), matched_text))
-                else:
-                    # Regular term without wildcards (unquoted)
-                    # For unquoted terms, use partial matching (matches "sent" in "presents")
-                    clean_term = term.strip('"')
-                    if clean_term:
-                        # For unquoted terms, find words containing the search term (like SQL LIKE %term%)
-                        # This is more intuitive - unquoted = broader match, quoted = exact match
-                        if len(clean_term) <= 2:
-                            # For very short terms (1-2 chars), only highlight if they appear at word boundaries
-                            # This prevents "I" from highlighting "Israel", "David", etc.
-                            boundary_pattern = r'\b' + re.escape(clean_term) + r'(?=\W|$)'
-                            for match in re.finditer(boundary_pattern, text, flags=re.IGNORECASE):
-                                matches_to_highlight.append((match.start(), match.end(), match.group(0)))
-                        else:
-                            # For longer terms, find words containing the search term
-                            # Pattern: \b\w*term\w*\b matches whole words containing "term"
-                            # Example: "sent" matches "sent", "presents", "sentries", "resent"
-                            containing_pattern = r'\b\w*' + re.escape(clean_term) + r'\w*\b'
-                            for word_match in re.finditer(containing_pattern, text, flags=re.IGNORECASE):
-                                # Highlight the entire word that contains the search term
-                                # This ensures "presents" is bracketed as "[presents]" not "pre[sent]s"
-                                word_text = word_match.group(0)
-                                word_start = word_match.start()
-                                word_end = word_match.end()
-                                matches_to_highlight.append((word_start, word_end, word_text))
+                # Unquoted term - wildcards are NOT supported
+                # Treat *, ?, % as literal characters
+                # For unquoted terms, use partial matching (matches "sent" in "presents")
+                clean_term = term.strip('"')
+                if clean_term:
+                    # For unquoted terms, find words containing the search term (like SQL LIKE %term%)
+                    # This is more intuitive - unquoted = broader match, quoted = exact match
+                    if len(clean_term) <= 2:
+                        # For very short terms (1-2 chars), only highlight if they appear at word boundaries
+                        # This prevents "I" from highlighting "Israel", "David", etc.
+                        boundary_pattern = r'\b' + re.escape(clean_term) + r'(?=\W|$)'
+                        for match in re.finditer(boundary_pattern, text, flags=re.IGNORECASE):
+                            matches_to_highlight.append((match.start(), match.end(), match.group(0)))
+                    else:
+                        # For longer terms, find words containing the search term
+                        # Pattern: \b\w*term\w*\b matches whole words containing "term"
+                        # Example: "sent" matches "sent", "presents", "sentries", "resent"
+                        containing_pattern = r'\b\w*' + re.escape(clean_term) + r'\w*\b'
+                        for word_match in re.finditer(containing_pattern, text, flags=re.IGNORECASE):
+                            # Highlight the entire word that contains the search term
+                            # This ensures "presents" is bracketed as "[presents]" not "pre[sent]s"
+                            word_text = word_match.group(0)
+                            word_start = word_match.start()
+                            word_end = word_match.end()
+                            matches_to_highlight.append((word_start, word_end, word_text))
         
         # Sort matches by position (reverse order for easier processing)
         matches_to_highlight.sort(key=lambda x: x[0], reverse=True)

@@ -1870,29 +1870,13 @@ class BibleSearchProgram(QMainWindow):
                         search_patterns.append(re.compile(pattern))
                 else:
                     # Unquoted term: partial match (matches word containing the term)
+                    # Wildcards are NOT supported for unquoted terms - treat as literal characters
                     # For unquoted terms, match words CONTAINING the search term
                     # Example: "sent" matches "sent", "presents", "sentries", "resent"
-                    if '*' in term_lower or '%' in term_lower or '?' in term_lower:
-                        # Has wildcards - convert to regex pattern
-                        pattern_parts = []
-                        pattern_parts.append(r'^')
-
-                        for char in term_lower:
-                            if char in ('*', '%'):
-                                pattern_parts.append(r'\w*')
-                            elif char == '?':
-                                pattern_parts.append(r'\w')
-                            else:
-                                pattern_parts.append(re.escape(char))
-
-                        pattern_parts.append(r'$')
-                        pattern = ''.join(pattern_parts)
-                        search_patterns.append(re.compile(pattern))
-                    else:
-                        # No wildcards - match words containing this term
-                        # Pattern: ^\w*term\w*$ matches any word containing "term"
-                        pattern = r'^\w*' + re.escape(term_lower) + r'\w*$'
-                        search_patterns.append(re.compile(pattern))
+                    # Example: "sing*" (with asterisk) matches literal "sing*" text
+                    # Pattern: ^\w*term\w*$ matches any word containing "term"
+                    pattern = r'^\w*' + re.escape(term_lower) + r'\w*$'
+                    search_patterns.append(re.compile(pattern))
 
             self.debug_print(f"🔍 Search patterns for filtering: {[p.pattern for p in search_patterns]}")
 
