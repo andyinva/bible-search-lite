@@ -2140,6 +2140,18 @@ class BibleSearchProgram(QMainWindow):
         else:
             self.debug_print(f"🔍 Word filter: None (no filter active)")
 
+        # Detect if this is a verse reference search
+        # For verse references like "John 1:1", automatically disable unique verses
+        # so user sees all translations
+        search_type = self.search_controller.bible_search.detect_search_type(search_term)
+        is_verse_reference = (search_type == "verse_reference")
+
+        # Use unique_verses setting from checkbox, but override to False for verse references
+        unique_verses_setting = self.unique_verse_cb.isChecked() and not is_verse_reference
+
+        if is_verse_reference and self.unique_verse_cb.isChecked():
+            self.debug_print(f"📖 Verse reference detected - automatically disabling 'Unique Verse' for this search")
+
         self.debug_print(f"🚀 Calling search_controller.search()...")
 
         # Delegate to search controller
@@ -2147,7 +2159,7 @@ class BibleSearchProgram(QMainWindow):
             self.search_controller.search(
                 search_term=search_term,
                 case_sensitive=self.case_sensitive_cb.isChecked(),
-                unique_verses=self.unique_verse_cb.isChecked(),
+                unique_verses=unique_verses_setting,
                 abbreviate_results=self.abbreviate_results_cb.isChecked(),
                 translations=self.selected_translations,
                 book_filter=book_filter
