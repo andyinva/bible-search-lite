@@ -189,9 +189,38 @@ class VerseItemWidget(QWidget):
                 # Quoted term: use exact word boundary matching
                 # Remove quotes for pattern building
                 clean_term = term.strip('"\'')
-                escaped_term = re.escape(clean_term)
-                # Exact word match only - no partial matching
-                pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
+
+                # Check if quoted term contains wildcards
+                # "sing*" means words starting with "sing" (with word boundaries)
+                # "sing?" means 5-letter words starting with "sing"
+                if '*' in clean_term or '%' in clean_term or '?' in clean_term:
+                    # Quoted wildcard - build pattern with word boundaries
+                    pattern_parts = []
+                    starts_with_wildcard = clean_term.startswith('*') or clean_term.startswith('%')
+
+                    # Add word boundary at start if not starting with wildcard
+                    if not starts_with_wildcard:
+                        pattern_parts.append(r'\b')
+
+                    # Convert character by character
+                    for char in clean_term:
+                        if char == '*' or char == '%':
+                            pattern_parts.append(r'\w*')
+                        elif char == '?':
+                            pattern_parts.append(r'\w')
+                        else:
+                            pattern_parts.append(re.escape(char))
+
+                    # Always add word boundary at end
+                    pattern_parts.append(r'\b')
+
+                    wildcard_pattern = ''.join(pattern_parts)
+                    pattern = re.compile(f'({wildcard_pattern})', re.IGNORECASE)
+                else:
+                    # Quoted term without wildcards - exact word match only
+                    escaped_term = re.escape(clean_term)
+                    pattern = re.compile(fr'\b({escaped_term})\b', re.IGNORECASE)
+
                 text = pattern.sub(r'<span style="background-color: #90EE90; color: #006400; font-weight: bold;">\1</span>', text)
                 continue
 
