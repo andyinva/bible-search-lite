@@ -617,10 +617,33 @@ class BibleSearch:
             if term.startswith('"') and term.endswith('"'):
                 phrase = term[1:-1]  # Remove quotes
                 if phrase:
-                    # Find exact phrase matches with word boundaries for exact word matching
-                    pattern = r'\b' + re.escape(phrase) + r'\b'
-                    for match in re.finditer(pattern, text, flags=re.IGNORECASE):
-                        matches_to_highlight.append((match.start(), match.end(), match.group(0)))
+                    # Check if quoted phrase contains wildcards
+                    # "sing*" means words starting with "sing" (with word boundaries)
+                    if '*' in phrase or '?' in phrase or '%' in phrase:
+                        # Quoted wildcard - build pattern with word boundaries
+                        regex_parts = []
+                        starts_with_wildcard = phrase.startswith('*') or phrase.startswith('%')
+
+                        if not starts_with_wildcard:
+                            regex_parts.append(r'\b')
+
+                        for char in phrase:
+                            if char == '*' or char == '%':
+                                regex_parts.append(r'\w*')
+                            elif char == '?':
+                                regex_parts.append(r'\w')
+                            else:
+                                regex_parts.append(re.escape(char))
+
+                        regex_parts.append(r'\b')
+                        wildcard_pattern = ''.join(regex_parts)
+                        for match in re.finditer(wildcard_pattern, text, flags=re.IGNORECASE):
+                            matches_to_highlight.append((match.start(), match.end(), match.group(0)))
+                    else:
+                        # Quoted phrase without wildcards - exact match with word boundaries
+                        pattern = r'\b' + re.escape(phrase) + r'\b'
+                        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+                            matches_to_highlight.append((match.start(), match.end(), match.group(0)))
             else:
                 # Handle wildcard terms
                 if '*' in term or '?' in term or '%' in term:
