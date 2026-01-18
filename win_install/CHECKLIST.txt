@@ -1,0 +1,219 @@
+================================================================================
+                BIBLE SEARCH LITE - INSTALLATION CHECKLIST
+================================================================================
+
+Use this checklist to ensure a successful offline installation.
+
+PREPARATION CHECKLIST (PC with Internet)
+═════════════════════════════════════════
+
+□ Step 1: Verify you have PowerShell 5.1 or later
+  Command: $PSVersionTable.PSVersion
+  Required: Version 5.1 or higher
+
+□ Step 2: Navigate to win_install folder
+  Command: cd path\to\bible-search-lite\win_install
+
+□ Step 3: Run download script
+  Command: .\01_download_dependencies.ps1
+
+□ Step 4: Verify downloads completed successfully
+  Check for:
+    ✓ win_install\python\python-installer.exe (~25 MB)
+    ✓ win_install\pip_packages\*.whl files (3-4 files, ~60 MB total)
+
+□ Step 5: Prepare USB drive
+  Requirements:
+    - At least 200 MB free space
+    - Formatted as FAT32 or NTFS
+    - Known drive letter (e.g., E:, F:, etc.)
+
+□ Step 6: Copy files to USB
+  Copy entire win_install folder to USB drive
+  Verify folder structure:
+    USB:\win_install\
+      ├── 01_download_dependencies.ps1
+      ├── 02_install_offline.ps1
+      ├── INSTALL.bat
+      ├── README.md
+      ├── QUICK_START.txt
+      ├── python\
+      │   └── python-installer.exe
+      └── pip_packages\
+          └── *.whl files
+
+□ Step 7: Safely eject USB drive
+
+PREPARATION COMPLETE! ✓
+═══════════════════════
+
+
+INSTALLATION CHECKLIST (Target PC)
+═══════════════════════════════════
+
+□ Step 1: Insert USB drive into target PC
+
+□ Step 2: Note USB drive letter
+  My USB drive letter: _____ (e.g., E:, F:, etc.)
+
+□ Step 3: Open PowerShell as Administrator
+  Methods:
+    ☐ Press Win+X → Select "Terminal (Admin)"
+    ☐ Search "PowerShell" → Right-click → "Run as Administrator"
+    ☐ Right-click INSTALL.bat → "Run as Administrator"
+
+□ Step 4: Verify running as Administrator
+  Look for "Administrator" in window title
+
+□ Step 5: Navigate to USB drive
+  Command: cd [YOUR_USB_DRIVE]:\win_install
+  Example: cd E:\win_install
+
+□ Step 6: Check execution policy (if needed)
+  If you get "execution policy" error:
+  Command: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+□ Step 7: Run installer
+  Command: .\02_install_offline.ps1
+  OR: Double-click INSTALL.bat
+
+□ Step 8: Follow installer prompts
+  ☐ Read welcome message
+  ☐ Choose installation location (or press Enter for default)
+  ☐ Wait for Python installation (~2-3 minutes)
+  ☐ Wait for PyQt6 installation (~1-2 minutes)
+  ☐ Wait for application installation (~30 seconds)
+
+□ Step 9: Verify installation complete
+  Check for success message:
+  "INSTALLATION COMPLETE!"
+
+□ Step 10: Verify desktop shortcut created
+  Look for: "Bible Search Lite" icon on desktop
+
+□ Step 11: Safely remove USB drive
+  No longer needed after installation
+
+□ Step 12: Launch Bible Search Lite
+  Method 1: Double-click desktop shortcut
+  Method 2: Run launcher from installation directory
+
+□ Step 13: Test application
+  ☐ Application window opens
+  ☐ Can perform a search
+  ☐ Results display correctly
+  ☐ No error messages
+
+INSTALLATION COMPLETE! ✓
+════════════════════════
+
+
+POST-INSTALLATION NOTES
+════════════════════════
+
+Installation Location (default):
+C:\Users\[YourName]\AppData\Local\Programs\BibleSearchLite\
+
+Launcher Location:
+[Installation Directory]\Launch Bible Search Lite.bat
+
+Uninstaller Location:
+[Installation Directory]\Uninstall.ps1
+
+Disk Space Used:
+~300 MB (Python + PyQt6 + Application)
+
+
+TROUBLESHOOTING CHECKLIST
+══════════════════════════
+
+If installation fails:
+
+□ Verify sufficient disk space (500 MB free minimum)
+
+□ Verify running as Administrator
+  Command: net session
+  Should not show "Access is denied"
+
+□ Verify USB drive is accessible
+  Command: dir [USB_DRIVE]:\win_install
+  Should list files without errors
+
+□ Check Python installer exists
+  Command: dir [USB_DRIVE]:\win_install\python\python-installer.exe
+  Should show file with size ~25 MB
+
+□ Check pip packages exist
+  Command: dir [USB_DRIVE]:\win_install\pip_packages\*.whl
+  Should show 3-4 .whl files
+
+□ Try alternative launch method
+  If PowerShell script fails, try INSTALL.bat
+
+□ Check error messages carefully
+  Read any error messages for specific issues
+
+□ Restart and try again
+  Sometimes a fresh start resolves issues
+
+
+VERIFICATION CHECKLIST
+═══════════════════════
+
+After installation, verify:
+
+□ Python installed correctly
+  Command: "[InstallDir]\Python\python.exe" --version
+  Should show: Python 3.12.1
+
+□ PyQt6 installed correctly
+  Command: "[InstallDir]\Python\python.exe" -c "import PyQt6; print('OK')"
+  Should show: OK
+
+□ Application files present
+  Check for:
+    ☐ bible_search_lite.py
+    ☐ bible_search.py
+    ☐ bible_search_ui\ folder
+    ☐ database\ folder
+
+□ Desktop shortcut works
+  Double-click should launch application
+
+□ Application launches successfully
+  Should see Bible Search Lite window
+
+
+SUPPORT RESOURCES
+═════════════════
+
+□ README.md - Detailed documentation
+□ QUICK_START.txt - Quick reference guide
+□ PROCESS_DIAGRAM.txt - Visual workflow
+□ This CHECKLIST.txt - Step-by-step guide
+
+For issues not covered here, see:
+- README.md "Troubleshooting" section
+- GitHub: https://github.com/andyinva/bible-search-lite
+
+================================================================================
+                            INSTALLATION NOTES
+================================================================================
+
+Date Installed: _____________
+
+Installation Location: _______________________________________________________
+
+USB Drive Letter Used: _______
+
+Installation Time: ____________ (for future reference)
+
+Issues Encountered: __________________________________________________________
+
+_____________________________________________________________________________
+
+Resolution: __________________________________________________________________
+
+_____________________________________________________________________________
+
+================================================================================

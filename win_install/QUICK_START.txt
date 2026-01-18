@@ -1,0 +1,45 @@
+================================================================================
+            BIBLE SEARCH LITE - OFFLINE INSTALLER QUICK START
+================================================================================
+
+TWO-STEP PROCESS:
+-----------------
+
+STEP 1: DOWNLOAD (on PC with Internet)
+---------------------------------------
+1. Open PowerShell
+2. Navigate to this folder
+3. Run: .\01_download_dependencies.ps1
+4. Copy entire win_install folder to USB drive
+
+STEP 2: INSTALL (on Target PC - can be offline)
+------------------------------------------------
+1. Insert USB drive
+2. Open PowerShell AS ADMINISTRATOR
+3. Navigate to USB:\win_install
+4. Run: .\02_install_offline.ps1
+5. Follow prompts
+6. Launch from desktop shortcut!
+
+================================================================================
+
+TROUBLESHOOTING:
+---------------
+
+If you get "Execution Policy" error:
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+If installer fails:
+  - Make sure you're running PowerShell AS ADMINISTRATOR
+  - Check you have 500 MB free disk space
+  - Make sure USB drive is properly connected
+
+================================================================================
+
+For detailed instructions, see README.md
+
+Total download size: ~80-85 MB
+Total installed size: ~300 MB
+Installation time: ~5 minutes
+
+================================================================================
