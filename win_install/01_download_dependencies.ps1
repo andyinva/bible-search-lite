@@ -86,18 +86,16 @@ Remove-Item -Path $tempPythonDir -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "  ✓ Cleanup complete" -ForegroundColor Green
 
 # Create version info file
-$versionInfo = @"
-Bible Search Lite - Offline Installer Package
-Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-
-Contents:
-- Python $pythonVersion installer
-- PyQt6 and dependencies (offline pip packages)
-
-Installation Instructions:
-1. Copy this entire win_install folder to USB drive
-2. On target PC, run: 02_install_offline.ps1
-"@
+$versionInfo = "Bible Search Lite - Offline Installer Package`r`n"
+$versionInfo += "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`r`n"
+$versionInfo += "`r`n"
+$versionInfo += "Contents:`r`n"
+$versionInfo += "- Python $pythonVersion installer`r`n"
+$versionInfo += "- PyQt6 and dependencies (offline pip packages)`r`n"
+$versionInfo += "`r`n"
+$versionInfo += "Installation Instructions:`r`n"
+$versionInfo += "1. Copy this entire win_install folder to USB drive`r`n"
+$versionInfo += "2. On target PC, run: 02_install_offline.ps1`r`n"
 
 Set-Content -Path (Join-Path $baseDir "package_info.txt") -Value $versionInfo
 
