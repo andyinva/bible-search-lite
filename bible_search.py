@@ -90,17 +90,58 @@ class BibleSearch:
     
     def load_translations(self):
         """Load available translations from database."""
+        # Known publication dates for translations not in description field
+        TRANSLATION_DATES = {
+            'DRB': '1582-1610',
+            'DBT': '1890',
+            'WEB': '2000',
+            'WNT': '1903',
+            'NET': '2005',
+            'ACV': '2008',
+            'BSB': '2016',
+            'CPD': '2009',
+            'DRC': '1749-52',
+            'LEB': '2012',
+            'LIT': '1985',
+            'NHE': '2023',
+            'NHJ': '2023',
+            'NHM': '2023',
+            'OEB': '2010',
+            'OEC': '2010',
+            'TWE': '1904',
+            'MKJ': '1998',
+            'BST': '1844',
+            'BBE': '1965',
+            'JPS': '1917',
+            'ROT': '1902',
+            'YLT': '1862',
+            'JUB': '2000'
+        }
+
         try:
             conn = sqlite3.connect(self.database_path)
             cursor = conn.cursor()
-            
-            cursor.execute("SELECT abbreviation, name FROM translations ORDER BY id")
+
+            cursor.execute("SELECT abbreviation, name, description FROM translations ORDER BY id")
             translation_rows = cursor.fetchall()
-            
-            for i, (abbrev, name) in enumerate(translation_rows):
+
+            for i, (abbrev, name, description) in enumerate(translation_rows):
+                # Extract year from description if present
+                # Look for patterns like (1611), (1901), (1534), (1568-1611), etc.
+                year_match = re.search(r'\((\d{4}(?:-\d{2,4})?)\)', description)
+
+                if year_match:
+                    year = year_match.group(1)
+                    full_name = f"{name} ({year})"
+                elif abbrev in TRANSLATION_DATES:
+                    # Use hardcoded date if available
+                    full_name = f"{name} ({TRANSLATION_DATES[abbrev]})"
+                else:
+                    full_name = name
+
                 translation = Translation(
                     abbreviation=abbrev,
-                    full_name=name,
+                    full_name=full_name,
                     enabled=True,
                     sort_order=i + 1
                 )
@@ -221,8 +262,10 @@ class BibleSearch:
             search_terms = []
 
             for word in [word1, word2]:
+                # Strip quotes if present (to support "bless*" ~4 fertile syntax)
+                clean_word = word.strip('"').strip("'")
                 # Convert wildcards in the word
-                search_term = self.convert_wildcard_to_sql(word)
+                search_term = self.convert_wildcard_to_sql(clean_word)
                 like_pattern = f"%{search_term}%"
 
                 if case_sensitive:
@@ -264,8 +307,10 @@ class BibleSearch:
         search_terms = []
 
         for word in ordered_words:
+            # Strip quotes if present (to support "bless*" > fertile syntax)
+            clean_word = word.strip('"').strip("'")
             # Convert wildcards in the word
-            search_term = self.convert_wildcard_to_sql(word)
+            search_term = self.convert_wildcard_to_sql(clean_word)
             like_pattern = f"%{search_term}%"
 
             if case_sensitive:
@@ -469,9 +514,13 @@ class BibleSearch:
         word1 = proximity_match.group(1).strip()
         word2 = proximity_match.group(3).strip()
 
+        # Strip quotes if present (to support "bless*" ~4 fertile syntax)
+        clean_word1 = word1.strip('"').strip("'")
+        clean_word2 = word2.strip('"').strip("'")
+
         # Convert wildcards to regex
-        word1_pattern = word1.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
-        word2_pattern = word2.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
+        word1_pattern = clean_word1.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
+        word2_pattern = clean_word2.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
 
         # Build regex patterns
         regex1 = r'\b' + word1_pattern + r'\b'
@@ -516,8 +565,10 @@ class BibleSearch:
         # Build regex pattern to find all matching words
         regex_parts = []
         for word in ordered_words:
+            # Strip quotes if present (to support "bless*" > fertile syntax)
+            clean_word = word.strip('"').strip("'")
             # Convert wildcards to regex
-            word_pattern = word.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
+            word_pattern = clean_word.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
             regex_parts.append(r'\b' + word_pattern + r'\b')
 
         # Find each word and highlight it
@@ -1004,9 +1055,13 @@ class BibleSearch:
         distance = getattr(self, '_proximity_distance', 0)
         case_sensitive = getattr(self, '_proximity_case_sensitive', False)
 
+        # Strip quotes if present (to support "bless*" ~4 fertile syntax)
+        clean_word1 = word1.strip('"').strip("'")
+        clean_word2 = word2.strip('"').strip("'")
+
         # Convert wildcards to regex
-        word1_pattern = word1.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
-        word2_pattern = word2.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
+        word1_pattern = clean_word1.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
+        word2_pattern = clean_word2.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
 
         # Build regex patterns for both words
         word1_regex = r'\b' + word1_pattern + r'\b'
@@ -1083,9 +1138,11 @@ class BibleSearch:
         # For "love > neighbor", build: \blove\b.*?\bneighbor\b
         regex_parts = []
         for word in ordered_words:
+            # Strip quotes if present (to support "bless*" > fertile syntax)
+            clean_word = word.strip('"').strip("'")
             # Convert wildcards to regex
             # Both * and % are stem/root wildcards
-            word_pattern = word.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
+            word_pattern = clean_word.replace('*', r'\w*').replace('%', r'\w*').replace('?', r'\w')
             regex_parts.append(r'\b' + word_pattern + r'\b')
 
         # Join with .*? (any characters, non-greedy) to allow words in between

@@ -6,7 +6,7 @@ import urllib.error
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QCheckBox, QPushButton, QComboBox, QLineEdit,
                              QVBoxLayout, QHBoxLayout, QSplitter, QFrame,
-                             QScrollArea, QListWidget, QMessageBox, QProgressDialog)
+                             QScrollArea, QListWidget, QMessageBox, QProgressDialog, QMenu)
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
@@ -192,10 +192,10 @@ class BibleSearchProgram(QMainWindow):
         self.setFont(default_font)
 
         # Font size settings (0=current/smallest, 1-4=larger sizes)
-        self.title_font_size = 0  # Current: 9px
-        self.verse_font_size = 0  # Current: 9px for reference and text
-        self.title_font_sizes = [9, 9.5, 10, 10.5, 11]  # 5 choices, 0.5pt increments
-        self.verse_font_sizes = [9, 9.5, 10, 10.5, 11, 11.5, 12]   # 7 choices, 0.5pt increments
+        self.title_font_size = 0  # Current: 10px
+        self.verse_font_size = 0  # Current: 10px for reference and text
+        self.title_font_sizes = [10, 10.5, 11, 11.5, 12, 12.5, 13]  # 7 choices, removed 9 and 9.5, added 12.5 and 13
+        self.verse_font_sizes = [10, 10.5, 11, 11.5, 12, 12.5, 13]  # 7 choices, removed 9 and 9.5, added 12.5 and 13
 
         # Context-sensitive buttons (will be created in setup_ui)
         self.tips_btn = None
@@ -207,6 +207,7 @@ class BibleSearchProgram(QMainWindow):
         self.is_ctrl_a_selection = False  # True if selection was made via Ctrl+A
         self.blink_timer = None
         self.blink_state = False
+        self.blink_auto_stop_timer = None  # Timer to auto-stop blinking after inactivity
 
         # Initialize search controller
         self.search_controller = SearchController()
@@ -228,7 +229,7 @@ class BibleSearchProgram(QMainWindow):
         self.last_search_term = ""
         self.last_search_params = {}
         self.filtered_words = None  # None means no filter, list means filter active
-
+        self.available_word_variations = 0  # Count of available word variations for filter
 
         # Cross-reference history for "Go Back" functionality
         self.cross_ref_history = []  # Stack of (verse_reference, references_list) tuples
@@ -393,7 +394,7 @@ class BibleSearchProgram(QMainWindow):
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(2, 2, 2, 2)
+        main_layout.setContentsMargins(1, 1, 1, 1)  # Reduced from 2 to 1 for thinner border
         main_layout.setSpacing(2)
         
         # Create main vertical splitter
@@ -490,7 +491,9 @@ class BibleSearchProgram(QMainWindow):
         self.verse_lists['reading'] = reading_verses
         self.selection_manager.register_window("reading", reading_verses)
 
-        reading_section = SectionWidget("3. Reading Window", reading_verses, reading_controls, main_window=self)
+        reading_section = SectionWidget("3. Reading Window", reading_verses, reading_controls,
+                                       main_window=self, show_translation=True)
+        self.reading_section = reading_section  # Store reference to update translation label
         self.main_splitter.addWidget(reading_section)
 
         # 4 & 5. Subject Verses and Comments (modular, toggleable, combined)
@@ -754,9 +757,12 @@ class BibleSearchProgram(QMainWindow):
         self.search_input.lineEdit().setPlaceholderText("Enter search terms...")
         # Search history will be populated from config in load_config()
 
-        search_button = QPushButton("Search")
-        search_button.clicked.connect(self.perform_search)
-        search_button.setStyleSheet(self.get_button_style())
+        # Connect signal to update search button style when text changes
+        self.search_input.lineEdit().textChanged.connect(self.update_search_button_style)
+
+        self.search_button = QPushButton("Search")
+        self.search_button.clicked.connect(self.perform_search)
+        self.search_button.setStyleSheet(self.get_button_style())  # Start gray (empty)
 
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self.clear_search_and_reading)
@@ -774,31 +780,24 @@ class BibleSearchProgram(QMainWindow):
         # Search history (will be loaded from config)
         self.search_history = []
 
-        self.books_combo = QComboBox()
-        self.books_combo.setStyleSheet(self.get_combobox_style())
-        self.books_combo.addItems([
-            "All Books",
-            "Old Testament",
-            "New Testament",
-            "Pentateuch",
-            "Wisdom Books",
-            "Major Prophets",
-            "Minor Prophets",
-            "Gospels",
-            "Epistles"
-        ])
+        # Book filter - changed from QComboBox to QPushButton with menu
+        self.selected_book_filter = "All Books"  # Track current selection
+        self.books_button = QPushButton("All Books")
+        self.books_button.setStyleSheet(self.get_button_style())
+        self.books_button.clicked.connect(self.show_book_menu)
 
         # NEW: Filter button (store as instance variable for highlighting)
         self.filter_button = QPushButton("Filter")
+        self.filter_button.setMinimumWidth(100)  # Wide enough for "Filter (999)"
         self.filter_button.setStyleSheet(self.get_button_style())
         self.filter_button.clicked.connect(self.show_filter_dialog)
 
         # Add left-side controls
         layout.addWidget(self.search_input)
-        layout.addWidget(search_button)
+        layout.addWidget(self.search_button)
         layout.addWidget(clear_button)
         layout.addWidget(self.translations_button)
-        layout.addWidget(self.books_combo)
+        layout.addWidget(self.books_button)
         layout.addWidget(self.filter_button)
         
         # Stretch to push checkboxes to the right
@@ -1086,14 +1085,96 @@ class BibleSearchProgram(QMainWindow):
     def update_filter_button_state(self):
         """Update the Filter button appearance based on filter active state"""
         if self.filtered_words is not None and len(self.filtered_words) > 0:
-            # Filter is active - highlight the button
+            # Filter is active - highlight the button and show count
+            word_count = len(self.filtered_words)
+            self.filter_button.setText(f"Filter ({word_count})")
             self.filter_button.setStyleSheet(self.get_button_style(active=True))
-            self.debug_print(f"🟢 Filter button highlighted - {len(self.filtered_words)} word(s) active")
+            self.debug_print(f"🟢 Filter button highlighted - {word_count} word(s) active")
         else:
-            # No filter - normal appearance
+            # No filter - normal appearance, check if we have available variations to show
+            if hasattr(self, 'available_word_variations') and self.available_word_variations > 0:
+                self.filter_button.setText(f"Filter ({self.available_word_variations})")
+            else:
+                self.filter_button.setText("Filter")
             self.filter_button.setStyleSheet(self.get_button_style(active=False))
             self.debug_print("⚪ Filter button normal - no filter active")
-            
+
+    def update_search_button_style(self):
+        """Update search button style based on whether search box has text"""
+        search_text = self.search_input.currentText().strip()
+
+        if search_text:
+            # Has text - blue/active style
+            self.search_button.setStyleSheet(self.get_button_style(active=True))
+        else:
+            # Empty - gray/inactive style
+            self.search_button.setStyleSheet(self.get_button_style(active=False))
+
+    def show_book_menu(self):
+        """Show hierarchical book filter menu"""
+        menu = QMenu(self)
+
+        # Add "All Books" option
+        all_books_action = menu.addAction("All Books")
+        all_books_action.triggered.connect(lambda: self.select_book_filter("All Books"))
+
+        menu.addSeparator()
+
+        # Create Old Testament submenu
+        ot_menu = QMenu("Old Testament", self)
+        # Add action to select entire Old Testament
+        ot_all_action = ot_menu.addAction("✓ All Old Testament Books")
+        ot_all_action.triggered.connect(lambda: self.select_book_filter("Old Testament"))
+        ot_menu.addSeparator()
+        # Add individual OT books
+        for book in BOOK_GROUPS["Old Testament"]:
+            book_action = ot_menu.addAction(book)
+            book_action.triggered.connect(lambda checked, b=book: self.select_book_filter(b))
+        menu.addMenu(ot_menu)
+
+        # Create New Testament submenu
+        nt_menu = QMenu("New Testament", self)
+        # Add action to select entire New Testament
+        nt_all_action = nt_menu.addAction("✓ All New Testament Books")
+        nt_all_action.triggered.connect(lambda: self.select_book_filter("New Testament"))
+        nt_menu.addSeparator()
+        # Add individual NT books
+        for book in BOOK_GROUPS["New Testament"]:
+            book_action = nt_menu.addAction(book)
+            book_action.triggered.connect(lambda checked, b=book: self.select_book_filter(b))
+        menu.addMenu(nt_menu)
+
+        menu.addSeparator()
+
+        # Add other book groups
+        other_groups = ["Pentateuch", "Wisdom Books", "Major Prophets", "Minor Prophets", "Gospels", "Epistles"]
+        for group in other_groups:
+            group_action = menu.addAction(group)
+            group_action.triggered.connect(lambda checked, g=group: self.select_book_filter(g))
+
+        # Show the menu at the button position
+        menu.exec(self.books_button.mapToGlobal(self.books_button.rect().bottomLeft()))
+
+    def select_book_filter(self, filter_name):
+        """Handle book filter selection"""
+        self.selected_book_filter = filter_name
+
+        # Update button text
+        if filter_name in BOOK_GROUPS and filter_name not in ["All Books", "Old Testament", "New Testament"]:
+            # For specific book groups, show the group name
+            self.books_button.setText(filter_name)
+        elif filter_name in ["Old Testament", "New Testament"]:
+            # For testaments, show abbreviated form
+            short_name = "OT" if filter_name == "Old Testament" else "NT"
+            self.books_button.setText(short_name)
+        elif filter_name == "All Books":
+            self.books_button.setText("All Books")
+        else:
+            # For individual books, show the book name
+            self.books_button.setText(filter_name)
+
+        self.debug_print(f"📚 Book filter selected: {filter_name}")
+
     def on_verse_navigation(self, verse_id):
         """Handle verse navigation between windows"""
         self.debug_print(f"Navigate to verse: {verse_id}")
@@ -1118,6 +1199,10 @@ class BibleSearchProgram(QMainWindow):
         """Clear search results, reading window, references dropdown, and subject selections"""
         self.verse_lists['search'].clear_verses()
         self.verse_lists['reading'].clear_verses()
+
+        # Clear translation label in Reading Window
+        if hasattr(self, 'reading_section') and hasattr(self.reading_section, 'translation_label') and self.reading_section.translation_label:
+            self.reading_section.translation_label.setText("")
 
         # Clear the cross-references dropdown
         self.cross_references_combo.clear()
@@ -1145,6 +1230,15 @@ class BibleSearchProgram(QMainWindow):
         if hasattr(self, 'all_formatted_verses'):
             self.all_formatted_verses = []
         self.load_more_btn.setVisible(False)
+
+        # Clear filter state and reset filter button
+        self.filtered_words = None
+        self.available_word_variations = 0
+        self.update_filter_button_state()
+
+        # Clear the search input box
+        self.search_input.setCurrentIndex(-1)
+        self.search_input.lineEdit().clear()
 
         # Stop blinking message if selection was locked
         self.unlock_selection_mode()
@@ -1683,6 +1777,9 @@ class BibleSearchProgram(QMainWindow):
             self.set_message("No words found in search results")
             return
 
+        # Store the count of available word variations
+        self.available_word_variations = len(word_counts)
+
         self.debug_print("📦 Opening SearchFilterDialog...")
         # Show the filter dialog
         dialog = SearchFilterDialog(self, word_counts)
@@ -2116,6 +2213,29 @@ class BibleSearchProgram(QMainWindow):
             self.debug_print("❌ No search term entered")
             return
 
+        # Check for unquoted wildcards and show helpful message
+        # Wildcards * and ? must be inside quotes to work
+        import re
+
+        # Better approach: extract all quoted sections, then check if wildcards exist outside them
+        # Find all quoted sections (content between quotes)
+        quoted_sections = re.findall(r'"[^"]*"', search_term)
+
+        # Remove all quoted sections temporarily to get unquoted portion
+        unquoted_portion = search_term
+        for quoted in quoted_sections:
+            unquoted_portion = unquoted_portion.replace(quoted, '', 1)
+
+        # Now check if there are any wildcards in the unquoted portion
+        if '*' in unquoted_portion or '?' in unquoted_portion:
+            # Find the specific wildcard term to show in the message
+            wildcard_match = re.search(r'(\w*[*?]+\w*)', unquoted_portion)
+            if wildcard_match:
+                term = wildcard_match.group(1)
+                self.set_message(f"💡 Wildcards (* or ?) need quotation marks to work. Try: \"{term}\"")
+                self.debug_print(f"⚠️  Unquoted wildcard detected: {term}")
+                return
+
         # Record search start time and search query
         self.search_start_time = time.time()
         self.current_search_query = search_term
@@ -2126,8 +2246,13 @@ class BibleSearchProgram(QMainWindow):
         # and only if the search returns results
 
         # Get selected book filter
-        selected_book_group = self.books_combo.currentText()
-        book_filter = BOOK_GROUPS.get(selected_book_group, [])
+        selected_book_group = self.selected_book_filter
+        # Check if it's an individual book (not in BOOK_GROUPS)
+        if selected_book_group in BOOK_GROUPS:
+            book_filter = BOOK_GROUPS.get(selected_book_group, [])
+        else:
+            # Individual book selected
+            book_filter = [selected_book_group]
 
         # Save search parameters for potential re-filtering
         self.last_search_term = search_term
@@ -2428,6 +2553,12 @@ class BibleSearchProgram(QMainWindow):
             self.set_active_window('search')
             self.debug_print("🎯 Auto-activated Window 2 (Search Results)")
 
+        # Extract word counts to update filter button with available variations count
+        if len(verses) > 0:
+            word_counts = self.extract_word_counts()
+            self.available_word_variations = len(word_counts)
+            self.debug_print(f"📊 Updated available word variations: {self.available_word_variations}")
+
         # Clear filter after one use - turn off green button
         # User can click Filter again if they want to reapply or change filter
         if self.filtered_words is not None:
@@ -2691,6 +2822,19 @@ class BibleSearchProgram(QMainWindow):
 
         # Clear reading window
         self.verse_lists['reading'].clear_verses()
+
+        # Update translation label in Reading Window header
+        if verses and hasattr(self, 'reading_section') and hasattr(self.reading_section, 'translation_label') and self.reading_section.translation_label:
+            # Get translation abbreviation from first verse
+            translation_abbrev = verses[0].translation
+            # Look up full name from translations list
+            translation_name = translation_abbrev  # Default to abbreviation
+            for trans in self.search_controller.bible_search.translations:
+                if trans.abbreviation == translation_abbrev:
+                    translation_name = trans.full_name
+                    break
+            self.reading_section.translation_label.setText(translation_name)
+            self.debug_print(f"✓ Updated Reading Window translation label: {translation_name}")
 
         # Add verses to reading window and immediately apply font to each
         from PyQt6.QtGui import QFont
@@ -3025,7 +3169,14 @@ class BibleSearchProgram(QMainWindow):
             <li><b>Clear:</b> Remove all search results</li>
             <li><b>Copy:</b> Copy checked verses to clipboard</li>
             <li><b>Translations:</b> Choose which Bible versions to search</li>
-            <li><b>Filter:</b> Limit search by book or testament</li>
+            <li><b>Filter:</b> Shows word variations found in search results. Click to select which variations to include.</li>
+        </ul>
+
+        <h3>Filter Button Tips</h3>
+        <ul>
+            <li><b>Word Variations:</b> The Filter button shows the count of unique word variations found (e.g., "sing", "singing", "singer")</li>
+            <li><b>With Unique Verse checked:</b> Filter extracts variations from all results but displays only unique verses</li>
+            <li><b>💡 Pro Tip:</b> To see ALL word variations from ALL verses (including duplicates across translations), uncheck the "Unique Verse" checkbox before searching. This gives you the complete list of every word variation without deduplication.</li>
         </ul>
 
         <h3>Window Activation</h3>
@@ -3046,62 +3197,86 @@ class BibleSearchProgram(QMainWindow):
         text2.setHtml("""
         <h2>Wildcards & Search Operators</h2>
 
-        <h3>Wildcards</h3>
+        <h3>Understanding Search Operators</h3>
+        <p style="background-color: #e8f5e9; padding: 10px; border-left: 4px solid #4caf50;">
+        <b>Two Types of Search Control:</b><br>
+        • <b>Word Structure Operators (* and ?)</b> - Control what the word itself looks like (requires quotes)<br>
+        • <b>Word Relationship Operators (>, ~, &)</b> - Control how words relate to each other in order and distance (no quotes needed)
+        </p>
+
+        <h3>Word Structure Operators (Wildcards)</h3>
+        <p style="color: #d32f2f;"><b>⚠️ IMPORTANT: Wildcards REQUIRE quotation marks to work!</b></p>
 
         <h4>Asterisk (*) - Multiple Characters</h4>
-        <p>Matches any number of characters (including zero).</p>
+        <p>Matches any number of characters (including zero). Modifies the structure of a word.</p>
         <ul>
-            <li><b>love*</b> → love, loved, loves, loving, lovingkindness</li>
-            <li><b>*tion</b> → salvation, nation, redemption</li>
-            <li><b>righ*ness</b> → righteousness, richness</li>
+            <li><b>"love*"</b> → love, loved, loves, loving, lovingkindness</li>
+            <li><b>"*tion"</b> → salvation, nation, redemption</li>
+            <li><b>"righ*ness"</b> → righteousness, richness</li>
         </ul>
-
-        <h4>Percent Sign (%) - Stem/Root Wildcard</h4>
-        <p>Same as asterisk (*), matches word stems and variations. Useful for finding all forms of a word.</p>
-        <ul>
-            <li><b>believ%</b> → believe, believed, believer, believing, believeth</li>
-            <li><b>lov%</b> → love, loved, loves, lover, loving, loveth</li>
-            <li><b>pray%</b> → pray, prayed, prayer, prayers, praying</li>
-        </ul>
-        <p><i>Note: * and % work identically - use whichever you prefer</i></p>
+        <p style="color: #d32f2f;"><b>✗ Wrong:</b> love* (treats asterisk as literal character - finds nothing)<br>
+        <span style="color: #388e3c;"><b>✓ Correct:</b> "love*" (wildcard works - finds variations)</span></p>
 
         <h4>Question Mark (?) - Single Character</h4>
-        <p>Matches exactly one character.</p>
+        <p>Matches exactly one character. Modifies the structure of a word.</p>
         <ul>
-            <li><b>l?ve</b> → love, live (not leave or believe)</li>
-            <li><b>m?n</b> → man, men, min, mon</li>
+            <li><b>"l?ve"</b> → love, live (not leave or believe)</li>
+            <li><b>"m?n"</b> → man, men, min, mon</li>
+            <li><b>"s?ng"</b> → sing, sang, sung, song</li>
+        </ul>
+        <p style="color: #d32f2f;"><b>✗ Wrong:</b> bles? (treats ? as literal character - finds nothing)<br>
+        <span style="color: #388e3c;"><b>✓ Correct:</b> "bles?" (wildcard works - finds bless, blest)</span></p>
+
+        <h4>Understanding Quote Requirements</h4>
+        <p><b>Unquoted terms</b> = simple and forgiving (partial matching):</p>
+        <ul>
+            <li><b>sing</b> → finds words <i>containing</i> "sing" (singing, singers, blessing)</li>
+        </ul>
+        <p><b>Quoted terms</b> = precision and control (exact matching + wildcards):</p>
+        <ul>
+            <li><b>"sing"</b> → finds only the exact word "sing"</li>
+            <li><b>"sing*"</b> → finds words <i>starting with</i> "sing" (sing, singing, singers)</li>
         </ul>
 
-        <h3>Special Operators</h3>
+        <h4>Wildcards with Relationship Operators</h4>
+        <p>You can use quoted wildcards with relationship operators:</p>
+        <ul>
+            <li><b>"bless*" > fertile</b> → blessed/blessing before fertile</li>
+            <li><b>"love*" ~4 God</b> → love/loved/loving within 4 words of God</li>
+            <li><b>who & "sen*"</b> → who [word] sent/send/sending</li>
+        </ul>
+
+        <h3>Word Relationship Operators</h3>
+        <p>These operators control how words relate to each other in order, distance, and placement. <b>No quotes needed</b> - they work directly on words.</p>
 
         <h4>Ampersand (&) - Word Placeholder</h4>
-        <p>Matches any single word. Use for patterns where you want exactly one word between search terms.</p>
+        <p>Matches any single word. Controls word relationships by specifying gaps between terms.</p>
         <ul>
             <li><b>who & sent</b> → "who had sent", "who hath sent", "who will send"</li>
             <li><b>I & you</b> → "I tell you", "I command you", "I say you"</li>
             <li><b>who & & sent</b> → "who will then send" (two words between)</li>
             <li><b>love & & God</b> → "love dwelleth in God", "love is of God"</li>
         </ul>
-        <p><i>Tip: Combine with wildcards: <b>who & sen*</b> → "who had sent", "who will send"</i></p>
+        <p><i>Tip: Combine with quoted wildcards: <b>who & "sen*"</b> → "who had sent", "who will send"</i></p>
 
         <h4>Greater Than (>) - Ordered Words</h4>
-        <p>Ensures words appear in the specified order (but not necessarily consecutive).</p>
+        <p>Controls word order - ensures words appear in the specified sequence (but not necessarily consecutive).</p>
         <ul>
             <li><b>love > neighbour</b> → "love thy neighbour" (love before neighbour)</li>
             <li><b>faith > works</b> → verses where "faith" comes before "works"</li>
             <li><b>God > love > man</b> → three words in sequence</li>
-            <li><b>lov% > God</b> → "love the Lord thy God" (with wildcard)</li>
+            <li><b>"bless*" > fertile</b> → blessed/blessing before fertile (with quoted wildcard)</li>
         </ul>
         <p><i>Note: Order matters! "love > God" gives different results than "God > love"</i></p>
 
         <h4>Tilde (~N) - Proximity Operator</h4>
-        <p>Finds words within N words or less of each other. The number specifies the maximum word distance (range: 0 to N).</p>
+        <p>Controls word distance - finds words within N words or less of each other.</p>
         <ul>
             <li><b>love ~0 God</b> → "love God" (adjacent words only)</li>
             <li><b>love ~2 God</b> → "love of God", "love the God" (0-2 words between)</li>
             <li><b>love ~4 God</b> → "love the Lord thy God" (0-4 words between)</li>
             <li><b>faith ~5 works</b> → "faith" and "works" within 5 words</li>
-            <li><b>believ% ~3 Jesus</b> → any "believe" form within 3 words of "Jesus"</li>
+            <li><b>"believ*" ~3 Jesus</b> → any "believe" form within 3 words of "Jesus" (with quoted wildcard)</li>
         </ul>
         <p><i>Tip: Smaller numbers give more precise matches. ~0 means adjacent, ~10 allows wide spacing.</i></p>
 
@@ -3123,64 +3298,71 @@ class BibleSearchProgram(QMainWindow):
         </ul>
 
         <h3>Exact Phrases</h3>
-        <p>Use quotation marks for exact word order.</p>
+        <p>Use quotation marks for exact word order or to enable wildcards.</p>
         <ul>
             <li><b>"in the beginning"</b> → exact phrase only</li>
             <li><b>"love the Lord"</b> → exact phrase in this order</li>
             <li><b>"I am"</b> → exact two-word phrase</li>
         </ul>
-        <p><i><b>Important:</b> Do NOT use quotation marks with special operators (&, >, ~N). These operators need to process individual words and patterns, which quotation marks prevent. Only use quotes for exact phrase matching.</i></p>
-        <p style="color: #cc0000;"><b>Incorrect:</b> "who & sent", "love > God", "love ~4 God"</p>
-        <p style="color: #00aa00;"><b>Correct:</b> who & sent, love > God, love ~4 God</p>
 
         <h3>Combining Operators</h3>
         <p>Mix different operators for powerful searches:</p>
         <ul>
             <li><b>"faith without" AND works</b> → exact phrase plus word</li>
-            <li><b>love* AND neighbor</b> → any form of "love" with "neighbor"</li>
+            <li><b>"love*" AND neighbor</b> → any form of "love" with "neighbor" (quoted wildcard)</li>
             <li><b>"Holy Spirit" OR "Spirit of God"</b> → either phrase</li>
-            <li><b>believ% > Jesus</b> → any "believe" form before "Jesus"</li>
-            <li><b>I & lov% > God</b> → "I [word] love/loved God"</li>
-            <li><b>believ% ~3 Jesus</b> → any "believe" form within 3 words of "Jesus"</li>
-            <li><b>pray% ~5 faith</b> → any "pray" form within 5 words of "faith"</li>
+            <li><b>"believ*" > Jesus</b> → any "believe" form before "Jesus" (quoted wildcard with operator)</li>
+            <li><b>I & "lov*" > God</b> → "I [word] love/loved God" (quoted wildcard)</li>
+            <li><b>"believ*" ~3 Jesus</b> → any "believe" form within 3 words of "Jesus" (quoted wildcard)</li>
+            <li><b>"pray*" ~5 faith</b> → any "pray" form within 5 words of "faith" (quoted wildcard)</li>
         </ul>
+
+        <h3>Important Limitations</h3>
+        <p style="background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107;">
+        <b>⚠️ Cannot Mix > and ~ Operators:</b><br>
+        You cannot combine ordered (>) and proximity (~) operators in the same query.<br>
+        ✓ <b>"bless*" > fertile > increase</b> (multiple ordered words)<br>
+        ✓ <b>fertile ~4 increase</b> (proximity search)<br>
+        ✗ <b>"bless*" > fertile ~4 increase</b> (mixing operators - NOT supported)
+        </p>
 
         <h3>Quick Reference</h3>
         <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
             <tr style="background-color: #e0e0e0;">
                 <th>Operator</th>
-                <th>Purpose</th>
+                <th>Type</th>
                 <th>Example</th>
+                <th>Quotes?</th>
             </tr>
             <tr>
                 <td><b>*</b></td>
-                <td>Multiple characters wildcard</td>
-                <td>love* → loved, loving</td>
-            </tr>
-            <tr>
-                <td><b>%</b></td>
-                <td>Stem/root wildcard (same as *)</td>
-                <td>believ% → believe, believed</td>
+                <td>Word structure - multiple chars</td>
+                <td>"love*" → loved, loving</td>
+                <td style="color: #d32f2f;"><b>Required</b></td>
             </tr>
             <tr>
                 <td><b>?</b></td>
-                <td>Single character wildcard</td>
-                <td>m?n → man, men</td>
+                <td>Word structure - single char</td>
+                <td>"m?n" → man, men</td>
+                <td style="color: #d32f2f;"><b>Required</b></td>
             </tr>
             <tr>
                 <td><b>&</b></td>
-                <td>Word placeholder (exactly one word)</td>
+                <td>Word relationship - placeholder</td>
                 <td>who & sent → "who had sent"</td>
+                <td style="color: #388e3c;">No</td>
             </tr>
             <tr>
                 <td><b>></b></td>
-                <td>Ordered words (must be in sequence)</td>
+                <td>Word relationship - order</td>
                 <td>love > God → love before God</td>
+                <td style="color: #388e3c;">No</td>
             </tr>
             <tr>
                 <td><b>~N</b></td>
-                <td>Proximity (words within N words)</td>
+                <td>Word relationship - distance</td>
                 <td>love ~4 God → within 4 words</td>
+                <td style="color: #388e3c;">No</td>
             </tr>
             <tr>
                 <td><b>AND</b></td>
@@ -4721,7 +4903,23 @@ from liability. It's the same license used by many popular open-source projects.
                 if hasattr(self, 'search_input') and self.search_input is not None:
                     self.search_input.clear()
                     self.search_input.addItems(self.search_history)
-                    self.debug_print(f"✓ Loaded {len(self.search_history)} search history items")
+                    # Set to empty on startup (don't auto-select first item)
+                    self.search_input.setCurrentIndex(-1)
+                    self.search_input.lineEdit().clear()
+                    self.debug_print(f"✓ Loaded {len(self.search_history)} search history items (starting empty)")
+
+            # Restore book filter selection
+            if 'selected_book_filter' in config:
+                self.selected_book_filter = config['selected_book_filter']
+                if hasattr(self, 'books_button') and self.books_button is not None:
+                    # Update button text based on selection
+                    filter_name = self.selected_book_filter
+                    if filter_name in ["Old Testament", "New Testament"]:
+                        short_name = "OT" if filter_name == "Old Testament" else "NT"
+                        self.books_button.setText(short_name)
+                    else:
+                        self.books_button.setText(filter_name)
+                    self.debug_print(f"✓ Restored book filter: {self.selected_book_filter}")
         self.debug_print("✓ Configuration loaded")
 
     def save_config(self):
@@ -4735,6 +4933,7 @@ from liability. It's the same license used by many popular open-source projects.
             },
             'splitter_sizes': self.main_splitter.sizes() if hasattr(self, 'main_splitter') and self.main_splitter else [80, 200, 250, 200, 100],
             'selected_translations': self.selected_translations,
+            'selected_book_filter': self.selected_book_filter,
             'checkboxes': {
                 'case_sensitive': self.case_sensitive_cb.isChecked(),
                 'unique_verse': self.unique_verse_cb.isChecked(),
@@ -5165,11 +5364,22 @@ from liability. It's the same license used by many popular open-source projects.
         """)
 
         # Start blink timer
+        if self.blink_timer:
+            self.blink_timer.stop()
         self.blink_timer = QTimer()
         self.blink_timer.timeout.connect(self.blink_message)
         self.blink_timer.start(500)  # Blink every 500ms
 
-        self.debug_print(f"🔒 Selection LOCKED - {'Ctrl+A' if is_ctrl_a else 'Manual'} mode")
+        # Start/restart auto-stop timer (12 seconds of inactivity)
+        # This prevents infinite CPU drain if user moves to other windows
+        if self.blink_auto_stop_timer:
+            self.blink_auto_stop_timer.stop()
+        self.blink_auto_stop_timer = QTimer()
+        self.blink_auto_stop_timer.timeout.connect(self.auto_stop_blinking)
+        self.blink_auto_stop_timer.setSingleShot(True)  # Fire only once
+        self.blink_auto_stop_timer.start(12000)  # 12 seconds
+
+        self.debug_print(f"🔒 Selection LOCKED - {'Ctrl+A' if is_ctrl_a else 'Manual'} mode - auto-stop in 12s")
 
     def blink_message(self):
         """Toggle message visibility for blinking effect"""
@@ -5197,6 +5407,40 @@ from liability. It's the same license used by many popular open-source projects.
                 color: #d32f2f;
             """)
 
+    def auto_stop_blinking(self):
+        """
+        Auto-stop blinking after 12 seconds of inactivity.
+        Stops CPU drain but keeps selections and shows static reminder.
+        """
+        if not self.selection_locked:
+            return
+
+        self.debug_print("⏰ Auto-stopping blink after 12 seconds of inactivity")
+
+        # Stop the blink timer
+        if self.blink_timer:
+            self.blink_timer.stop()
+            self.blink_timer = None
+
+        # Show static (non-blinking) reminder message
+        if self.is_ctrl_a_selection:
+            message = "Verses still selected in Window 2/3 - Copy, press Ctrl+D, or uncheck boxes"
+        else:
+            message = "Verses still selected in Window 2/3 - Copy, Acquire, press Ctrl+D, or uncheck boxes"
+
+        self.set_message(message)
+        # Set static yellow background (no more blinking)
+        self.message_label.setStyleSheet("""
+            background-color: #fff9c4;
+            padding: 10px;
+            border: 2px solid #ffa726;
+            font-weight: bold;
+            color: #e65100;
+        """)
+
+        # Keep selection_locked = True so buttons stay highlighted
+        # User still needs to take action, just not with annoying blink
+
     def unlock_selection_mode(self):
         """
         Unlock the UI after user has made their choice.
@@ -5211,6 +5455,11 @@ from liability. It's the same license used by many popular open-source projects.
         if self.blink_timer:
             self.blink_timer.stop()
             self.blink_timer = None
+
+        # Stop auto-stop timer
+        if self.blink_auto_stop_timer:
+            self.blink_auto_stop_timer.stop()
+            self.blink_auto_stop_timer = None
 
         # Restore normal button styles
         # Copy button uses title button style (from create_title_button)
