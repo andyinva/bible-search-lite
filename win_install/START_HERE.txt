@@ -1,0 +1,152 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║              BIBLE SEARCH LITE - OFFLINE INSTALLER                         ║
+║                         START HERE                                         ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Welcome! This package allows you to install Bible Search Lite on a Windows PC
+without an internet connection.
+
+
+WHICH FILE SHOULD I USE?
+═════════════════════════
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  IF YOU HAVE INTERNET CONNECTION:                                         │
+│  ════════════════════════════════                                         │
+│                                                                            │
+│  1. Open PowerShell                                                       │
+│  2. Run: .\01_download_dependencies.ps1                                   │
+│  3. Copy win_install folder to USB drive                                  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  IF YOU'RE ON THE OFFLINE PC (USB drive inserted):                        │
+│  ══════════════════════════════════════════════════                       │
+│                                                                            │
+│  OPTION 1 (Easiest):                                                      │
+│    Right-click INSTALL.bat → "Run as Administrator"                       │
+│                                                                            │
+│  OPTION 2 (PowerShell):                                                   │
+│    1. Open PowerShell as Administrator                                    │
+│    2. Run: .\02_install_offline.ps1                                       │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+QUICK REFERENCE
+═══════════════
+
+File                            Purpose
+────────────────────────────────────────────────────────────────────────────
+START_HERE.txt ................ You are here! Quick navigation guide
+QUICK_START.txt ............... Fast installation reference
+README.md ..................... Complete documentation (recommended)
+CHECKLIST.txt ................. Step-by-step checklist
+PROCESS_DIAGRAM.txt ........... Visual workflow diagram
+
+01_download_dependencies.ps1 .. Download script (internet needed)
+02_install_offline.ps1 ........ Install script (target PC)
+INSTALL.bat ................... Easy installer launcher
+
+
+DETAILED GUIDES
+═══════════════
+
+For first-time users:
+→ Read README.md (most comprehensive)
+
+For quick setup:
+→ Read QUICK_START.txt
+
+For step-by-step:
+→ Follow CHECKLIST.txt
+
+For visual learners:
+→ See PROCESS_DIAGRAM.txt
+
+
+TWO-STEP SUMMARY
+════════════════
+
+STEP 1: DOWNLOAD (on PC with internet)
+──────────────────────────────────────
+  Run: 01_download_dependencies.ps1
+  Then: Copy win_install folder to USB
+
+STEP 2: INSTALL (on target PC)
+───────────────────────────────
+  Run: INSTALL.bat (as Administrator)
+  OR
+  Run: 02_install_offline.ps1 (as Administrator)
+
+
+REQUIREMENTS
+════════════
+
+Download Phase:
+  ✓ Windows 10/11
+  ✓ Internet connection
+  ✓ PowerShell 5.1+
+
+Install Phase:
+  ✓ Windows 10/11 (offline OK!)
+  ✓ Administrator privileges
+  ✓ 500 MB free disk space
+  ✓ USB drive with downloaded files
+
+
+WHAT GETS INSTALLED
+═══════════════════
+
+✓ Python 3.12.1 (~200 MB)
+✓ PyQt6 GUI framework (~50 MB)
+✓ Bible Search Lite application (~50 MB)
+✓ Desktop shortcut
+
+Total: ~300 MB
+
+
+SUPPORT
+═══════
+
+For issues:
+  1. Check README.md "Troubleshooting" section
+  2. Review CHECKLIST.txt for verification steps
+  3. See GitHub: https://github.com/andyinva/bible-search-lite
+
+
+COMMON QUESTIONS
+════════════════
+
+Q: Do I need internet on the target PC?
+A: No! That's the whole point of this offline installer.
+
+Q: Will this affect my existing Python?
+A: No! This is a completely isolated installation.
+
+Q: How long does it take?
+A: Download: 5-10 min | Install: 5 min | Total: ~15 min
+
+Q: Can I delete the USB drive after installing?
+A: Yes! Keep it as a backup though.
+
+
+READY TO START?
+═══════════════
+
+1. Have internet? → Run: 01_download_dependencies.ps1
+2. Have USB with files? → Run: INSTALL.bat (as Admin)
+3. Need detailed help? → Read: README.md
+
+Good luck!
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║  Need help? Start with README.md - it has everything you need!            ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
