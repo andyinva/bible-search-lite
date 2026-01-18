@@ -102,6 +102,38 @@ Mix different operators for powerful searches:
 - `believ% ~3 Jesus` → any "believe" form within 3 words of "Jesus"
 - `pray% ~5 faith` → any "pray" form within 5 words of "faith"
 
+## Important Limitations
+
+### Wildcard Requirements
+**Wildcards (`*`, `?`) REQUIRE quotes for precision:**
+- ✅ `"sing*"` → finds singing, singer, singers (wildcard works)
+- ✅ `sing` → finds words containing "sing" (partial match)
+- ❌ `sing*` → treats asterisk as literal character (finds nothing)
+
+**This rule creates clear behavior:**
+- **Unquoted terms** = simple and forgiving (partial matching)
+- **Quoted terms** = precision and control (exact matching + wildcards)
+
+### Wildcards with Relationship Operators
+Wildcards work with `>`, `~`, and `&` operators when quoted:
+- ✅ `"bless*" > fertile` → blessed/blessing before fertile
+- ✅ `"love*" ~4 God` → love/loved/loving within 4 words of God
+- ✅ `who & "sen*"` → who [word] sent/send/sending
+
+### Operator Mixing Limitations
+**You CANNOT mix `>` (ordered) and `~` (proximity) in the same query:**
+- ✅ `"bless*" > fertile > increase` → multiple ordered words
+- ✅ `fertile ~4 increase` → proximity search
+- ❌ `"bless*" > fertile ~4 increase` → NOT supported (mixing operators)
+
+**Why this limitation exists:**
+The search parser processes each operator type independently. When it detects `~N`, it uses proximity logic for the entire query. When it detects `>`, it uses ordered-words logic. Mixing them would require a more complex query parser.
+
+**Workaround:**
+Break complex queries into multiple simpler searches:
+1. First search: `"bless*" > fertile`
+2. Then search within results: `fertile ~4 increase`
+
 ## Quick Reference Table
 
 | Operator | Purpose | Example |
