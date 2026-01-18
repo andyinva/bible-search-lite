@@ -1075,7 +1075,8 @@ class SectionWidget(QFrame):
     """
 
     def __init__(self, title, content_widget, controls_widget=None,
-                 show_settings=False, title_buttons=None, main_window=None, parent=None):
+                 show_settings=False, title_buttons=None, main_window=None,
+                 show_translation=False, parent=None):
         """
         Initialize a section container.
 
@@ -1086,6 +1087,7 @@ class SectionWidget(QFrame):
             show_settings (bool): If True, displays a settings gear icon
             title_buttons (list, optional): List of QPushButton widgets to add to title bar
             main_window (QMainWindow, optional): Reference to main window for settings callback
+            show_translation (bool): If True, shows translation name in title row (for Reading Window)
             parent (QWidget, optional): Parent widget
         """
         super().__init__(parent)
@@ -1104,6 +1106,7 @@ class SectionWidget(QFrame):
         # Store references for title click handling
         self.content_widget = content_widget
         self.main_window = main_window
+        self.translation_label = None  # Will be created if show_translation is True
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(3, 0, 3, 3)  # Reduced top margin from 3 to 0
@@ -1140,6 +1143,22 @@ class SectionWidget(QFrame):
             print(f"⚠️  Title '{title}' not clickable: window_id={hasattr(content_widget, 'window_id')}, main_window={main_window is not None}")
 
         title_layout.addWidget(title_label)
+
+        # Add translation label if requested (for Reading Window)
+        if show_translation:
+            self.translation_label = QLabel("")
+            self.translation_label.setStyleSheet("""
+                QLabel {
+                    font-weight: bold;
+                    font-size: 11px;
+                    color: #333;
+                    background-color: transparent;
+                    padding: 0px;
+                    margin-left: 20px;
+                }
+            """)
+            title_layout.addWidget(self.translation_label)
+
         title_layout.addStretch()
 
         # Add custom title buttons if provided

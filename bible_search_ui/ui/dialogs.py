@@ -735,8 +735,23 @@ class SearchFilterDialog(QDialog):
 
         # Header label - show number of unique word variations found
         total_verses = sum(self.word_counts.values())
-        header = QLabel(f"Found {len(self.word_counts)} word variation(s) in {total_verses} verse(s). Uncheck words to exclude:")
+
+        # Get displayed verse count from parent window to show if it differs
+        displayed_count = 0
+        if hasattr(self.parent(), 'verse_lists') and 'search' in self.parent().verse_lists:
+            displayed_count = len(self.parent().verse_lists['search'].verse_items)
+
+        # Build header message
+        if displayed_count > 0 and displayed_count != total_verses:
+            # Different counts - explain the difference
+            header_text = f"Found {len(self.word_counts)} word variation(s) from all search results (displaying {displayed_count} unique verses). Uncheck words to exclude:"
+        else:
+            # Same count or no display info - use simple message
+            header_text = f"Found {len(self.word_counts)} word variation(s) in {total_verses} verse(s). Uncheck words to exclude:"
+
+        header = QLabel(header_text)
         header.setStyleSheet("font-weight: bold; padding: 5px;")
+        header.setWordWrap(True)  # Allow text to wrap for longer message
         layout.addWidget(header)
 
         # Scrollable area for word checkboxes
@@ -786,6 +801,23 @@ class SearchFilterDialog(QDialog):
 
         button_layout.addStretch()
 
+        # Search button - triggers search with selected filter
+        search_btn = QPushButton("Search")
+        search_btn.clicked.connect(self.search_and_close)
+        search_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 5px 15px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        button_layout.addWidget(search_btn)
+
         # Close button
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.accept)
@@ -809,6 +841,26 @@ class SearchFilterDialog(QDialog):
         """Uncheck all word checkboxes."""
         for cb in self.checkboxes.values():
             cb.setChecked(False)
+
+    def search_and_close(self):
+        """Apply filter and trigger search in parent window, then close dialog."""
+        # Get selected words
+        selected_words = self.get_selected_words()
+
+        # Store the filter in the parent window
+        if hasattr(self.parent(), 'filtered_words'):
+            self.parent().filtered_words = selected_words if selected_words else None
+
+            # Update filter button state
+            if hasattr(self.parent(), 'update_filter_button_state'):
+                self.parent().update_filter_button_state()
+
+            # Trigger the search
+            if hasattr(self.parent(), 'perform_search'):
+                self.parent().perform_search()
+
+        # Close the dialog
+        self.accept()
 
     def get_selected_words(self):
         """
