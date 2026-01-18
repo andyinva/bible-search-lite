@@ -9,8 +9,10 @@ STEP 1: DOWNLOAD (on PC with Internet)
 ---------------------------------------
 1. Open PowerShell
 2. Navigate to this folder
-3. Run: .\01_download_dependencies.ps1
-4. Copy entire win_install folder to USB drive
+3. Fix execution policy (if needed):
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+4. Run: .\01_download_dependencies.ps1
+5. Copy entire win_install folder to USB drive
 
 STEP 2: INSTALL (on Target PC - can be offline)
 ------------------------------------------------

@@ -27,19 +27,33 @@ The offline installation is a two-step process:
    cd path\to\bible-search-lite\win_install
    ```
 
-3. **Run the download script:**
+3. **Fix execution policy (if needed):**
+
+   If you get an error about "execution policy", run this first:
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+
+   **OR** bypass for just this one script:
+   ```powershell
+   powershell.exe -ExecutionPolicy Bypass -File .\01_download_dependencies.ps1
+   ```
+
+   Then skip to step 5.
+
+4. **Run the download script:**
    ```powershell
    .\01_download_dependencies.ps1
    ```
 
-4. **What it downloads:**
+5. **What it downloads:**
    - Python 3.12.1 installer (~25 MB)
    - PyQt6 and all dependencies (~50-60 MB)
    - Total: ~80-85 MB
 
-5. **Wait for completion** (typically 5-10 minutes depending on internet speed)
+6. **Wait for completion** (typically 5-10 minutes depending on internet speed)
 
-6. **Copy to USB drive:**
+7. **Copy to USB drive:**
    - Copy the entire `win_install` folder to a USB drive
    - The folder structure should look like:
      ```
