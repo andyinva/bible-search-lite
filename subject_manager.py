@@ -61,6 +61,10 @@ class SubjectManager:
 
             self.db_conn = sqlite3.connect(self.db_path)
             self.db_conn.row_factory = sqlite3.Row
+
+            # Migrate old database schema if needed
+            self._migrate_database()
+
             print(f"✓ Subject manager connected to: {self.db_path}")
             return True
         except Exception as e:
@@ -118,6 +122,27 @@ class SubjectManager:
         conn.commit()
         conn.close()
         print(f"✓ Created subjects database: {self.db_path}")
+
+    def _migrate_database(self):
+        """Migrate old database schema to current version."""
+        try:
+            cursor = self.db_conn.cursor()
+
+            # Check if comments column exists in subject_verses table
+            cursor.execute("PRAGMA table_info(subject_verses)")
+            columns = [row[1] for row in cursor.fetchall()]
+
+            if 'comments' not in columns:
+                print("📦 Migrating subjects database: adding 'comments' column...")
+                cursor.execute("""
+                    ALTER TABLE subject_verses
+                    ADD COLUMN comments TEXT DEFAULT ''
+                """)
+                self.db_conn.commit()
+                print("✓ Database migration complete: comments column added")
+
+        except Exception as e:
+            print(f"⚠️  Database migration warning: {e}")
 
     def create_ui(self, main_splitter):
         """
