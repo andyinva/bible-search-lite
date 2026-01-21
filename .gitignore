@@ -44,7 +44,9 @@ database/bibles.db
 
 # User-specific database files
 database/user_data.db
-database/subjects.db
+# NOTE: database/subjects.db IS tracked in git because it contains the schema
+# needed for subject management (Windows 4 & 5). Users' local changes to their
+# subject collections will remain local since binary files aren't auto-merged.
 
 # IDE and editor files
 .vscode/
