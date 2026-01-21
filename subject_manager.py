@@ -128,10 +128,11 @@ class SubjectManager:
         try:
             cursor = self.db_conn.cursor()
 
-            # Check if comments column exists in subject_verses table
+            # Check current schema
             cursor.execute("PRAGMA table_info(subject_verses)")
-            columns = [row[1] for row in cursor.fetchall()]
+            columns = {row[1]: row for row in cursor.fetchall()}
 
+            # Migration 1: Add comments column if missing
             if 'comments' not in columns:
                 print("📦 Migrating subjects database: adding 'comments' column...")
                 cursor.execute("""
@@ -141,8 +142,63 @@ class SubjectManager:
                 self.db_conn.commit()
                 print("✓ Database migration complete: comments column added")
 
+            # Migration 2: Fix typo - rename modified_data to modified_date if needed
+            if 'modified_data' in columns and 'modified_date' not in columns:
+                print("📦 Migrating subjects database: fixing 'modified_data' typo...")
+                # SQLite doesn't support RENAME COLUMN in older versions
+                # So we need to recreate the table
+                cursor.execute("BEGIN TRANSACTION")
+
+                # Create new table with correct schema
+                cursor.execute("""
+                    CREATE TABLE subject_verses_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        subject_id INTEGER NOT NULL,
+                        verse_reference TEXT NOT NULL,
+                        verse_text TEXT NOT NULL,
+                        translation TEXT NOT NULL,
+                        comments TEXT DEFAULT '',
+                        order_index INTEGER DEFAULT 0,
+                        created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (subject_id) REFERENCES subjects (id) ON DELETE CASCADE,
+                        UNIQUE(subject_id, verse_reference, translation)
+                    )
+                """)
+
+                # Copy data from old table (map modified_data to modified_date)
+                cursor.execute("""
+                    INSERT INTO subject_verses_new
+                    SELECT id, subject_id, verse_reference, verse_text, translation,
+                           comments, order_index, created_date, modified_data
+                    FROM subject_verses
+                """)
+
+                # Drop old table
+                cursor.execute("DROP TABLE subject_verses")
+
+                # Rename new table
+                cursor.execute("ALTER TABLE subject_verses_new RENAME TO subject_verses")
+
+                # Recreate indexes
+                cursor.execute("""
+                    CREATE INDEX idx_subject_verses_subject_id
+                    ON subject_verses(subject_id)
+                """)
+                cursor.execute("""
+                    CREATE INDEX idx_subject_verses_order
+                    ON subject_verses(subject_id, order_index)
+                """)
+
+                self.db_conn.commit()
+                print("✓ Database migration complete: column renamed to modified_date")
+
         except Exception as e:
             print(f"⚠️  Database migration warning: {e}")
+            try:
+                self.db_conn.rollback()
+            except:
+                pass
 
     def create_ui(self, main_splitter):
         """
