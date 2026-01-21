@@ -125,7 +125,11 @@ class SubjectCommentManager:
         self.comments_editor = QTextEdit()
         self.comments_editor.setPlaceholderText("Select a verse in Window 4 to add comments...")
         self.comments_editor.setReadOnly(True)
-        self.comments_editor.setStyleSheet("background-color: white; padding: 10px;")
+        self.comments_editor.setStyleSheet("""
+            background-color: white;
+            color: black;
+            padding: 10px;
+        """)
 
         # Wrap in beveled frame
         comments_frame = QFrame()
@@ -202,6 +206,24 @@ class SubjectCommentManager:
         self.font_size_combo.addItems(["8", "9", "10", "11", "12", "14", "16", "18", "20", "24"])
         self.font_size_combo.setCurrentText("10")
         self.font_size_combo.setMinimumWidth(60)
+        self.font_size_combo.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                color: black;
+                border: 1px solid #999999;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background-color: white;
+                color: black;
+                selection-background-color: #0078d4;
+                selection-color: white;
+            }
+        """)
         self.font_size_combo.setEnabled(False)
         self.font_size_combo.currentTextChanged.connect(self.change_font_size)
         toolbar_layout.addWidget(self.font_size_combo)
