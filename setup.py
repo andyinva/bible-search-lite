@@ -394,7 +394,7 @@ def download_application_files():
     print("\nCreating user data database...")
     os.makedirs('database', exist_ok=True)
 
-    # SQL schema for subjects database
+    # SQL schema for subjects database (current schema)
     schema_sql = '''
 CREATE TABLE IF NOT EXISTS subjects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -406,29 +406,20 @@ CREATE TABLE IF NOT EXISTS subjects (
 CREATE TABLE IF NOT EXISTS subject_verses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     subject_id INTEGER NOT NULL,
-    book TEXT NOT NULL,
-    chapter INTEGER NOT NULL,
-    verse INTEGER NOT NULL,
-    text TEXT NOT NULL,
+    verse_reference TEXT NOT NULL,
+    verse_text TEXT NOT NULL,
     translation TEXT NOT NULL,
+    comments TEXT DEFAULT '',
     order_index INTEGER DEFAULT 0,
-    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS subject_comments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    subject_id INTEGER NOT NULL,
-    verse_id INTEGER NOT NULL,
-    comment TEXT,
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-    FOREIGN KEY (verse_id) REFERENCES subject_verses(id) ON DELETE CASCADE,
-    UNIQUE(subject_id, verse_id)
+    UNIQUE(subject_id, verse_reference, translation)
 );
 
-CREATE INDEX IF NOT EXISTS idx_subject_verses_subject ON subject_verses(subject_id);
+CREATE INDEX IF NOT EXISTS idx_subject_verses_subject_id ON subject_verses(subject_id);
+CREATE INDEX IF NOT EXISTS idx_subject_verses_order ON subject_verses(subject_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_subjects_name ON subjects(name);
 '''
 
     # Execute schema
