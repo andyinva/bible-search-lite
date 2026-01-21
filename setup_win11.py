@@ -297,7 +297,7 @@ def download_application_files():
         )
     ''')
 
-    # Create subject_verses table
+    # Create subject_verses table with current schema
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS subject_verses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -305,29 +305,19 @@ def download_application_files():
             verse_reference TEXT NOT NULL,
             verse_text TEXT NOT NULL,
             translation TEXT NOT NULL,
+            comments TEXT DEFAULT '',
             order_index INTEGER DEFAULT 0,
-            created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
-        )
-    ''')
-
-    # Create subject_comments table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS subject_comments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            subject_id INTEGER NOT NULL,
-            verse_id INTEGER NOT NULL,
-            comment TEXT,
             created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-            FOREIGN KEY (verse_id) REFERENCES subject_verses(id) ON DELETE CASCADE,
-            UNIQUE(subject_id, verse_id)
+            UNIQUE(subject_id, verse_reference, translation)
         )
     ''')
 
     # Create indexes
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_subject_verses_subject ON subject_verses(subject_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_subject_verses_subject_id ON subject_verses(subject_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_subject_verses_order ON subject_verses(subject_id, order_index)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_subjects_name ON subjects(name)')
 
     conn.commit()
     conn.close()
