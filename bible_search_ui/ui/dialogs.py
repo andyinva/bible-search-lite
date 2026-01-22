@@ -72,7 +72,7 @@ class TranslationSelectorDialog(QDialog):
     convenience buttons for selecting all or none.
     
     Features:
-    - Grid layout with up to 4 columns
+    - Grid layout with 2 columns
     - Select All / Select None buttons
     - Validation (prevents empty selection)
     - Returns list of selected translation abbreviations
@@ -117,7 +117,7 @@ class TranslationSelectorDialog(QDialog):
         Layout structure:
         - Title bar (from QDialog)
         - Select All / Select None buttons (horizontal layout)
-        - Translation checkboxes (4-column grid)
+        - Translation checkboxes (2-column grid)
         - OK / Cancel buttons (dialog button box)
         """
         self.setWindowTitle("Select Translations")
@@ -170,7 +170,7 @@ class TranslationSelectorDialog(QDialog):
         grid = QGridLayout()
         row = 0
         col = 0
-        max_cols = 4
+        max_cols = 2
 
         for translation in sorted_translations:
             # Create checkbox with full translation name and date
