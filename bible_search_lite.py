@@ -1004,7 +1004,11 @@ class BibleSearchProgram(QMainWindow):
         button.setStyleSheet(green_style)
 
         # Restore original style after 500ms
-        QTimer.singleShot(500, lambda: button.setStyleSheet(original_style))
+        def restore_style():
+            button.setStyleSheet(original_style)
+            button.update()  # Force button to repaint
+
+        QTimer.singleShot(500, restore_style)
 
     def get_combobox_style(self):
         """Return consistent combobox styling"""
