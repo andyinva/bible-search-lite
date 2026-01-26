@@ -4501,19 +4501,19 @@ class BibleSearchProgram(QMainWindow):
             )
 
     def show_license_info(self):
-        """Show MIT License information dialog"""
+        """Show license information dialog (MIT License + NET Bible Copyright)"""
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QLabel, QPushButton
         from PyQt6.QtCore import Qt
         from PyQt6.QtGui import QFont
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Bible Search Lite - License Information")
-        dialog.setMinimumSize(650, 550)
+        dialog.setMinimumSize(700, 650)
 
         layout = QVBoxLayout(dialog)
 
         # Title
-        title = QLabel("📜 MIT License")
+        title = QLabel("📜 License Information")
         title_font = QFont()
         title_font.setPointSize(14)
         title_font.setBold(True)
@@ -4557,7 +4557,29 @@ In simple terms:
 ℹ️  Just keep the copyright notice
 
 This permissive license allows maximum freedom while protecting the author
-from liability. It's the same license used by many popular open-source projects.""")
+from liability. It's the same license used by many popular open-source projects.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NET Bible® Copyright Notice
+
+THE NET BIBLE®, New English Translation (NET)
+
+Scripture quoted by permission. Quotations designated (NET) are from the
+NET Bible® copyright ©1996, 2019 by Biblical Studies Press, L.L.C.
+http://netbible.com All rights reserved.
+
+This application includes the NET Bible® translation in the bibles.db database.
+The NET Bible® text is used under the terms of the NET Bible® copyright for
+non-commercial use.
+
+For complete NET Bible® copyright information and permissions, visit:
+https://netbible.org/copyright/
+
+THE NAMES: THE NET BIBLE®, NEW ENGLISH TRANSLATION COPYRIGHT (c) 1996 BY
+BIBLICAL STUDIES PRESS, L.L.C. NET Bible® IS A REGISTERED TRADEMARK.
+THE NET BIBLE® LOGO, SERVICE MARK COPYRIGHT (c) 1997 BY BIBLICAL STUDIES
+PRESS, L.L.C. ALL RIGHTS RESERVED.""")
 
         layout.addWidget(license_text)
 
