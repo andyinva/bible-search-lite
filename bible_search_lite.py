@@ -990,13 +990,11 @@ class BibleSearchProgram(QMainWindow):
         # Store original style
         original_style = button.styleSheet()
 
-        # Green flash style
+        # Green flash style (no padding to maintain button size)
         green_style = """
             QPushButton {
                 background-color: #4CAF50;
                 border: 2px solid #2E7D32;
-                padding: 4px 8px;
-                border-radius: 2px;
                 color: white;
                 font-weight: bold;
             }
