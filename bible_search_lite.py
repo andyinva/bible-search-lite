@@ -978,6 +978,36 @@ class BibleSearchProgram(QMainWindow):
                 }
             """
 
+    def flash_button_green(self, button):
+        """
+        Temporarily flash a button green to indicate successful save.
+
+        Args:
+            button (QPushButton): The button to flash green
+        """
+        from PyQt6.QtCore import QTimer
+
+        # Store original style
+        original_style = button.styleSheet()
+
+        # Green flash style
+        green_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                border: 2px solid #2E7D32;
+                padding: 4px 8px;
+                border-radius: 2px;
+                color: white;
+                font-weight: bold;
+            }
+        """
+
+        # Apply green style
+        button.setStyleSheet(green_style)
+
+        # Restore original style after 500ms
+        QTimer.singleShot(500, lambda: button.setStyleSheet(original_style))
+
     def get_combobox_style(self):
         """Return consistent combobox styling"""
         return """
@@ -5588,6 +5618,9 @@ from liability. It's the same license used by many popular open-source projects.
 
             self.set_message(f"✓ Created subject: {subject_name}")
             self.debug_print(f"✓ Created subject from Window 3: {subject_name} (ID: {subject_id})")
+
+            # Flash the Create button green to indicate success
+            self.flash_button_green(self.create_subject_btn)
 
         except sqlite3.IntegrityError:
             self.set_message(f"⚠️  Subject '{subject_name}' already exists")

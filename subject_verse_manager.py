@@ -291,6 +291,9 @@ class SubjectVerseManager:
 
             self.parent_app.message_label.setText(f"✓ Created subject: {subject_name}")
 
+            # Flash the Create button green to indicate success
+            self.flash_button_green(self.create_btn)
+
         except sqlite3.IntegrityError:
             self.parent_app.message_label.setText(f"⚠️  Subject '{subject_name}' already exists")
         except Exception as e:
@@ -746,6 +749,36 @@ class SubjectVerseManager:
                     print(f"Error getting verse ID: {e}")
 
         return selected_verse_ids
+
+    def flash_button_green(self, button):
+        """
+        Temporarily flash a button green to indicate successful save.
+
+        Args:
+            button (QPushButton): The button to flash green
+        """
+        from PyQt6.QtCore import QTimer
+
+        # Store original style
+        original_style = button.styleSheet()
+
+        # Green flash style
+        green_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                border: 2px solid #2E7D32;
+                padding: 4px 8px;
+                border-radius: 2px;
+                color: white;
+                font-weight: bold;
+            }
+        """
+
+        # Apply green style
+        button.setStyleSheet(green_style)
+
+        # Restore original style after 500ms
+        QTimer.singleShot(500, lambda: button.setStyleSheet(original_style))
 
     def cleanup(self):
         """Clean up resources."""
