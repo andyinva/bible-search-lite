@@ -1,0 +1,154 @@
+📋 Table Schemas
+1. books
+Stores all 66 books of the Bible.
+CREATE TABLE books (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,                    -- Full name (e.g., "Genesis")
+    abbreviation TEXT NOT NULL,            -- Short form (e.g., "Gen")
+    testament TEXT NOT NULL,               -- "Old" or "New"
+    order_index INTEGER NOT NULL UNIQUE    -- 1-66 canonical order
+);
+2. translations
+Stores Bible translation metadata.
+CREATE TABLE translations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,                    -- Translation name
+    abbreviation TEXT NOT NULL UNIQUE,     -- Abbreviation (e.g., "KJV")
+    description TEXT,                      -- Full description with year
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+37 Translations: KJV, ASV, DRB, DBT, ERV, WEB, YLT, WNT, BIS, COV, GEN, NET, TYN, BST, ACV, AND, BBE, BSB, CPD, DRC, GN2, HAW, JPS, JUB, LEB, LIT, MKJ, NHE, NHJ, NHM, NOY, OEB, OEC, ROT, TWE, TYD, WYC
+3. verses
+Stores unique verse locations (book, chapter, verse number).
+CREATE TABLE verses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    book_id INTEGER NOT NULL,              -- Foreign key to books
+    chapter INTEGER NOT NULL,
+    verse_number INTEGER NOT NULL,
+    FOREIGN KEY (book_id) REFERENCES books(id),
+    UNIQUE(book_id, chapter, verse_number) -- Each verse location unique
+);
+4. verse_texts
+Stores the actual text for each verse in each translation.
+CREATE TABLE verse_texts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    verse_id INTEGER NOT NULL,             -- Foreign key to verses
+    translation_id INTEGER NOT NULL,       -- Foreign key to translations
+    text TEXT NOT NULL,                    -- Verse text
+    FOREIGN KEY (verse_id) REFERENCES verses(id),
+    FOREIGN KEY (translation_id) REFERENCES translations(id),
+    UNIQUE(verse_id, translation_id)       -- One text per verse per translation
+);
+5. cross_references
+Stores cross-reference relationships between verses (from OpenBible data).
+CREATE TABLE cross_references (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    
+    -- Source verse (where the cross-reference originates)
+    from_reference TEXT NOT NULL,          -- e.g., "John 3:16"
+    from_text TEXT,
+    from_book TEXT,
+    from_testament TEXT,
+    from_chapter INTEGER,
+    from_verse_start INTEGER,
+    from_verse_end INTEGER,
+    
+    -- Target verse (what it references)
+    to_reference TEXT NOT NULL,            -- e.g., "Romans 5:8"
+    to_text TEXT,
+    to_book TEXT,
+    to_testament TEXT,
+    to_chapter INTEGER,
+    to_verse_start INTEGER,
+    to_verse_end INTEGER,
+    
+    -- Relevance score (higher = stronger relationship)
+    relevance_score INTEGER,
+    
+    -- Translation used for the text
+    translation TEXT DEFAULT 'KJV',
+    
+    -- User notes
+    notes TEXT,
+    
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+6. verse_strongs
+Stores Strong's Concordance numbers and morphology for word-level analysis.
+CREATE TABLE verse_strongs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    verse_id INTEGER NOT NULL,             -- Foreign key to verses
+    word_position INTEGER NOT NULL,        -- Position of word in verse
+    strongs_number TEXT NOT NULL,          -- Strong's number (e.g., "G5547")
+    morphology TEXT,                       -- Grammatical form
+    word_text TEXT,                        -- The actual word
+    FOREIGN KEY (verse_id) REFERENCES verses(id)
+);
+📇 Indexes
+Optimized for fast searching:
+-- Verse lookups
+idx_verses_book_chapter ON verses(book_id, chapter)
+idx_verse_texts_verse ON verse_texts(verse_id)
+idx_verse_texts_translation ON verse_texts(translation_id)
+idx_verse_texts_composite ON verse_texts(translation_id, verse_id)
+
+-- Translation and book lookups
+idx_translations_abbr ON translations(abbreviation)
+idx_books_abbr ON books(abbreviation)
+
+-- Cross-reference searches
+idx_cross_ref_from ON cross_references(from_reference)
+idx_cross_ref_to ON cross_references(to_reference)
+idx_cross_ref_from_book ON cross_references(from_book)
+idx_cross_ref_to_book ON cross_references(to_book)
+idx_cross_ref_score ON cross_references(relevance_score)
+
+-- Strong's concordance searches
+idx_strongs_verse ON verse_strongs(verse_id)
+idx_strongs_number ON verse_strongs(strongs_number)
+idx_strongs_word ON verse_strongs(word_text)
+📊 Views
+1. verse_lookup - Formatted verse references
+SELECT reference, verse_id, book, testament, chapter, 
+       verse_number, translation, translation_name, text
+FROM verse_lookup
+WHERE reference = 'John 3:16';
+2. verse_comparison - Compare all translations
+SELECT reference, book, chapter, verse_number, all_translations
+FROM verse_comparison
+WHERE reference = 'Psalms 23:1';
+3. books_summary - Book statistics
+SELECT name, abbreviation, testament, total_verses, total_chapters
+FROM books_summary;
+4. translation_stats - Translation coverage
+SELECT name, abbreviation, verse_count, coverage_percent
+FROM translation_stats
+ORDER BY coverage_percent DESC;
+5. verse_search - Full verse search data
+SELECT full_reference, book_name, testament, translation, text
+FROM verse_search
+WHERE text LIKE '%love%';
+📖 Example Queries
+Get all translations of a verse:
+SELECT t.abbreviation, vt.text
+FROM verse_texts vt
+JOIN verses v ON vt.verse_id = v.id
+JOIN books b ON v.book_id = b.id
+JOIN translations t ON vt.translation_id = t.id
+WHERE b.abbreviation = 'Joh' 
+  AND v.chapter = 3 
+  AND v.verse_number = 16;
+Search for text across all translations:
+SELECT b.name || ' ' || v.chapter || ':' || v.verse_number as ref,
+       t.abbreviation, vt.text
+FROM verse_texts vt
+JOIN verses v ON vt.verse_id = v.id
+JOIN books b ON v.book_id = b.id  
+JOIN translations t ON vt.translation_id = t.id
+WHERE vt.text LIKE '%faith%hope%love%'
+  AND t.abbreviation = 'KJV';
+Get cross-references for a verse:
+SELECT from_reference, to_reference, relevance_score
+FROM cross_references
+WHERE from_reference = 'John 3:16'
+ORDER BY relevance_score DESC;
