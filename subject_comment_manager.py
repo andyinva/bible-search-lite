@@ -247,9 +247,9 @@ class SubjectCommentManager:
             row = cursor.fetchone()
 
             if row and row['comments']:
-                # Verse has a comment - enable Edit and Delete
+                # Verse has a comment - disable Add, enable Edit and Delete
                 self.comments_editor.setHtml(row['comments'])
-                self.add_btn.setEnabled(True)  # Can still add/replace
+                self.add_btn.setEnabled(False)  # Disable Add to prevent overwriting
                 self.edit_btn.setEnabled(True)
                 self.delete_btn.setEnabled(True)
             else:
@@ -363,17 +363,27 @@ class SubjectCommentManager:
         self.comments_editor.setTextCursor(cursor)
 
     def change_font_size(self, size_text):
-        """Change font size of selected text."""
+        """Change font size for the editor and new text."""
         if self.comments_editor.isReadOnly():
             return
 
         try:
             size = int(size_text)
+
+            # Set font for entire document
+            font = self.comments_editor.font()
+            font.setPointSize(size)
+            self.comments_editor.setFont(font)
+
+            # Also set as the current char format for new text
             cursor = self.comments_editor.textCursor()
             format = cursor.charFormat()
             format.setFontPointSize(size)
             cursor.setCharFormat(format)
             self.comments_editor.setTextCursor(cursor)
+
+            # Set focus to keep typing
+            self.comments_editor.setFocus()
         except ValueError:
             pass
 
