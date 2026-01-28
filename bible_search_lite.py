@@ -1951,10 +1951,11 @@ class BibleSearchProgram(QMainWindow):
 
             # If no AND/OR was found, split on spaces (each word is a separate term)
             # For example: "who sen*" → ["who", "sen*"]
+            # But keep quoted phrases together: '"love one another"' → ['"love one another"']
             if len(terms) == 1 and ' ' in terms[0]:
                 # Split on spaces, but keep quoted phrases together
-                # For now, simple split on spaces
-                terms = terms[0].split()
+                # Use regex to match quoted strings or individual words
+                terms = re.findall(r'"[^"]*"|\'[^\']*\'|\S+', terms[0])
 
             for term in terms:
                 term = term.strip()
@@ -1972,31 +1973,46 @@ class BibleSearchProgram(QMainWindow):
 
                 term_lower = term_clean.lower()
 
+                # Check if this is a multi-word phrase (contains spaces)
+                is_phrase = ' ' in term_lower
+
                 # Build pattern based on whether term is quoted
                 if is_quoted:
-                    # Check if quoted term contains wildcards
-                    # "sing*" should match words starting with "sing"
-                    if '*' in term_lower or '%' in term_lower or '?' in term_lower:
-                        # Quoted wildcard - build pattern with word boundaries
-                        pattern_parts = []
-                        pattern_parts.append(r'^')
-
-                        for char in term_lower:
-                            if char in ('*', '%'):
-                                pattern_parts.append(r'\w*')
-                            elif char == '?':
-                                pattern_parts.append(r'\w')
-                            else:
-                                pattern_parts.append(re.escape(char))
-
-                        pattern_parts.append(r'$')
-                        pattern = ''.join(pattern_parts)
-                        search_patterns.append(re.compile(pattern))
+                    if is_phrase:
+                        # Multi-word quoted phrase like "love one another"
+                        # Don't add to search_patterns - we'll extract the whole phrase below
+                        # Store phrase pattern for later extraction
+                        if not hasattr(self, '_phrase_patterns_for_filter'):
+                            self._phrase_patterns_for_filter = []
+                        # Escape the phrase and match it as a whole
+                        phrase_pattern = re.compile(re.escape(term_lower), re.IGNORECASE)
+                        self._phrase_patterns_for_filter.append((term_lower, phrase_pattern))
+                        continue
                     else:
-                        # Quoted term without wildcards: exact word match only (strict)
-                        # Pattern: ^word$ matches only the exact word
-                        pattern = r'^' + re.escape(term_lower) + r'$'
-                        search_patterns.append(re.compile(pattern))
+                        # Single-word quoted term
+                        # Check if quoted term contains wildcards
+                        # "sing*" should match words starting with "sing"
+                        if '*' in term_lower or '%' in term_lower or '?' in term_lower:
+                            # Quoted wildcard - build pattern with word boundaries
+                            pattern_parts = []
+                            pattern_parts.append(r'^')
+
+                            for char in term_lower:
+                                if char in ('*', '%'):
+                                    pattern_parts.append(r'\w*')
+                                elif char == '?':
+                                    pattern_parts.append(r'\w')
+                                else:
+                                    pattern_parts.append(re.escape(char))
+
+                            pattern_parts.append(r'$')
+                            pattern = ''.join(pattern_parts)
+                            search_patterns.append(re.compile(pattern))
+                        else:
+                            # Quoted term without wildcards: exact word match only (strict)
+                            # Pattern: ^word$ matches only the exact word
+                            pattern = r'^' + re.escape(term_lower) + r'$'
+                            search_patterns.append(re.compile(pattern))
                 else:
                     # Unquoted term: partial match (matches word containing the term)
                     # Wildcards are NOT supported for unquoted terms - treat as literal characters
@@ -2009,7 +2025,40 @@ class BibleSearchProgram(QMainWindow):
 
             self.debug_print(f"🔍 Search patterns for filtering: {[p.pattern for p in search_patterns]}")
 
-        # Extract words from all results
+        # Check if we have phrase patterns to extract
+        has_phrase_patterns = hasattr(self, '_phrase_patterns_for_filter') and self._phrase_patterns_for_filter
+
+        if has_phrase_patterns:
+            # Extract phrase occurrences instead of individual words
+            phrase_counts = {}
+            for result in all_results:
+                if isinstance(result, dict):
+                    text = result.get('Text', '')
+                elif hasattr(result, 'text'):
+                    text = result.text
+                else:
+                    text = str(result)
+                text_cleaned = text.replace('[', '').replace(']', '')
+
+                # Search for each phrase pattern
+                for phrase_text, phrase_pattern in self._phrase_patterns_for_filter:
+                    # Find all occurrences of the phrase in this verse
+                    matches = phrase_pattern.findall(text_cleaned)
+                    for match in matches:
+                        # Normalize phrase to title case for display
+                        phrase_normalized = ' '.join(word.capitalize() for word in match.split())
+                        phrase_counts[phrase_normalized] = phrase_counts.get(phrase_normalized, 0) + 1
+
+            # Clean up temporary phrase patterns
+            del self._phrase_patterns_for_filter
+
+            self.debug_print(f"📊 Found {len(phrase_counts)} unique phrase(s) from {len(all_results)} verses:")
+            for phrase, count in sorted(phrase_counts.items(), key=lambda x: (-x[1], x[0])):
+                self.debug_print(f"   {phrase}: {count}")
+
+            return phrase_counts
+
+        # Extract words from all results (non-phrase queries)
         for result in all_results:
             # Extract words from verse text
             # IMPORTANT: Remove highlight brackets [  ] from text before word extraction
