@@ -240,6 +240,10 @@ class BibleSearch:
 
         For example: "love ~4 God" matches if "love" and "God" appear within 4 words or less of each other.
         """
+        # Normalize apostrophes: Convert standard apostrophe (U+0027) to right single quotation mark (U+2019)
+        # The database uses U+2019 for apostrophes
+        query = query.replace("'", "\u2019")
+
         # Store the original query for later regex matching
         self._proximity_pattern = query
         self._proximity_case_sensitive = case_sensitive
@@ -293,6 +297,10 @@ class BibleSearch:
         For example: "love > neighbor" matches "love your neighbor", "love one another and your neighbor"
         The words must appear in the specified order but don't need to be consecutive.
         """
+        # Normalize apostrophes: Convert standard apostrophe (U+0027) to right single quotation mark (U+2019)
+        # The database uses U+2019 for apostrophes
+        query = query.replace("'", "\u2019")
+
         # Store the original query for later regex matching
         self._ordered_words_pattern = query
         self._ordered_words_case_sensitive = case_sensitive
@@ -334,6 +342,10 @@ class BibleSearch:
 
         For example: "who & send" matches "who will send", "who can send", etc.
         """
+        # Normalize apostrophes: Convert standard apostrophe (U+0027) to right single quotation mark (U+2019)
+        # The database uses U+2019 for apostrophes
+        query = query.replace("'", "\u2019")
+
         # Store the original query for later regex matching
         self._word_placeholder_pattern = query
         self._word_placeholder_case_sensitive = case_sensitive
@@ -409,6 +421,10 @@ class BibleSearch:
         - > : ordered words separator (e.g., "love > neighbor" matches "love your neighbor")
         - ~N : proximity operator (e.g., "love ~4 God" matches if words within 4 words or less)
         """
+        # Normalize apostrophes: Convert standard apostrophe (U+0027) to right single quotation mark (U+2019)
+        # The database uses U+2019 for apostrophes
+        query = query.replace("'", "\u2019")
+
         words = []
         operators = []
 
@@ -680,6 +696,10 @@ class BibleSearch:
 
     def highlight_search_terms(self, text: str, query: str) -> str:
         """Highlight search terms in text with [ ] brackets."""
+        # Normalize apostrophes: Convert standard apostrophe (U+0027) to right single quotation mark (U+2019)
+        # The database uses U+2019 for apostrophes
+        query = query.replace("'", "\u2019")
+
         # Special handling for proximity patterns (~N)
         if re.search(r' ~\d+ ', query):
             return self._highlight_proximity_pattern(text, query)
