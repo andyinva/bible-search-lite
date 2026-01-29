@@ -367,6 +367,38 @@ class BibleSearch:
 
         return where_clause, search_terms
 
+    def _build_query_with_parentheses(self, query: str, case_sensitive: bool, not_search: bool) -> Tuple[str, List[str]]:
+        """Build query for searches with parentheses to control operator precedence.
+
+        Example: ("sleep*" OR "slep*") AND father
+
+        For simplicity, we just tell users to write the query with explicit AND for all terms.
+        This method will be enhanced in the future.
+        """
+        # For now, fall back to normal query building but add SQL parentheses
+        # This is a simplified implementation - full parentheses support would require
+        # a proper expression parser
+
+        # Simple approach: detect pattern (term OR term) AND term
+        # and rewrite the WHERE clause with proper parentheses
+        import re
+
+        # Remove the ( ) from query and build normally, but track where they were
+        query_no_parens = query.replace('(', '').replace(')', '')
+        where_clause, search_terms = self.build_word_search_query(query_no_parens, case_sensitive)
+
+        # If query had pattern: (A OR B) AND C
+        # The where_clause is: A OR B AND C
+        # We need to make it: (A OR B) AND C
+
+        # Find first AND in the where clause and wrap everything before it in parens
+        and_pos = where_clause.upper().find(' AND ')
+        if and_pos > 0:
+            # Wrap the part before AND in parentheses
+            where_clause = f"({where_clause[:and_pos]}) {where_clause[and_pos:]}"
+
+        return where_clause, search_terms
+
     def build_word_search_query(self, query: str, case_sensitive: bool = False) -> Tuple[str, List[str]]:
         """Build SQL query for word search with wildcards and operators.
 
@@ -409,6 +441,10 @@ class BibleSearch:
             # For now, we'll use a single LIKE pattern and filter in Python
             # Convert query like "who & send" to pattern for Python regex matching
             return self._build_word_placeholder_query(query, case_sensitive, not_search)
+
+        # Check for parentheses - if present, handle them first
+        if '(' in query or ')' in query:
+            return self._build_query_with_parentheses(query, case_sensitive, not_search)
 
         # Split by AND/OR while preserving quoted phrases
         parts = re.findall(r'"[^"]*"|[^\s]+', query)
@@ -746,8 +782,8 @@ class BibleSearch:
         # Apply highlights from right to left (to preserve indices)
         highlighted_text = text
         for start, end, matched_text in filtered_matches:
-            highlighted_text = highlighted_text[:start] + matched_text + highlighted_text[end:]
-        
+            highlighted_text = highlighted_text[:start] + '[' + matched_text + ']' + highlighted_text[end:]
+
         return highlighted_text
     
     def _wildcard_length_matches(self, pattern: str, text: str) -> bool:
@@ -963,6 +999,10 @@ class BibleSearch:
         self._wildcard_case_sensitive = False
 
         where_clause, search_terms = self.build_word_search_query(query, case_sensitive)
+
+        # Store whether query uses OR operator for later filtering
+        self._query_uses_or = ' OR ' in query.upper()
+
         results = []
 
         for translation in self.translations:
@@ -1199,12 +1239,22 @@ class BibleSearch:
         - sent* should match "sent", "sentence" but NOT "present"
         - *sent should match "sent", "resent" but NOT "sentence"
         - *sent* should match "present", "sentence", "resent"
+
+        For OR queries, returns True if ANY term matches.
+        For AND queries, returns True only if ALL terms match.
         """
         if not hasattr(self, '_wildcard_terms') or not self._wildcard_terms:
             return True
 
         case_sensitive = getattr(self, '_wildcard_case_sensitive', False)
         flags = 0 if case_sensitive else re.IGNORECASE
+
+        # Check if query uses OR operator
+        uses_or = getattr(self, '_query_uses_or', False)
+
+        # For OR queries: return True if ANY term matches
+        # For AND queries: return True only if ALL terms match
+        matches = []
 
         for term in self._wildcard_terms:
             # Convert wildcard term to regex with word boundaries
@@ -1242,10 +1292,19 @@ class BibleSearch:
             pattern = ''.join(pattern_parts)
 
             # Check if this pattern matches in the text
-            if not re.search(pattern, text, flags):
-                return False
+            term_matches = bool(re.search(pattern, text, flags))
+            matches.append(term_matches)
 
-        return True
+            # For OR queries, we can return early if we find a match
+            if uses_or and term_matches:
+                return True
+
+        # For OR queries: if we got here, no term matched
+        if uses_or:
+            return False
+
+        # For AND queries: all terms must match
+        return all(matches)
 
     def _contains_exact_quoted_terms(self, text: str, query: str, case_sensitive: bool) -> bool:
         """Check if text contains all quoted terms as exact word matches."""
