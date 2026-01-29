@@ -81,6 +81,25 @@ Either term (or both) must appear.
 - `peace OR joy` → verses with either or both
 - `angel OR messenger` → either term
 
+### Parentheses ( ) - Control Operator Precedence
+Use parentheses to control the order of operations when mixing AND and OR.
+
+**Why you need them:**
+- Without parentheses: `"sleep*" OR "slep*" AND father`
+  - Evaluated as: `"sleep*" OR ("slep*" AND father)` due to AND having higher precedence
+  - Returns: verses with sleep*, OR verses with BOTH slep* and father
+
+- With parentheses: `("sleep*" OR "slep*") AND father`
+  - Evaluated as: `("sleep*" OR "slep*") AND father`
+  - Returns: verses with father AND (sleep* OR slep*)
+
+**Examples:**
+- `("faith" OR "belief") AND works` → verses with works AND either faith or belief
+- `("Holy Spirit" OR "Spirit of God") AND power` → verses with power AND either phrase
+- `("love*" OR "lov%") AND "one another"` → verses with "one another" AND any love form
+
+**Note:** Parentheses only work with AND/OR operators, not with special operators like `>`, `~`, or `&`
+
 ## Exact Phrases
 
 Use quotation marks for exact word order.
@@ -97,10 +116,12 @@ Mix different operators for powerful searches:
 - `"faith without" AND works` → exact phrase plus word
 - `love* AND neighbor` → any form of "love" with "neighbor"
 - `"Holy Spirit" OR "Spirit of God"` → either phrase
+- `("love*" OR "charity") AND neighbor` → verses with neighbor AND either love or charity
 - `believ% > Jesus` → any "believe" form before "Jesus"
 - `I & lov% > God` → "I [word] love/loved God"
 - `believ% ~3 Jesus` → any "believe" form within 3 words of "Jesus"
 - `pray% ~5 faith` → any "pray" form within 5 words of "faith"
+- `("faith" OR "belief") AND ("works" OR "deeds")` → complex AND/OR combinations
 
 ## Important Limitations
 
@@ -146,6 +167,7 @@ Break complex queries into multiple simpler searches:
 | `~N` | Proximity (words within N words) | `love ~4 God` → within 4 words |
 | `AND` | Both terms required | `faith AND works` |
 | `OR` | Either term (or both) | `peace OR joy` |
+| `( )` | Control operator precedence | `("A" OR "B") AND C` |
 | `" "` | Exact phrase | `"in the beginning"` |
 
 ## Test Files

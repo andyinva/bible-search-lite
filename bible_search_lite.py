@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 # Version number
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 
 # Import custom UI components, config, and controllers from refactored modules
 from bible_search_ui.ui.widgets import VerseItemWidget, VerseListWidget, SectionWidget
@@ -232,7 +232,9 @@ class BibleSearchProgram(QMainWindow):
         self.available_word_variations = 0  # Count of available word variations for filter
 
         # Cross-reference history for "Go Back" functionality
-        self.cross_ref_history = []  # Stack of (verse_reference, references_list) tuples
+        # Each entry is: (verse_reference, references_list, verse_list_state)
+        # verse_list_state contains the verse data needed to restore Window 3
+        self.cross_ref_history = []
 
         # Store references to verse list widgets
         self.verse_lists = {}
@@ -2470,8 +2472,8 @@ class BibleSearchProgram(QMainWindow):
         # Remove quoted phrases from query to process remaining terms
         query_without_quotes = re.sub(quoted_pattern, '', search_query)
 
-        # Split on AND/OR operators
-        terms = re.split(r'\s+(?:AND|OR)\s+', query_without_quotes, flags=re.IGNORECASE)
+        # Split on AND/OR operators (as whole words)
+        terms = re.split(r'\b(?:AND|OR)\b', query_without_quotes, flags=re.IGNORECASE)
 
         # Process remaining individual words (non-quoted terms)
         for term in terms:
@@ -2900,6 +2902,13 @@ class BibleSearchProgram(QMainWindow):
     def on_context_verses_ready(self, verses):
         """Handle context verses for reading window"""
         self.debug_print(f"Received {len(verses)} context verses for reading window")
+
+        # Save current Window 3 state to history BEFORE clearing
+        # (This must happen before clearing so we save the OLD verses, not the new ones)
+        if verses:
+            first_verse = verses[0]
+            new_verse_reference = f"{first_verse.book_abbrev} {first_verse.chapter}:{first_verse.verse}"
+            self.save_window3_to_history_before_update(new_verse_reference)
 
         # Clear reading window
         self.verse_lists['reading'].clear_verses()
@@ -3378,6 +3387,25 @@ class BibleSearchProgram(QMainWindow):
             <li><b>angel OR messenger</b> → either term</li>
         </ul>
 
+        <h4>Parentheses ( ) - Control Operator Precedence</h4>
+        <p>Use parentheses to control the order of operations when mixing AND and OR.</p>
+        <p style="background-color: #fff3e0; padding: 10px; border-left: 4px solid #ff9800;">
+        <b>Why you need them:</b><br>
+        • Without parentheses: <b>"sleep*" OR "slep*" AND father</b><br>
+        &nbsp;&nbsp;→ Evaluated as: "sleep*" OR ("slep*" AND father) due to AND having higher precedence<br>
+        &nbsp;&nbsp;→ Returns: verses with sleep*, OR verses with BOTH slep* and father<br><br>
+        • With parentheses: <b>("sleep*" OR "slep*") AND father</b><br>
+        &nbsp;&nbsp;→ Evaluated as: ("sleep*" OR "slep*") AND father<br>
+        &nbsp;&nbsp;→ Returns: verses with father AND (sleep* OR slep*)
+        </p>
+        <p><b>Examples:</b></p>
+        <ul>
+            <li><b>("faith" OR "belief") AND works</b> → verses with works AND either faith or belief</li>
+            <li><b>("Holy Spirit" OR "Spirit of God") AND power</b> → verses with power AND either phrase</li>
+            <li><b>("love*" OR "charity") AND neighbor</b> → verses with neighbor AND any love form or charity</li>
+        </ul>
+        <p><i>Note: Parentheses only work with AND/OR operators, not with special operators like >, ~, or &</i></p>
+
         <h3>Exact Phrases</h3>
         <p>Use quotation marks for exact word order or to enable wildcards.</p>
         <ul>
@@ -3392,10 +3420,12 @@ class BibleSearchProgram(QMainWindow):
             <li><b>"faith without" AND works</b> → exact phrase plus word</li>
             <li><b>"love*" AND neighbor</b> → any form of "love" with "neighbor" (quoted wildcard)</li>
             <li><b>"Holy Spirit" OR "Spirit of God"</b> → either phrase</li>
+            <li><b>("love*" OR "charity") AND neighbor</b> → verses with neighbor AND either love or charity (parentheses)</li>
             <li><b>"believ*" > Jesus</b> → any "believe" form before "Jesus" (quoted wildcard with operator)</li>
             <li><b>I & "lov*" > God</b> → "I [word] love/loved God" (quoted wildcard)</li>
             <li><b>"believ*" ~3 Jesus</b> → any "believe" form within 3 words of "Jesus" (quoted wildcard)</li>
             <li><b>"pray*" ~5 faith</b> → any "pray" form within 5 words of "faith" (quoted wildcard)</li>
+            <li><b>("faith" OR "belief") AND ("works" OR "deeds")</b> → complex AND/OR combinations (parentheses)</li>
         </ul>
 
         <h3>Important Limitations</h3>
@@ -5138,30 +5168,64 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
             self.debug_print(f"❌ Error loading cross-references: {e}")
             return []
 
+    def save_window3_to_history_before_update(self, new_verse_reference):
+        """
+        Save current Window 3 state to history before loading new verses.
+        This should be called BEFORE clearing Window 3.
+
+        Args:
+            new_verse_reference (str): The verse reference we're about to load
+        """
+        # Only save if we have a current verse AND it's different from the new one
+        current_verse = getattr(self, '_current_cross_ref_verse', None)
+        if not current_verse or current_verse == new_verse_reference:
+            return
+
+        # Only save if the cross-references dropdown has content
+        if not (self.cross_references_combo.isEnabled() and self.cross_references_combo.count() > 1):
+            return
+
+        # Save the current references list
+        current_refs = []
+        for i in range(1, self.cross_references_combo.count()):
+            ref = self.cross_references_combo.itemData(i)
+            text = self.cross_references_combo.itemText(i)
+            if ref:
+                current_refs.append((ref, text))
+
+        # Save Window 3 verse list state (THIS is why we call before clearing!)
+        verse_list_state = []
+        try:
+            for verse_id, verse_item in self.verse_lists['reading'].verse_items.items():
+                _, verse_widget = verse_item
+                verse_list_state.append({
+                    'verse_id': verse_id,
+                    'translation': verse_widget.translation,
+                    'book_abbrev': verse_widget.book_abbrev,
+                    'chapter': verse_widget.chapter,
+                    'verse_number': verse_widget.verse_number,
+                    'text': verse_widget.text_label.text(),
+                    'is_highlighted': verse_widget.is_highlighted
+                })
+
+            # Add to history stack (verse_reference, references_list, verse_list_state)
+            self.cross_ref_history.append((current_verse, current_refs, verse_list_state))
+            self.debug_print(f"📚 Saved to history: {current_verse} ({len(current_refs)} refs, {len(verse_list_state)} verses)")
+        except Exception as e:
+            self.debug_print(f"⚠️  Error saving Window 3 state to history: {e}")
+            # Still add to history with empty verse list if there's an error
+            self.cross_ref_history.append((current_verse, current_refs, []))
+            self.debug_print(f"📚 Saved to history (without verse list): {current_verse} ({len(current_refs)} refs)")
+
     def update_cross_references_dropdown(self, verse_reference):
         """
         Update the cross-references dropdown with references for the selected verse.
+        Note: History saving is now done in save_window3_to_history_before_update()
+        which is called BEFORE Window 3 is cleared.
 
         Args:
             verse_reference (str): Verse reference (e.g., "Genesis 1:1")
         """
-        # Save current state to history before updating (if there are references)
-        if self.cross_references_combo.isEnabled() and self.cross_references_combo.count() > 1:
-            # Get current verse reference from the first item's data
-            current_verse = getattr(self, '_current_cross_ref_verse', None)
-            if current_verse and current_verse != verse_reference:
-                # Save the current state
-                current_refs = []
-                for i in range(1, self.cross_references_combo.count()):
-                    ref = self.cross_references_combo.itemData(i)
-                    text = self.cross_references_combo.itemText(i)
-                    if ref:
-                        current_refs.append((ref, text))
-
-                # Add to history stack
-                self.cross_ref_history.append((current_verse, current_refs))
-                self.debug_print(f"📚 Saved to history: {current_verse} ({len(current_refs)} refs)")
-
         # Store the new verse reference
         self._current_cross_ref_verse = verse_reference
 
@@ -5248,20 +5312,72 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
             self.debug_print(f"⚪ No cross-references found for {verse_reference}")
 
     def on_go_back_references(self):
-        """Restore the previous cross-reference list from history."""
+        """Restore the previous cross-reference list and Window 3 verse list from history."""
         if len(self.cross_ref_history) == 0:
             self.debug_print("⚠️  No history to go back to")
             return
 
         # Pop the last state from history
-        verse_reference, references_list = self.cross_ref_history.pop()
+        verse_reference, references_list, verse_list_state = self.cross_ref_history.pop()
 
-        self.debug_print(f"⬅️  Going back to: {verse_reference} ({len(references_list)} refs)")
+        self.debug_print(f"⬅️  Going back to: {verse_reference} ({len(references_list)} refs, {len(verse_list_state)} verses)")
+
+        # Restore Window 3 verse list
+        from PyQt6.QtGui import QFont, QColor, QBrush
+
+        # Clear reading window
+        self.verse_lists['reading'].clear_verses()
+
+        # Get verse font size
+        verse_size = self.verse_font_sizes[self.verse_font_size]
+
+        # Restore verses
+        for verse_data in verse_list_state:
+            self.verse_lists['reading'].add_verse(
+                verse_data['verse_id'],
+                verse_data['translation'],
+                verse_data['book_abbrev'],
+                verse_data['chapter'],
+                verse_data['verse_number'],
+                verse_data['text']
+            )
+
+            # Apply font
+            verse_id = verse_data['verse_id']
+            if verse_id in self.verse_lists['reading'].verse_items:
+                list_item, verse_widget = self.verse_lists['reading'].verse_items[verse_id]
+                verse_font = QFont("IBM Plex Mono")
+                verse_font.setBold(False)
+                verse_font.setPointSizeF(verse_size)
+                verse_widget.text_label.setFont(verse_font)
+
+                # Restore highlighting
+                if verse_data.get('is_highlighted', False):
+                    verse_widget.set_highlighted(True)
+                    list_item.setBackground(QBrush(QColor(214, 233, 255)))  # #D6E9FF blue tint
+                else:
+                    verse_widget.set_highlighted(False)
+                    list_item.setBackground(QBrush(QColor(255, 255, 255)))  # White
+
+        # Update size hints after font changes
+        self.verse_lists['reading'].update_item_sizes()
+
+        # Update translation label in Reading Window header
+        if verse_list_state and hasattr(self, 'reading_section') and hasattr(self.reading_section, 'translation_label') and self.reading_section.translation_label:
+            translation_abbrev = verse_list_state[0]['translation']
+            translation_name = translation_abbrev  # Default to abbreviation
+            for trans in self.search_controller.bible_search.translations:
+                if trans.abbreviation == translation_abbrev:
+                    translation_name = trans.full_name
+                    break
+            self.reading_section.translation_label.setText(translation_name)
+
+        self.debug_print(f"✓ Restored {len(verse_list_state)} verses to Window 3")
 
         # Update the current verse reference
         self._current_cross_ref_verse = verse_reference
 
-        # Clear and rebuild the dropdown
+        # Clear and rebuild the references dropdown
         self.cross_references_combo.clear()
         self.cross_references_combo.addItem(f"References ({len(references_list)})")
 
@@ -5314,7 +5430,7 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
         if len(self.cross_ref_history) == 0:
             self.go_back_btn.setVisible(False)
 
-        self.debug_print(f"✅ Restored references for {verse_reference}")
+        self.debug_print(f"✅ Restored references and verses for {verse_reference}")
 
     def on_cross_reference_selected(self, index):
         """
