@@ -19,6 +19,14 @@
   - Fix: Added apostrophe normalization to `extract_highlight_terms()` method
   - Now both "father's" and "house" are highlighted in green with brackets
 
+### Quoted Wildcard Search with ? Operator
+- **Fixed `?` wildcard not working in quoted terms with apostrophes**
+  - Issue: `"father'?"` returned 0 results while `"father'*"` worked correctly (137 results)
+  - Root cause: SQL LIKE pattern missing trailing `%` - generated `%father'_` instead of `%father'_%`
+  - The pattern without trailing % only matched text ENDING with "father'" + one character
+  - Fix: Added trailing `%` to quoted wildcard patterns for proper SQL LIKE matching
+  - Now `"father'?"` correctly returns 137 results matching "father's"
+
 ## Technical Details
 
 ### Implementation
