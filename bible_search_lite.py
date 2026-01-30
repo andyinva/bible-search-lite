@@ -2454,6 +2454,10 @@ class BibleSearchProgram(QMainWindow):
         if not search_query:
             return []
 
+        # Normalize apostrophes: Convert standard apostrophe (U+0027) to right single quotation mark (U+2019)
+        # The database uses U+2019 for apostrophes
+        search_query = search_query.replace("'", "\u2019")
+
         highlight_terms = []
 
         # Extract quoted phrases first (keep them as complete phrases)
