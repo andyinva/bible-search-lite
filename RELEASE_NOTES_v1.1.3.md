@@ -8,9 +8,16 @@
 - **Fixed inability to search for words with apostrophes**
   - Issue: Searches for words like "father's", "mother's", "Lord's" returned 0 results
   - Root cause: Database uses Unicode right single quotation mark (U+2019 ') instead of standard apostrophe (U+0027 ')
-  - Fix: Added automatic character normalization that converts standard apostrophes to U+2019 in all search queries
+  - Fix: Added automatic character normalization that converts standard apostrophes to U+2019 in all search queries and highlighting
   - Now searches for "father's" correctly return all 137 matching verses
   - Highlighting also works correctly for apostrophe-containing words
+
+### Apostrophe Highlighting
+- **Fixed green highlighting not appearing on apostrophe words**
+  - Issue: Searching for "father's house" highlighted "house" in green but "father's" only had brackets, not green color
+  - Root cause: `extract_highlight_terms()` wasn't normalizing apostrophes before passing to UI highlighting
+  - Fix: Added apostrophe normalization to `extract_highlight_terms()` method
+  - Now both "father's" and "house" are highlighted in green with brackets
 
 ## Technical Details
 
@@ -55,7 +62,7 @@ Previously failed, now work:
 ## Files Changed
 
 - `bible_search.py` - Added apostrophe normalization to 5 methods
-- `bible_search_lite.py` - Version bump to v1.1.3
+- `bible_search_lite.py` - Version bump to v1.1.3 and added normalization to `extract_highlight_terms()`
 - `VERSION.txt` - Updated to v1.1.3
 
 ---
