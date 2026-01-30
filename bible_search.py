@@ -519,12 +519,12 @@ class BibleSearch:
                 # Note: We'll filter for exact word matches in the results processing
             else:
                 # Regular wildcard search
-                # For quoted wildcards, don't add extra % signs - the pattern is already precise
-                # For unquoted wildcards, add % to match partial words
+                # For quoted wildcards, add % on both sides to find matches anywhere in text
+                # The word boundary filtering in Python will ensure precise matching
                 if quoted_wildcard:
-                    # Quoted wildcard like "sing*" - already has precise boundaries
-                    # Pattern is already "sing%" so we want it to match at word start only
-                    like_pattern = f"%{search_term}"  # Allow anything before, but not after
+                    # Quoted wildcard like "sing*" or "father'?" needs % on both sides
+                    # to match anywhere in the text, then Python regex will enforce word boundaries
+                    like_pattern = f"%{search_term}%"
                 else:
                     # Unquoted wildcard or regular term - allow matches anywhere
                     like_pattern = f"%{search_term}%"
