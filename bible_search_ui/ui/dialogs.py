@@ -28,6 +28,7 @@ TRANSLATION_DATES = {
     'DBT': '1890',
     'DRB': '1582-1610',
     'DRC': '1749-52',
+    'EDG': '1864',
     'ERV': '1881-85',
     'GEN': '1560',
     'GN2': '1599',
@@ -51,6 +52,7 @@ TRANSLATION_DATES = {
     'RNK': '',
     'ROT': '1902',
     'RWB': '1833',
+    'SLT': '1876',
     'TWE': '1904',
     'TYD': '1525',
     'TYN': '1526-30',
@@ -113,11 +115,13 @@ class TranslationSelectorDialog(QDialog):
     def setup_ui(self):
         """
         Create the dialog user interface.
-        
+
         Layout structure:
         - Title bar (from QDialog)
         - Select All / Select None buttons (horizontal layout)
         - Translation checkboxes (2-column grid)
+        - Divider with "Translations With Old English Wording" label
+        - Old English translation checkboxes (2-column grid)
         - OK / Cancel buttons (dialog button box)
         """
         self.setWindowTitle("Select Translations")
@@ -133,6 +137,19 @@ class TranslationSelectorDialog(QDialog):
         select_buttons_layout.addWidget(select_none_btn)
         select_buttons_layout.addStretch()
         layout.addLayout(select_buttons_layout)
+
+        # Define old English translations that should be grouped at bottom
+        old_english_abbrevs = {'BIS', 'COV', 'WYC', 'GN2', 'GEN', 'TYD', 'TYN'}
+
+        # Separate translations into two groups
+        regular_translations = []
+        old_english_translations = []
+
+        for translation in self.translations:
+            if translation.abbreviation in old_english_abbrevs:
+                old_english_translations.append(translation)
+            else:
+                regular_translations.append(translation)
 
         # Sort translations by date (most recent first, then oldest, then no date)
         def get_sort_key(translation):
@@ -164,23 +181,30 @@ class TranslationSelectorDialog(QDialog):
                 # If we can't parse it, treat as no date
                 return 0
 
-        sorted_translations = sorted(self.translations, key=get_sort_key)
+        regular_translations = sorted(regular_translations, key=get_sort_key)
+        old_english_translations = sorted(old_english_translations, key=get_sort_key)
 
-        # Create checkboxes for each translation in a grid
+        # Create checkboxes for regular translations in a grid
         grid = QGridLayout()
         row = 0
         col = 0
         max_cols = 2
 
-        for translation in sorted_translations:
-            # Create checkbox with full translation name and date
+        for translation in regular_translations:
+            # Create checkbox with translation name and date
             abbrev = translation.abbreviation
+            full_name = translation.full_name
             date = TRANSLATION_DATES.get(abbrev, '')
 
+            # Remove date from full_name if it already contains it (to avoid duplicates)
+            # Check if full_name ends with a year in parentheses
+            import re
+            full_name_cleaned = re.sub(r'\s*\(\d{4}(?:-\d{2,4})?\)\s*$', '', full_name)
+
             if date:
-                label = f"{abbrev} - {translation.full_name} ({date})"
+                label = f"{abbrev} - {full_name_cleaned} ({date})"
             else:
-                label = f"{abbrev} - {translation.full_name}"
+                label = f"{abbrev} - {full_name_cleaned}"
 
             cb = QCheckBox(label)
             cb.setChecked(abbrev in self.selected_translations)
@@ -195,13 +219,63 @@ class TranslationSelectorDialog(QDialog):
 
         layout.addLayout(grid)
 
+        # Add divider and label for old English translations
+        divider_layout = QVBoxLayout()
+        divider_layout.addSpacing(10)
+
+        # Add horizontal line
+        divider_line = QWidget()
+        divider_line.setFixedHeight(2)
+        divider_line.setStyleSheet("background-color: #999;")
+        divider_layout.addWidget(divider_line)
+
+        # Add label
+        old_english_label = QLabel("Translations With Old English Wording")
+        old_english_label.setStyleSheet("font-weight: bold; padding: 5px 0;")
+        divider_layout.addWidget(old_english_label)
+
+        layout.addLayout(divider_layout)
+
+        # Create checkboxes for old English translations in a grid
+        old_english_grid = QGridLayout()
+        row = 0
+        col = 0
+
+        for translation in old_english_translations:
+            # Create checkbox with translation name and date
+            abbrev = translation.abbreviation
+            full_name = translation.full_name
+            date = TRANSLATION_DATES.get(abbrev, '')
+
+            # Remove date from full_name if it already contains it (to avoid duplicates)
+            import re
+            full_name_cleaned = re.sub(r'\s*\(\d{4}(?:-\d{2,4})?\)\s*$', '', full_name)
+
+            if date:
+                label = f"{abbrev} - {full_name_cleaned} ({date})"
+            else:
+                label = f"{abbrev} - {full_name_cleaned}"
+
+            cb = QCheckBox(label)
+            cb.setChecked(abbrev in self.selected_translations)
+            self.checkboxes[abbrev] = cb
+            old_english_grid.addWidget(cb, row, col)
+
+            # Move to next grid position
+            col += 1
+            if col >= max_cols:
+                col = 0
+                row += 1
+
+        layout.addLayout(old_english_grid)
+
         # Connect select all/none buttons
         select_all_btn.clicked.connect(self.select_all)
         select_none_btn.clicked.connect(self.select_none)
 
         # Add OK and Cancel buttons
         button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | 
+            QDialogButtonBox.StandardButton.Ok |
             QDialogButtonBox.StandardButton.Cancel
         )
         button_box.accepted.connect(self.accept)
@@ -210,13 +284,17 @@ class TranslationSelectorDialog(QDialog):
         
     def select_all(self):
         """
-        Check all translation checkboxes.
-        
+        Check all translation checkboxes except old English translations.
+
         Side Effects:
-            - Sets all checkboxes to checked state
+            - Sets all checkboxes to checked state except BIS, COV, WYC, GN2, GEN, TYD, TYN
         """
-        for cb in self.checkboxes.values():
-            cb.setChecked(True)
+        # Define old English translations that should not be auto-selected
+        old_english_abbrevs = {'BIS', 'COV', 'WYC', 'GN2', 'GEN', 'TYD', 'TYN'}
+
+        for abbrev, cb in self.checkboxes.items():
+            if abbrev not in old_english_abbrevs:
+                cb.setChecked(True)
             
     def select_none(self):
         """

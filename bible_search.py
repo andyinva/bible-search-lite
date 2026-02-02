@@ -724,6 +724,9 @@ class BibleSearch:
         for term in terms:
             if term.upper() in ['AND', 'OR', '!']:
                 continue
+
+            # Strip parentheses from terms (they're used for grouping in queries)
+            term = term.strip('()')
             
             # Handle quoted phrases
             if term.startswith('"') and term.endswith('"'):
@@ -733,29 +736,44 @@ class BibleSearch:
                     # "sing*" means words starting with "sing" (with word boundaries)
                     if '*' in phrase or '?' in phrase or '%' in phrase:
                         # Quoted wildcard - build pattern with word boundaries
+                        # Track the base pattern (non-wildcard part) for two-color highlighting
                         regex_parts = []
-                        starts_with_wildcard = phrase.startswith('*') or phrase.startswith('%')
+                        starts_with_wildcard = phrase.startswith('*') or phrase.startswith('%') or phrase.startswith('?')
 
                         if not starts_with_wildcard:
                             regex_parts.append(r'\b')
 
+                        # Build the base pattern (without wildcards) to identify the fixed part
+                        # Only use two-color highlighting for patterns like "father*" (letters + wildcard at end)
+                        # Don't use it for patterns like "?'*" (wildcard at start)
+                        if starts_with_wildcard:
+                            # Pattern starts with wildcard - no clear base, use single-color highlighting
+                            base_pattern = None
+                        else:
+                            # Pattern starts with letters - extract base for two-color highlighting
+                            base_pattern = phrase.replace('*', '').replace('%', '').replace('?', '')
+
                         for char in phrase:
                             if char == '*' or char == '%':
-                                regex_parts.append(r'\w*')
+                                # Match word characters including apostrophes
+                                regex_parts.append(r"[a-zA-Z]*(?:[''][a-zA-Z]*)*")
                             elif char == '?':
                                 regex_parts.append(r'\w')
                             else:
                                 regex_parts.append(re.escape(char))
 
+                        # Don't add extra possessive pattern - it's already handled in the wildcard match above
                         regex_parts.append(r'\b')
                         wildcard_pattern = ''.join(regex_parts)
                         for match in re.finditer(wildcard_pattern, text, flags=re.IGNORECASE):
-                            matches_to_highlight.append((match.start(), match.end(), match.group(0)))
+                            # Store: (start, end, matched_text, base_pattern_for_coloring)
+                            matches_to_highlight.append((match.start(), match.end(), match.group(0), base_pattern))
                     else:
                         # Quoted phrase without wildcards - exact match with word boundaries
                         pattern = r'\b' + re.escape(phrase) + r'\b'
                         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
-                            matches_to_highlight.append((match.start(), match.end(), match.group(0)))
+                            # No wildcard - no two-color highlighting needed (None as 4th element)
+                            matches_to_highlight.append((match.start(), match.end(), match.group(0), None))
             else:
                 # Unquoted term - wildcards are NOT supported
                 # Treat *, ?, % as literal characters
@@ -769,7 +787,7 @@ class BibleSearch:
                         # This prevents "I" from highlighting "Israel", "David", etc.
                         boundary_pattern = r'\b' + re.escape(clean_term) + r'(?=\W|$)'
                         for match in re.finditer(boundary_pattern, text, flags=re.IGNORECASE):
-                            matches_to_highlight.append((match.start(), match.end(), match.group(0)))
+                            matches_to_highlight.append((match.start(), match.end(), match.group(0), None))
                     else:
                         # For longer terms, find words containing the search term
                         # Pattern: \b\w*term\w*\b matches whole words containing "term"
@@ -781,28 +799,54 @@ class BibleSearch:
                             word_text = word_match.group(0)
                             word_start = word_match.start()
                             word_end = word_match.end()
-                            matches_to_highlight.append((word_start, word_end, word_text))
+                            matches_to_highlight.append((word_start, word_end, word_text, None))
         
         # Sort matches by position (reverse order for easier processing)
         matches_to_highlight.sort(key=lambda x: x[0], reverse=True)
-        
+
         # Remove overlapping matches (keep the first/longest one)
         filtered_matches = []
-        for start, end, matched_text in matches_to_highlight:
+        for start, end, matched_text, base_pattern in matches_to_highlight:
             # Check if this match overlaps with any already accepted match
             overlaps = False
-            for existing_start, existing_end, _ in filtered_matches:
+            for existing_start, existing_end, _, _ in filtered_matches:
                 if not (end <= existing_start or start >= existing_end):
                     overlaps = True
                     break
-            
+
             if not overlaps:
-                filtered_matches.append((start, end, matched_text))
-        
+                filtered_matches.append((start, end, matched_text, base_pattern))
+
         # Apply highlights from right to left (to preserve indices)
         highlighted_text = text
-        for start, end, matched_text in filtered_matches:
-            highlighted_text = highlighted_text[:start] + '[' + matched_text + ']' + highlighted_text[end:]
+        for start, end, matched_text, base_pattern in filtered_matches:
+            # Two-color highlighting for wildcard matches
+            if base_pattern:
+                # Find where the base pattern ends in the matched text
+                base_len = len(base_pattern)
+                matched_lower = matched_text.lower()
+                base_lower = base_pattern.lower()
+
+                # Find the base in the match (case-insensitive)
+                base_start = matched_lower.find(base_lower)
+                if base_start != -1:
+                    base_end = base_start + base_len
+                    base_part = matched_text[base_start:base_end]
+
+                    # Check if there's a variation after the base
+                    if base_end < len(matched_text):
+                        variation_part = matched_text[base_end:]
+                        # Base in brackets, variation in curly braces for blue color
+                        highlighted_text = highlighted_text[:start] + '[' + base_part + ']{' + variation_part + '}' + highlighted_text[end:]
+                    else:
+                        # No variation - just base
+                        highlighted_text = highlighted_text[:start] + '[' + matched_text + ']' + highlighted_text[end:]
+                else:
+                    # Couldn't find base - just use regular brackets
+                    highlighted_text = highlighted_text[:start] + '[' + matched_text + ']' + highlighted_text[end:]
+            else:
+                # No wildcard - regular bracketing
+                highlighted_text = highlighted_text[:start] + '[' + matched_text + ']' + highlighted_text[end:]
 
         return highlighted_text
     

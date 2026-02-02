@@ -30,7 +30,7 @@ import json
 # Configuration
 GITHUB_USER = "andyinva"
 GITHUB_REPO = "bible-search-lite"
-RELEASE_VERSION = "v1.0"  # Update this to match your release tag
+RELEASE_VERSION = "v1.1.4"  # Update this to match your release tag
 
 # GitHub URLs
 RELEASE_BASE_URL = f"https://github.com/{GITHUB_USER}/{GITHUB_REPO}/releases/download/{RELEASE_VERSION}"
