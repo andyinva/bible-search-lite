@@ -3,22 +3,25 @@
 ## Wildcard Operators
 
 ### Asterisk (*) - Multiple Characters Wildcard
-Matches any number of characters (0 or more).
+Matches any number of characters (0 or more). **Automatically includes possessive forms.**
 
 **Examples:**
-- `love*` → love, loved, loving, lover, loves, loveth
-- `bless*` → bless, blessed, blessing, blessings, blessedness
-- `*ness` → righteousness, holiness, goodness, kindness
+- `"love*"` → love, loved, loving, lover, loves, loveth, love's
+- `"bless*"` → bless, blessed, blessing, blessings, blessedness, blessing's
+- `"*ness"` → righteousness, holiness, goodness, kindness
+- `"father*"` → father, fathers, father's, fathers'
+
+**Note:** Possessive forms (with apostrophes like 's or s') are automatically matched
 
 ### Percent Sign (%) - Stem/Root Wildcard
-Same as asterisk (*), matches word stems and variations.
+Same as asterisk (*), matches word stems and variations. **Automatically includes possessive forms.**
 
 **Examples:**
-- `believ%` → believe, believed, believer, believing, believeth
-- `lov%` → love, loved, loves, lover, loving, loveth
-- `pray%` → pray, prayed, prayer, prayers, praying
+- `"believ%"` → believe, believed, believer, believing, believeth, believer's
+- `"lov%"` → love, loved, loves, lover, loving, loveth, lover's
+- `"pray%"` → pray, prayed, prayer, prayers, praying, prayer's
 
-**Note:** * and % work identically - use whichever you prefer
+**Note:** * and % work identically - use whichever you prefer. Both automatically match possessive forms.
 
 ### Question Mark (?) - Single Character Wildcard
 Matches exactly one character.
