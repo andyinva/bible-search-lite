@@ -7,11 +7,11 @@ Manages subject creation, verse collection, and display.
 import sqlite3
 from PyQt6.QtWidgets import (QPushButton, QComboBox, QHBoxLayout,
                               QVBoxLayout, QWidget, QMessageBox, QInputDialog)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QObject
 from bible_search_ui.ui.widgets import VerseListWidget, SectionWidget
 
 
-class SubjectVerseManager:
+class SubjectVerseManager(QObject):
     """
     Manages subject verses (Window 4).
     Handles subject creation, verse collection, and display.
@@ -25,6 +25,7 @@ class SubjectVerseManager:
             db_conn: SQLite database connection
             parent_app: Reference to main BibleSearchProgram
         """
+        super().__init__()  # Initialize QObject
         self.db_conn = db_conn
         self.parent_app = parent_app
 
@@ -60,6 +61,9 @@ class SubjectVerseManager:
         self.subject_dropdown.setEditable(True)
         self.subject_dropdown.setPlaceholderText("Select or create subject...")
         self.subject_dropdown.currentTextChanged.connect(self.on_subject_selected)
+        self.subject_dropdown.editTextChanged.connect(self.update_create_button_state)
+        # Install event filter to detect focus events
+        self.subject_dropdown.lineEdit().installEventFilter(self)
 
         # Style dropdown for visibility on all platforms
         self.subject_dropdown.setStyleSheet("""
@@ -124,11 +128,28 @@ class SubjectVerseManager:
             }
         """
 
-        # Create button
+        # Create button - starts gray (disabled until field is focused)
         self.create_btn = QPushButton("Create")
-        self.create_btn.setStyleSheet(button_style)
+        self.create_btn.setEnabled(False)  # Start disabled
+        # Gray style for initial state
+        gray_initial_style = """
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #999999;
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+        """
+        self.create_btn.setStyleSheet(gray_initial_style)
         self.create_btn.clicked.connect(self.on_create_subject)
         controls_layout.addWidget(self.create_btn)
+
+        # Timer to delay Create button state check (wait for user to finish typing)
+        from PyQt6.QtCore import QTimer
+        self.create_button_check_timer = QTimer()
+        self.create_button_check_timer.setSingleShot(True)
+        self.create_button_check_timer.timeout.connect(self.check_create_button_state)
 
         # Acquire button
         self.acquire_btn = QPushButton("Acquire")
@@ -263,6 +284,144 @@ class SubjectVerseManager:
             print(f"⚠️  Error in on_subject_changed: {e}")
         finally:
             self.parent_app._syncing_subjects = False
+
+    def eventFilter(self, obj, event):
+        """Handle events for Window 4 subject combo box."""
+        from PyQt6.QtCore import QEvent
+
+        # Check if this is the Window 4 subject combo line edit
+        # Safely check if dropdown still exists (may be deleted during shutdown)
+        try:
+            is_subject_dropdown = (obj == self.subject_dropdown.lineEdit())
+        except RuntimeError:
+            # Widget has been deleted (during shutdown)
+            return super().eventFilter(obj, event)
+
+        if is_subject_dropdown:
+            if event.type() == QEvent.Type.FocusIn:
+                # User clicked into the field - update button state
+                text = self.subject_dropdown.currentText().strip()
+                if not text:
+                    # Empty field with focus - turn green
+                    green_style = """
+                        QPushButton {
+                            background-color: #4CAF50;
+                            color: white;
+                            border: 2px solid #2E7D32;
+                            border-radius: 3px;
+                            padding: 4px 8px;
+                            font-weight: bold;
+                        }
+                        QPushButton:hover {
+                            background-color: #45a049;
+                        }
+                        QPushButton:pressed {
+                            background-color: #3d8b40;
+                        }
+                    """
+                    self.create_btn.setEnabled(True)
+                    self.create_btn.setStyleSheet(green_style)
+                else:
+                    # Has text - check if it exists
+                    self.update_create_button_state(text)
+
+        return super().eventFilter(obj, event)
+
+    def update_create_button_state(self, text):
+        """Update Create button state based on typed text.
+        Uses a timer to delay checking until user pauses typing.
+
+        Args:
+            text: Current text in the subject dropdown
+        """
+        text = text.strip()
+
+        # Green style for enabled state
+        green_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: 2px solid #2E7D32;
+                border-radius: 3px;
+                padding: 4px 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b40;
+            }
+        """
+
+        # Empty field with cursor - enable and turn green immediately (no delay needed)
+        if not text:
+            self.create_button_check_timer.stop()  # Cancel any pending check
+            self.create_btn.setEnabled(True)
+            self.create_btn.setStyleSheet(green_style)
+            return
+
+        # User is typing - keep button green while typing, delay the database check
+        self.create_btn.setEnabled(True)
+        self.create_btn.setStyleSheet(green_style)
+
+        # Restart timer - will check database after 500ms of no typing
+        self.create_button_check_timer.stop()
+        self.create_button_check_timer.start(500)  # 500ms delay
+
+    def check_create_button_state(self):
+        """Check if subject exists in database (called after typing delay)."""
+        text = self.subject_dropdown.currentText().strip()
+
+        if not text:
+            return  # Already handled in update method
+
+        # Button styles
+        gray_style = """
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #999999;
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+        """
+
+        green_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: 2px solid #2E7D32;
+                border-radius: 3px;
+                padding: 4px 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b40;
+            }
+        """
+
+        # Check if subject already exists
+        try:
+            cursor = self.db_conn.cursor()
+            cursor.execute("SELECT id FROM subjects WHERE name = ?", (text,))
+            exists = cursor.fetchone() is not None
+
+            if exists:
+                # Subject exists - disable and gray out
+                self.create_btn.setEnabled(False)
+                self.create_btn.setStyleSheet(gray_style)
+            else:
+                # New subject - keep green and enabled
+                self.create_btn.setEnabled(True)
+                self.create_btn.setStyleSheet(green_style)
+        except Exception as e:
+            print(f"Error checking subject existence: {e}")
+            self.create_btn.setEnabled(False)
+            self.create_btn.setStyleSheet(gray_style)
 
     def on_create_subject(self):
         """Create a new subject from dropdown text."""
