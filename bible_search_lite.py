@@ -114,12 +114,22 @@ class BibleSearchProgram(QMainWindow):
         self.config_manager = ConfigManager("bible_search_lite_config.json")
         self.config_file = "bible_search_lite_config.json"
 
-        # Message log for Help menu
-        self.message_log = []
-        self.max_message_log_size = 500  # Keep last 500 messages
+        # Message log with timestamps for 2-day retention
+        self.message_log = []  # Store as (timestamp, message) tuples
+        self.message_retention_days = 2  # Keep messages for 2 days
 
-        # Debug log for Help menu (cleared on each app start)
-        self.debug_log = []
+        # Debug log with timestamps for 2-day retention
+        self.debug_log = []  # Store as (timestamp, message) tuples
+        self.debug_retention_days = 2  # Keep debug messages for 2 days
+
+        # Set up periodic cleanup timer (runs every 6 hours)
+        from PyQt6.QtCore import QTimer
+        self.cleanup_timer = QTimer()
+        self.cleanup_timer.timeout.connect(self.cleanup_old_messages)
+        self.cleanup_timer.start(6 * 60 * 60 * 1000)  # 6 hours in milliseconds
+
+        # Run initial cleanup on startup
+        self.cleanup_old_messages()
 
         # Set initial geometry (will be overridden by load_config if config exists)
         self.setGeometry(100, 100, 1200, 900)
@@ -248,20 +258,50 @@ class BibleSearchProgram(QMainWindow):
         self.load_config()
         self.add_sample_verses()
 
+    def cleanup_old_messages(self):
+        """Remove messages older than retention period (2 days)"""
+        from datetime import datetime, timedelta
+
+        cutoff_time = datetime.now() - timedelta(days=self.message_retention_days)
+
+        # Clean message log
+        self.message_log = [(ts, msg) for ts, msg in self.message_log if ts > cutoff_time]
+
+        # Clean debug log
+        self.debug_log = [(ts, msg) for ts, msg in self.debug_log if ts > cutoff_time]
+
     def log_message(self, message):
         """Add a message to the message log with timestamp"""
         from datetime import datetime
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_entry = f"[{timestamp}] {message}"
-        self.message_log.append(log_entry)
 
-        # Keep only the last N messages
-        if len(self.message_log) > self.max_message_log_size:
-            self.message_log = self.message_log[-self.max_message_log_size:]
+        timestamp = datetime.now()
+        self.message_log.append((timestamp, message))
+
+        # Clean up old messages periodically (every 100 messages)
+        if len(self.message_log) % 100 == 0:
+            self.cleanup_old_messages()
 
     def set_message(self, message):
-        """Set message label text and log it"""
-        self.message_label.setText(message)
+        """Add message to scrollable message history and log it"""
+        if not message:  # Empty message clears the display
+            self.message_label.setPlainText("")
+        else:
+            # Get current text
+            current_text = self.message_label.toPlainText()
+
+            # If there's already text, add a separator
+            if current_text and current_text != "Ready to search the Bible...":
+                new_text = current_text + "\n" + message
+            else:
+                new_text = message
+
+            # Update the text
+            self.message_label.setPlainText(new_text)
+
+            # Auto-scroll to bottom to show newest message
+            scrollbar = self.message_label.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
+
         self.log_message(message)
 
     def show_message_log(self):
@@ -280,7 +320,9 @@ class BibleSearchProgram(QMainWindow):
         log_text.setStyleSheet("font-family: monospace; background-color: white;")
 
         if self.message_log:
-            log_text.setPlainText("\n".join(self.message_log))
+            # Format tuples as "[timestamp] message" strings
+            formatted_log = [f"[{ts.strftime('%Y-%m-%d %H:%M:%S')}] {msg}" for ts, msg in self.message_log]
+            log_text.setPlainText("\n".join(formatted_log))
             # Scroll to bottom to show most recent messages
             log_text.verticalScrollBar().setValue(log_text.verticalScrollBar().maximum())
         else:
@@ -315,10 +357,13 @@ class BibleSearchProgram(QMainWindow):
         # Convert args to string like self.debug_print() does
         message = ' '.join(str(arg) for arg in args)
 
-        # Add to debug log with timestamp
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_entry = f"[{timestamp}] {message}"
-        self.debug_log.append(log_entry)
+        # Add to debug log with timestamp (as tuple for retention)
+        timestamp = datetime.now()
+        self.debug_log.append((timestamp, message))
+
+        # Clean up old messages periodically (every 100 messages)
+        if len(self.debug_log) % 100 == 0:
+            self.cleanup_old_messages()
 
         # Still print to console for real-time viewing
         builtins.print(*args, **kwargs)
@@ -334,7 +379,7 @@ class BibleSearchProgram(QMainWindow):
         layout = QVBoxLayout(dialog)
 
         # Info label
-        info_label = QLabel("Debug log shows technical messages from this session. Cleared on app restart.")
+        info_label = QLabel(f"Debug log shows technical messages from the last {self.debug_retention_days} days.")
         info_label.setStyleSheet("color: #666; font-size: 10px; padding: 5px;")
         layout.addWidget(info_label)
 
@@ -344,7 +389,9 @@ class BibleSearchProgram(QMainWindow):
         log_text.setStyleSheet("font-family: monospace; font-size: 10px; background-color: white;")
 
         if self.debug_log:
-            log_text.setPlainText("\n".join(self.debug_log))
+            # Format tuples as "[timestamp] message" strings
+            formatted_log = [f"[{ts.strftime('%Y-%m-%d %H:%M:%S')}] {msg}" for ts, msg in self.debug_log]
+            log_text.setPlainText("\n".join(formatted_log))
             # Scroll to bottom to show most recent messages
             log_text.verticalScrollBar().setValue(log_text.verticalScrollBar().maximum())
         else:
@@ -414,9 +461,23 @@ class BibleSearchProgram(QMainWindow):
         """)
         main_layout.addWidget(self.main_splitter)
         
-        # 1. Message Window with context-sensitive buttons
-        self.message_label = QLabel("Ready to search the Bible...")
-        self.message_label.setStyleSheet("background-color: white; padding: 10px;")
+        # 1. Message Window with context-sensitive buttons (scrollable history)
+        from PyQt6.QtWidgets import QTextEdit
+        self.message_label = QTextEdit()
+        self.message_label.setReadOnly(True)
+        self.message_label.setMaximumHeight(55)  # Limit height to exactly 3 lines
+        self.message_label.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.message_label.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.message_label.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.message_label.setPlainText("Ready to search the Bible...")
+        self.message_label.setStyleSheet("""
+            QTextEdit {
+                background-color: white;
+                padding: 5px;
+                border: none;
+                font-family: inherit;
+            }
+        """)
 
         # Wrap message label and load more button in a beveled frame
         message_frame = QFrame()
@@ -830,6 +891,9 @@ class BibleSearchProgram(QMainWindow):
         self.reading_subject_combo.setPlaceholderText("Select or create subject...")
         self.reading_subject_combo.setMinimumWidth(200)
         self.reading_subject_combo.currentTextChanged.connect(self.on_reading_subject_changed)
+        self.reading_subject_combo.editTextChanged.connect(self.update_window3_create_button_state)
+        # Install event filter to detect focus events
+        self.reading_subject_combo.lineEdit().installEventFilter(self)
 
         # Style dropdown for visibility on all platforms
         self.reading_subject_combo.setStyleSheet("""
@@ -878,7 +942,15 @@ class BibleSearchProgram(QMainWindow):
         self.create_subject_btn = QPushButton("Create")
         self.create_subject_btn.clicked.connect(self.on_create_subject_from_reading)
         self.create_subject_btn.setToolTip("Create a new subject with the typed name")
+        self.create_subject_btn.setEnabled(False)  # Start disabled until field is focused
+        self.create_subject_btn.setStyleSheet(self.get_button_style(active=False))
         layout.addWidget(self.create_subject_btn)
+
+        # Timer to delay Create button state check (wait for user to finish typing)
+        from PyQt6.QtCore import QTimer
+        self.create_button_check_timer = QTimer()
+        self.create_button_check_timer.setSingleShot(True)
+        self.create_button_check_timer.timeout.connect(self.check_window3_create_button_state)
 
         # Acquire button (adds checked verses to selected subject)
         self.send_btn = QPushButton("Acquire")
@@ -1207,6 +1279,14 @@ class BibleSearchProgram(QMainWindow):
             # For individual books, show the book name
             self.books_button.setText(filter_name)
 
+        # Update button style - highlight if not "All Books"
+        if filter_name == "All Books":
+            # Normal style for "All Books"
+            self.books_button.setStyleSheet(self.get_button_style(active=False))
+        else:
+            # Green/highlighted style when book filter is active
+            self.books_button.setStyleSheet(self.get_button_style(active=True))
+
         self.debug_print(f"📚 Book filter selected: {filter_name}")
 
     def on_verse_navigation(self, verse_id):
@@ -1250,12 +1330,34 @@ class BibleSearchProgram(QMainWindow):
         # Clear subject dropdown in Window 3
         if hasattr(self, 'reading_subject_combo'):
             self.reading_subject_combo.setCurrentIndex(0)  # Reset to empty
+            # Reset Window 3 Create button to gray (disabled)
+            if hasattr(self, 'create_subject_btn'):
+                self.create_subject_btn.setEnabled(False)
+                self.create_subject_btn.setStyleSheet(self.get_button_style(active=False))
+                # Stop any pending timer check
+                if hasattr(self, 'create_button_check_timer'):
+                    self.create_button_check_timer.stop()
 
         # Clear subject dropdown in Window 4
         if self.subject_manager and self.subject_manager.verse_manager:
             self.subject_manager.verse_manager.subject_dropdown.setCurrentIndex(0)
             self.subject_manager.verse_manager.current_subject = None
             self.subject_manager.verse_manager.current_subject_id = None
+            # Reset Window 4 Create button to gray (disabled)
+            gray_style = """
+                QPushButton {
+                    background-color: #f0f0f0;
+                    color: #999999;
+                    border: 1px solid #cccccc;
+                    border-radius: 3px;
+                    padding: 4px 8px;
+                }
+            """
+            self.subject_manager.verse_manager.create_btn.setEnabled(False)
+            self.subject_manager.verse_manager.create_btn.setStyleSheet(gray_style)
+            # Stop any pending timer check
+            if hasattr(self.subject_manager.verse_manager, 'create_button_check_timer'):
+                self.subject_manager.verse_manager.create_button_check_timer.stop()
             # Update button states in Window 4
             self.subject_manager.verse_manager.update_button_states()
 
@@ -1270,6 +1372,9 @@ class BibleSearchProgram(QMainWindow):
         self.available_word_variations = 0
         self.update_filter_button_state()
 
+        # Reset book filter to "All Books"
+        self.select_book_filter("All Books")
+
         # Clear the search input box
         self.search_input.setCurrentIndex(-1)
         self.search_input.lineEdit().clear()
@@ -1277,7 +1382,7 @@ class BibleSearchProgram(QMainWindow):
         # Stop blinking message if selection was locked
         self.unlock_selection_mode()
 
-        self.set_message("Search results, reading window, references, and subjects cleared")
+        self.set_message("Search results, reading window, references, subjects, and book filter cleared")
 
     def show_translation_selector(self):
         """Show dialog to select which translations to search"""
@@ -1790,6 +1895,12 @@ class BibleSearchProgram(QMainWindow):
         """Show filter dialog to select which word variations to include"""
         self.debug_print("🔍 Filter button clicked!")
 
+        # If the filter dialog is already open, close it (toggle behavior)
+        if hasattr(self, 'filter_dialog') and self.filter_dialog and self.filter_dialog.isVisible():
+            self.debug_print("📦 Filter dialog already open - closing it")
+            self.filter_dialog.reject()  # Close as if user clicked Close/X
+            return
+
         # Check if there are search results
         if 'search' not in self.verse_lists:
             self.debug_print("❌ 'search' not in verse_lists")
@@ -1803,23 +1914,39 @@ class BibleSearchProgram(QMainWindow):
 
         self.debug_print(f"✅ Found {len(self.verse_lists['search'].verse_items)} verses in search results")
 
-        # Extract word counts from current search results
-        word_counts = self.extract_word_counts()
-        self.debug_print(f"📊 Extracted {len(word_counts)} unique words")
+        # Check if we have cached word counts (to avoid re-extraction delay)
+        if hasattr(self, '_cached_word_counts') and self._cached_word_counts:
+            self.debug_print("📦 Using cached word counts (instant)")
+            word_counts = self._cached_word_counts
+        else:
+            # Show "Analyzing..." message while extracting word variations
+            self.set_message("Analyzing word variations...")
+            QApplication.processEvents()  # Force UI update
 
-        if not word_counts:
-            self.set_message("No words found in search results")
-            return
+            # Extract word counts from current search results
+            word_counts = self.extract_word_counts()
+            self.debug_print(f"📊 Extracted {len(word_counts)} unique words")
+
+            if not word_counts:
+                self.set_message("No words found in search results")
+                return
+
+            # Cache the word counts for quick reopening
+            self._cached_word_counts = word_counts
+            self.debug_print("💾 Cached word counts for fast reopening")
+
+            # Clear the "Analyzing..." message
+            self.set_message("")
 
         # Store the count of available word variations
         self.available_word_variations = len(word_counts)
 
         self.debug_print("📦 Opening SearchFilterDialog...")
-        # Show the filter dialog
-        dialog = SearchFilterDialog(self, word_counts)
-        if dialog.exec():
+        # Show the filter dialog and store reference for toggle behavior
+        self.filter_dialog = SearchFilterDialog(self, word_counts)
+        if self.filter_dialog.exec():
             # Get selected words
-            selected_words = dialog.get_selected_words()
+            selected_words = self.filter_dialog.get_selected_words()
 
             # Store filtered words for the next search
             self.filtered_words = selected_words if selected_words else None
@@ -1832,6 +1959,9 @@ class BibleSearchProgram(QMainWindow):
                 self.set_message(f"Filter applied: {len(self.filtered_words)} word(s) selected. Click Search to re-filter results.")
             else:
                 self.set_message("All words unchecked - filter cleared")
+
+        # Clear the dialog reference when it closes
+        self.filter_dialog = None
 
     def _extract_phrase_patterns(self, all_results, query):
         """Extract phrase patterns for word placeholder queries.
@@ -2361,6 +2491,10 @@ class BibleSearchProgram(QMainWindow):
         # Record search start time and search query
         self.search_start_time = time.time()
         self.current_search_query = search_term
+
+        # Clear cached word counts since we're doing a new search
+        self._cached_word_counts = None
+        self.debug_print("🗑️  Cleared word counts cache for new search")
 
         self.debug_print(f"📝 Search term: '{search_term}'")
 
@@ -2911,11 +3045,18 @@ class BibleSearchProgram(QMainWindow):
         self.debug_print(f"📊 Status message: total={total_results}, unique={unique_count}, displayed={displayed_count}")
 
         # Build comprehensive message
-        # Format: Search: "query" | Total: 5809 | Displayed: 300 | Time: 2.45s (scroll for more)
+        # Format: Search: "query" | Books: Exodus | Total: 5809 | Displayed: 300 | Time: 2.45s (scroll for more)
         filter_was_used = hasattr(self, 'filter_was_applied') and self.filter_was_applied
 
         # Start with search query
-        custom_message = f'Search: "{search_query}" | Total: {total_results}'
+        custom_message = f'Search: "{search_query}"'
+
+        # Add book filter if not "All Books"
+        if hasattr(self, 'selected_book_filter') and self.selected_book_filter != "All Books":
+            custom_message += f' | Books: {self.selected_book_filter}'
+
+        # Add total count
+        custom_message += f' | Total: {total_results}'
 
         # Only show Unique count if it's different from Total (i.e., unique filtering was applied)
         if unique_count != total_results:
@@ -5139,6 +5280,10 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
             self.reading_subject_combo.setCurrentIndex(0)  # Reset to empty
             self.debug_print("✓ Cleared subject dropdown selection")
 
+        # Reset book filter to "All Books" before saving
+        self.selected_book_filter = "All Books"
+        self.debug_print("✓ Reset book filter to 'All Books' for next session")
+
         # Save configuration (including window sizes)
         self.save_config()
         self.debug_print("✓ Configuration saved on exit")
@@ -5619,11 +5764,13 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
         self.blink_state = True
         self.set_message(message)
         self.message_label.setStyleSheet("""
-            background-color: #fffacd;
-            padding: 10px;
-            border: 2px solid #ff6b6b;
-            font-weight: bold;
-            color: #d32f2f;
+            QTextEdit {
+                background-color: #fffacd;
+                padding: 5px;
+                border: 2px solid #ff6b6b;
+                font-weight: bold;
+                color: #d32f2f;
+            }
         """)
 
         # Start blink timer
@@ -5655,19 +5802,23 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
 
         if self.blink_state:
             self.message_label.setStyleSheet("""
-                background-color: #fffacd;
-                padding: 10px;
-                border: 2px solid #ff6b6b;
-                font-weight: bold;
-                color: #d32f2f;
+                QTextEdit {
+                    background-color: #fffacd;
+                    padding: 5px;
+                    border: 2px solid #ff6b6b;
+                    font-weight: bold;
+                    color: #d32f2f;
+                }
             """)
         else:
             self.message_label.setStyleSheet("""
-                background-color: #ffebee;
-                padding: 10px;
-                border: 2px solid #ff6b6b;
-                font-weight: bold;
-                color: #d32f2f;
+                QTextEdit {
+                    background-color: #ffebee;
+                    padding: 5px;
+                    border: 2px solid #ff6b6b;
+                    font-weight: bold;
+                    color: #d32f2f;
+                }
             """)
 
     def auto_stop_blinking(self):
@@ -5755,7 +5906,13 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
         self.update_window3_acquire_style()
 
         # Restore normal message label style
-        self.message_label.setStyleSheet("background-color: white; padding: 10px; border: 1px solid #ccc;")
+        self.message_label.setStyleSheet("""
+            QTextEdit {
+                background-color: white;
+                padding: 5px;
+                border: none;
+            }
+        """)
 
         self.debug_print("🔓 Selection UNLOCKED")
 
@@ -5819,6 +5976,83 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                     self.debug_print(f"⚠️  Error syncing subject to Window 4: {e}")
                 finally:
                     self._syncing_subjects = False
+
+    def eventFilter(self, obj, event):
+        """Handle events for Window 3 subject combo box."""
+        from PyQt6.QtCore import QEvent
+
+        # Check if this is the Window 3 subject combo line edit
+        # Safely check if dropdown still exists (may be deleted during shutdown)
+        try:
+            is_reading_subject_combo = (obj == self.reading_subject_combo.lineEdit())
+        except RuntimeError:
+            # Widget has been deleted (during shutdown)
+            return super().eventFilter(obj, event)
+
+        if is_reading_subject_combo:
+            if event.type() == QEvent.Type.FocusIn:
+                # User clicked into the field - update button state
+                text = self.reading_subject_combo.currentText().strip()
+                if not text:
+                    # Empty field with focus - turn green
+                    self.create_subject_btn.setEnabled(True)
+                    self.create_subject_btn.setStyleSheet(self.get_button_style(active=True))
+                else:
+                    # Has text - check if it exists
+                    self.update_window3_create_button_state(text)
+
+        return super().eventFilter(obj, event)
+
+    def update_window3_create_button_state(self, text):
+        """Update Window 3 Create button state based on typed text.
+        Uses a timer to delay checking until user pauses typing.
+
+        Args:
+            text: Current text in the subject dropdown
+        """
+        text = text.strip()
+
+        # Empty field with cursor - enable and turn green immediately (no delay needed)
+        if not text:
+            self.create_button_check_timer.stop()  # Cancel any pending check
+            self.create_subject_btn.setEnabled(True)
+            self.create_subject_btn.setStyleSheet(self.get_button_style(active=True))
+            return
+
+        # User is typing - keep button green while typing, delay the database check
+        self.create_subject_btn.setEnabled(True)
+        self.create_subject_btn.setStyleSheet(self.get_button_style(active=True))
+
+        # Restart timer - will check database after 500ms of no typing
+        self.create_button_check_timer.stop()
+        self.create_button_check_timer.start(500)  # 500ms delay
+
+    def check_window3_create_button_state(self):
+        """Check if subject exists in database (called after typing delay)."""
+        text = self.reading_subject_combo.currentText().strip()
+
+        if not text:
+            return  # Already handled in update method
+
+        # Check if subject already exists
+        if self.subject_manager:
+            try:
+                cursor = self.subject_manager.db_conn.cursor()
+                cursor.execute("SELECT id FROM subjects WHERE name = ?", (text,))
+                exists = cursor.fetchone() is not None
+
+                if exists:
+                    # Subject exists - disable and gray out
+                    self.create_subject_btn.setEnabled(False)
+                    self.create_subject_btn.setStyleSheet(self.get_button_style(active=False))
+                else:
+                    # New subject - keep green and enabled
+                    self.create_subject_btn.setEnabled(True)
+                    self.create_subject_btn.setStyleSheet(self.get_button_style(active=True))
+            except Exception as e:
+                self.debug_print(f"Error checking subject existence: {e}")
+                self.create_subject_btn.setEnabled(False)
+                self.create_subject_btn.setStyleSheet(self.get_button_style(active=False))
 
     def on_create_subject_from_reading(self):
         """Create a new subject from Window 3's dropdown text."""

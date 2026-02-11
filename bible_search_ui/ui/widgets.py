@@ -98,21 +98,26 @@ class VerseItemWidget(QWidget):
         # Checkbox (fixed width for alignment) - very small with checkmark
         self.checkbox = QCheckBox()
         self.checkbox.setFixedWidth(16)  # Even smaller
-        # Very small checkbox - simple color fill when checked (most reliable)
+        # Very small checkbox with visible checkmark (cross-platform compatible)
+        # Using solid fill with contrasting border for maximum compatibility
         self.checkbox.setStyleSheet("""
             QCheckBox {
                 background-color: transparent;
+                spacing: 0px;
             }
             QCheckBox::indicator {
-                width: 11px;
-                height: 11px;
+                width: 13px;
+                height: 13px;
                 border: 1px solid #999;
                 border-radius: 2px;
                 background-color: white;
             }
             QCheckBox::indicator:checked {
-                border: 1px solid #333;
-                background-color: #333;
+                border: 2px solid #2196F3;
+                background-color: #2196F3;
+            }
+            QCheckBox::indicator:hover {
+                border: 1px solid #666;
             }
         """)
         self.checkbox.stateChanged.connect(self.on_checkbox_changed)
