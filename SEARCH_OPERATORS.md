@@ -24,11 +24,27 @@ Same as asterisk (*), matches word stems and variations. **Automatically include
 **Note:** * and % work identically - use whichever you prefer. Both automatically match possessive forms.
 
 ### Question Mark (?) - Single Character Wildcard
-Matches exactly one character.
+Matches **exactly one** character at that position. **Must be in quotes.**
+
+**Important:** The `?` wildcard requires the word to be a specific length. It matches exactly one character - no more, no less.
 
 **Examples:**
-- `l?ve` → love, live (not leave or believe)
-- `m?n` → man, men, min, mon
+- `"l?ve"` → love, live (4 letters total) - NOT leave or believe
+- `"m?n"` → man, men, min, mon (3 letters total)
+- `"father?"` → fathers, father' (7 letters total) - NOT father (6 letters) or father's (8 letters)
+- `"walk?"` → walks, walkt (5 letters total) - NOT walk (4 letters) or walked (6 letters)
+
+**Common Mistake:**
+- ❌ `"father?"` expecting to match both "father" AND "fathers"
+  - This ONLY matches 7-letter words (father + exactly 1 character)
+  - Plain "father" is 6 letters, so it does NOT match
+- ✅ `"father*"` to match "father", "fathers", "father's", etc.
+  - The `*` wildcard matches zero OR more characters
+  - This matches "father" (0 extra), "fathers" (1 extra), "father's" (2 extra)
+
+**When to use `?` vs `*`:**
+- Use `?` when you know the exact length: `"m?n"` for 3-letter words only
+- Use `*` when you want all variations: `"father*"` for all forms
 
 ## Special Operators
 
@@ -126,6 +142,34 @@ Mix different operators for powerful searches:
 - `pray% ~5 faith` → any "pray" form within 5 words of "faith"
 - `("faith" OR "belief") AND ("works" OR "deeds")` → complex AND/OR combinations
 
+## Common Issues and Solutions
+
+### Problem: "father?" doesn't highlight "father" (only "fathers")
+
+**Why:** The `?` wildcard matches **exactly one** character. "father" is 6 letters, "fathers" is 7 letters.
+- `"father?"` requires a 7-letter word (father + exactly 1 character)
+- Plain "father" (6 letters) does NOT match
+
+**Solution:** Use `"father*"` instead
+- `"father*"` matches "father" (0 extra), "fathers" (1 extra), "father's" (2 extra), etc.
+
+### Problem: Wildcard searches find nothing
+
+**Why:** Wildcards require quotation marks.
+- ❌ `father*` (without quotes) searches for literal text "father*"
+- ✅ `"father*"` (with quotes) uses wildcard matching
+
+**Solution:** Always put wildcards in quotes: `"word*"` or `"word?"`
+
+### Problem: Word not highlighting in results
+
+**Check these:**
+1. Is the word in the Filter list? (Click Filter button to see all matched words)
+2. Does your pattern actually match?
+   - `"father?"` matches "fathers" (7 letters) not "father" (6 letters)
+   - `"father*"` matches both "father" and "fathers"
+3. Are you using quotes? Wildcards need quotes: `"word*"`
+
 ## Important Limitations
 
 ### Wildcard Requirements
@@ -160,11 +204,11 @@ Break complex queries into multiple simpler searches:
 
 ## Quick Reference Table
 
-| Operator | Purpose | Example |
-|----------|---------|---------|
-| `*` | Multiple characters wildcard | `love*` → loved, loving |
-| `%` | Stem/root wildcard (same as *) | `believ%` → believe, believed |
-| `?` | Single character wildcard | `m?n` → man, men |
+| Operator | Purpose | Example | Key Point |
+|----------|---------|---------|-----------|
+| `*` | Zero or more characters | `"love*"` → love, loved, loving | **Matches the base word too** |
+| `%` | Zero or more (same as *) | `"believ%"` → believe, believed | Same as asterisk |
+| `?` | Exactly one character | `"m?n"` → man, men | **Requires exact length** |
 | `&` | Word placeholder (exactly one word) | `who & sent` → "who had sent" |
 | `>` | Ordered words (must be in sequence) | `love > God` → love before God |
 | `~N` | Proximity (words within N words) | `love ~4 God` → within 4 words |

@@ -758,7 +758,8 @@ class BibleSearch:
                                 # Match word characters including apostrophes
                                 regex_parts.append(r"[a-zA-Z]*(?:[''][a-zA-Z]*)*")
                             elif char == '?':
-                                regex_parts.append(r'\w')
+                                # Match exactly one character (letter or apostrophe for possessives)
+                                regex_parts.append(r"[a-zA-Z'']")
                             else:
                                 regex_parts.append(re.escape(char))
 
