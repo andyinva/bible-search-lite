@@ -896,9 +896,9 @@ class SearchFilterDialog(QDialog):
         """)
         button_layout.addWidget(search_btn)
 
-        # Close button
+        # Close button - use reject() so it doesn't trigger filter updates
         close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.accept)
+        close_btn.clicked.connect(self.reject)
         close_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;

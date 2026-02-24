@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 # Version number
-VERSION = "1.1.3"
+VERSION = "1.1.5"
 
 # Import custom UI components, config, and controllers from refactored modules
 from bible_search_ui.ui.widgets import VerseItemWidget, VerseListWidget, SectionWidget
@@ -107,7 +107,7 @@ class SelectionManager:
 class BibleSearchProgram(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"Bible Search Lite v{VERSION} (January 2026)")
+        self.setWindowTitle(f"Bible Search Lite v{VERSION} (February 2026)")
 
         # Configuration manager
         self.config_manager = ConfigManager("bible_search_lite_config.json")
@@ -1935,8 +1935,7 @@ class BibleSearchProgram(QMainWindow):
             self._cached_word_counts = word_counts
             self.debug_print("💾 Cached word counts for fast reopening")
 
-            # Clear the "Analyzing..." message
-            self.set_message("")
+            # Note: Don't clear message - let it stay in message history
 
         # Store the count of available word variations
         self.available_word_variations = len(word_counts)
