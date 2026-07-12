@@ -82,3 +82,5 @@ bible-search-lite-test*/
 
 # Log files
 *.log
+*:Zone.Identifier
+.claude/settings.local.json
