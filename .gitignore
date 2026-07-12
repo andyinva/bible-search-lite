@@ -84,3 +84,5 @@ bible-search-lite-test*/
 *.log
 *:Zone.Identifier
 .claude/settings.local.json
+database/*_bk.db
+database/*_BK.db
