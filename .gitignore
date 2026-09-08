@@ -93,3 +93,6 @@ database/*_BK.db
 # Any copy or backup of the main database, whatever the suffix
 database/bibles.db.*
 database/bibles*.db
+
+# Folder the in-app updater writes the previous files to
+update_backup/

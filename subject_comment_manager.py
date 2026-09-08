@@ -56,9 +56,9 @@ class SubjectCommentManager:
         """
         # Create controls with solid background
         controls_widget = QWidget()
-        controls_widget.setStyleSheet("background-color: #f0f0f0; padding: 5px;")
+        controls_widget.setStyleSheet("background-color: #f4f4f4; padding: 3px;")
         controls_layout = QHBoxLayout(controls_widget)
-        controls_layout.setContentsMargins(5, 5, 5, 5)
+        controls_layout.setContentsMargins(3, 3, 3, 3)
 
         # Button style for cross-platform consistency
         button_style = """
@@ -155,9 +155,9 @@ class SubjectCommentManager:
     def create_formatting_toolbar(self):
         """Create a formatting toolbar widget that can be shown/hidden."""
         toolbar_widget = QWidget()
-        toolbar_widget.setStyleSheet("background-color: #f5f5f5; padding: 5px;")
+        toolbar_widget.setStyleSheet("background-color: #f4f4f4; padding: 3px;")
         toolbar_layout = QHBoxLayout(toolbar_widget)
-        toolbar_layout.setContentsMargins(5, 5, 5, 5)
+        toolbar_layout.setContentsMargins(3, 3, 3, 3)
 
         # Toolbar button style for cross-platform consistency
         toolbar_button_base = """
