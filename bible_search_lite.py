@@ -11,11 +11,12 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 # Version number
-VERSION = "1.1.5"
+VERSION = "1.1.6"
 
 # Import custom UI components, config, and controllers from refactored modules
 from bible_search_ui.ui.widgets import VerseItemWidget, VerseListWidget, SectionWidget
-from bible_search_ui.ui.dialogs import TranslationSelectorDialog, FontSettingsDialog, SearchFilterDialog
+from bible_search_ui.ui.dialogs import (TranslationSelectorDialog, FontSettingsDialog,
+                                        SearchFilterDialog, BookSelectorDialog)
 from bible_search_ui.config import ConfigManager
 from bible_search_ui.controllers import SearchController
 
@@ -840,11 +841,20 @@ class BibleSearchProgram(QMainWindow):
         # Store selected translations (default: KJV only)
         self.selected_translations = ["KJV"]
 
+        # Include the 3-letter translation code (e.g. "KJV") in verse
+        # references when copying to the clipboard or exporting/printing.
+        # Toggled from the Settings dialog and saved in the config file.
+        self.include_translation_code = True
+
         # Search history (will be loaded from config)
         self.search_history = []
 
         # Book filter - changed from QComboBox to QPushButton with menu
         self.selected_book_filter = "All Books"  # Track current selection
+        # Custom per-book selection made in the "Select Books" dialog.
+        # None = no custom selection; otherwise a list of book names that
+        # are included in searches (all other books are excluded).
+        self.custom_book_selection = None
         self.books_button = QPushButton("All Books")
         self.books_button.setStyleSheet(self.get_button_style())
         self.books_button.clicked.connect(self.show_book_menu)
@@ -1224,6 +1234,11 @@ class BibleSearchProgram(QMainWindow):
         all_books_action = menu.addAction("All Books")
         all_books_action.triggered.connect(lambda: self.select_book_filter("All Books"))
 
+        # Add "Select Books" option - opens a dialog with a checkbox for
+        # every book so the user can build a custom set of books to search
+        select_books_action = menu.addAction("Select Books...")
+        select_books_action.triggered.connect(self.show_book_selector_dialog)
+
         menu.addSeparator()
 
         # Create Old Testament submenu
@@ -1261,12 +1276,67 @@ class BibleSearchProgram(QMainWindow):
         # Show the menu at the button position
         menu.exec(self.books_button.mapToGlobal(self.books_button.rect().bottomLeft()))
 
+    def show_book_selector_dialog(self):
+        """
+        Open the "Select Books" dialog (a checkbox for every Bible book).
+
+        The dialog opens pre-checked with whatever books the current
+        filter includes.  On OK, the checked books become the new search
+        filter; on Cancel, nothing changes.
+        """
+        # Work out which books are currently included, so the dialog
+        # opens showing the current state of the filter
+        if self.selected_book_filter == "Custom Selection" and self.custom_book_selection:
+            # A custom selection is already active - restore those checks
+            currently_included = list(self.custom_book_selection)
+        elif self.selected_book_filter == "All Books":
+            # No filter - every book is included (None = check all)
+            currently_included = None
+        elif self.selected_book_filter in BOOK_GROUPS:
+            # A named group (OT, NT, Gospels, ...) is active
+            currently_included = list(BOOK_GROUPS[self.selected_book_filter])
+        else:
+            # A single individual book is active
+            currently_included = [self.selected_book_filter]
+
+        dialog = BookSelectorDialog(
+            self,
+            ot_books=BOOK_GROUPS["Old Testament"],
+            nt_books=BOOK_GROUPS["New Testament"],
+            checked_books=currently_included
+        )
+
+        # exec() returns True only if the user clicked OK (Cancel or
+        # closing the window leaves the current filter untouched)
+        if dialog.exec():
+            selected_books = dialog.get_selected_books()
+            total_books = len(BOOK_GROUPS["Old Testament"]) + len(BOOK_GROUPS["New Testament"])
+
+            if len(selected_books) == total_books:
+                # Every book is checked - that is simply "All Books"
+                self.custom_book_selection = None
+                self.select_book_filter("All Books")
+            elif len(selected_books) == 1:
+                # Exactly one book checked - treat as an individual book
+                # filter so the button shows the book's name
+                self.custom_book_selection = None
+                self.select_book_filter(selected_books[0])
+            else:
+                # A real custom subset - remember it and activate it
+                self.custom_book_selection = selected_books
+                self.select_book_filter("Custom Selection")
+
     def select_book_filter(self, filter_name):
         """Handle book filter selection"""
         self.selected_book_filter = filter_name
 
         # Update button text
-        if filter_name in BOOK_GROUPS and filter_name not in ["All Books", "Old Testament", "New Testament"]:
+        if filter_name == "Custom Selection":
+            # Custom set of books chosen in the "Select Books" dialog -
+            # show how many books are included, e.g. "Custom (12 books)"
+            count = len(self.custom_book_selection or [])
+            self.books_button.setText(f"Custom ({count} books)")
+        elif filter_name in BOOK_GROUPS and filter_name not in ["All Books", "Old Testament", "New Testament"]:
             # For specific book groups, show the group name
             self.books_button.setText(filter_name)
         elif filter_name in ["Old Testament", "New Testament"]:
@@ -1435,6 +1505,21 @@ class BibleSearchProgram(QMainWindow):
         subject_checkbox.stateChanged.connect(lambda state: self.toggle_subject_features(state == 2))
         layout.addWidget(subject_checkbox)
 
+        # Copy / Export options
+        layout.addWidget(QLabel(""))  # Spacer
+        copy_label = QLabel("Copy && Export Options:")
+        layout.addWidget(copy_label)
+
+        # Toggle for including the 3-letter translation code (e.g. "KJV")
+        # in front of verse references when copying or exporting/printing.
+        # Checked  -> "KJV Gen 1:1  In the beginning..."
+        # Unchecked -> "Gen 1:1  In the beginning..."
+        translation_code_checkbox = QCheckBox("Include translation code (e.g. KJV) in copied/exported verses")
+        translation_code_checkbox.setChecked(self.include_translation_code)
+        translation_code_checkbox.stateChanged.connect(
+            lambda state: self.set_include_translation_code(state == 2))
+        layout.addWidget(translation_code_checkbox)
+
         # Close button
         layout.addWidget(QLabel(""))  # Spacer
         close_btn = QPushButton("Close")
@@ -1456,6 +1541,20 @@ class BibleSearchProgram(QMainWindow):
         if dialog.exec():
             self.title_font_size, self.verse_font_size = dialog.get_font_sizes()
             self.apply_font_settings()
+
+    def set_include_translation_code(self, include):
+        """
+        Turn the 3-letter translation code in copied/exported verse
+        references on or off (Settings dialog checkbox).
+
+        Args:
+            include (bool): True to include the code (e.g. "KJV Gen 1:1"),
+                False to leave it off (e.g. "Gen 1:1")
+        """
+        self.include_translation_code = include
+        state_text = "included" if include else "left off"
+        self.set_message(f"Translation code will be {state_text} when copying/exporting")
+        self.debug_print(f"⚙️  Include translation code: {include}")
 
     def toggle_subject_features(self, show):
         """Toggle visibility of Windows 4 & 5"""
@@ -1589,25 +1688,54 @@ class BibleSearchProgram(QMainWindow):
                 "subjects": []
             }
 
+            # Build a book-order lookup from the main Bible database so
+            # each subject's verses can be written to the backup file in
+            # biblical order (book, then chapter, then verse) instead of
+            # the order they happened to be added to the subject.
+            import sqlite3 as _sqlite3
+            book_order = {}
+            try:
+                _bible_conn = _sqlite3.connect(self.search_controller.bible_search.database_path)
+                _bible_cursor = _bible_conn.cursor()
+                _bible_cursor.execute("SELECT abbreviation, order_index FROM books")
+                book_order = {row[0]: row[1] for row in _bible_cursor.fetchall()}
+                _bible_conn.close()
+            except Exception as e:
+                self.debug_print(f"⚠️  Could not load book order for backup: {e}")
+
+            def _biblical_key(verse_row):
+                """Sort key: (book position, chapter, verse) parsed from 'Gen 1:1'."""
+                try:
+                    book, chap_verse = verse_row['verse_reference'].rsplit(' ', 1)
+                    chapter_str, verse_str = chap_verse.split(':', 1)
+                    return (book_order.get(book, 999), int(chapter_str), int(verse_str))
+                except (ValueError, AttributeError):
+                    return (999, 0, 0)
+
             # For each subject, get its verses and comments
             for subject in subjects:
                 subject_id = subject['id']
                 subject_name = subject['name']
 
-                # Get verses for this subject
+                # Get verses for this subject.
+                # NOTE: the column is named verse_reference (the old code
+                # queried a nonexistent verse_ref column, which made the
+                # backup fail silently).
                 cursor.execute("""
-                    SELECT verse_ref, verse_text, translation, comments
+                    SELECT verse_reference, verse_text, translation, comments
                     FROM subject_verses
                     WHERE subject_id = ?
-                    ORDER BY id
                 """, (subject_id,))
                 verses = cursor.fetchall()
+
+                # Write the verses in biblical order
+                verses = sorted(verses, key=_biblical_key)
 
                 subject_data = {
                     "name": subject_name,
                     "verses": [
                         {
-                            "reference": v['verse_ref'],
+                            "reference": v['verse_reference'],
                             "text": v['verse_text'],
                             "translation": v['translation'],
                             "comments": v['comments'] or ""
@@ -1716,9 +1844,12 @@ class BibleSearchProgram(QMainWindow):
                 # Add all verses
                 for verse in verses:
                     # Check if verse already exists in this subject
+                    # NOTE: the column is named verse_reference (the old
+                    # code queried a nonexistent verse_ref column, which
+                    # made restoring a backup fail)
                     cursor.execute("""
                         SELECT id FROM subject_verses
-                        WHERE subject_id = ? AND verse_ref = ? AND translation = ?
+                        WHERE subject_id = ? AND verse_reference = ? AND translation = ?
                     """, (subject_id, verse['reference'], verse['translation']))
 
                     existing_verse = cursor.fetchone()
@@ -1734,7 +1865,7 @@ class BibleSearchProgram(QMainWindow):
                     else:
                         # Insert new verse
                         cursor.execute("""
-                            INSERT INTO subject_verses (subject_id, verse_ref, verse_text, translation, comments)
+                            INSERT INTO subject_verses (subject_id, verse_reference, verse_text, translation, comments)
                             VALUES (?, ?, ?, ?, ?)
                         """, (subject_id, verse['reference'], verse['text'], verse['translation'], verse['comments']))
 
@@ -2502,8 +2633,11 @@ class BibleSearchProgram(QMainWindow):
 
         # Get selected book filter
         selected_book_group = self.selected_book_filter
-        # Check if it's an individual book (not in BOOK_GROUPS)
-        if selected_book_group in BOOK_GROUPS:
+        if selected_book_group == "Custom Selection":
+            # Custom set of books picked in the "Select Books" dialog
+            book_filter = list(self.custom_book_selection or [])
+        elif selected_book_group in BOOK_GROUPS:
+            # A named group (All Books, OT, NT, Gospels, ...)
             book_filter = BOOK_GROUPS.get(selected_book_group, [])
         else:
             # Individual book selected
@@ -3052,7 +3186,12 @@ class BibleSearchProgram(QMainWindow):
 
         # Add book filter if not "All Books"
         if hasattr(self, 'selected_book_filter') and self.selected_book_filter != "All Books":
-            custom_message += f' | Books: {self.selected_book_filter}'
+            if self.selected_book_filter == "Custom Selection":
+                # Show how many books the custom selection includes
+                count = len(self.custom_book_selection or [])
+                custom_message += f' | Books: Custom ({count} books)'
+            else:
+                custom_message += f' | Books: {self.selected_book_filter}'
 
         # Add total count
         custom_message += f' | Total: {total_results}'
@@ -4995,6 +5134,71 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                 pass
 
 
+    def running_under_wsl(self):
+        """
+        Detect whether the program is running inside WSL (Windows
+        Subsystem for Linux) rather than on native Linux or Windows.
+
+        Returns:
+            bool: True when running under WSL
+        """
+        try:
+            # /proc/version mentions "microsoft" only under WSL
+            if os.path.exists('/proc/version'):
+                with open('/proc/version') as f:
+                    return 'microsoft' in f.read().lower()
+        except Exception:
+            pass
+        return False
+
+    def copy_text_to_clipboard(self, text):
+        """
+        Put text on the clipboard so that ANY program can paste it.
+
+        Qt's clipboard call is enough on native Windows and native
+        Linux.  Under WSL, however, Qt only sets the LINUX clipboard,
+        and WSL's automatic bridge to the Windows clipboard is
+        unreliable — Windows programs (like MS Word) then see a
+        clipboard entry they cannot actually read and show errors such
+        as "there was a problem" when pasting.
+
+        To fix that, when running under WSL we ALSO write the text
+        directly to the real Windows clipboard using Windows' own
+        clip.exe utility, which WSL can call.
+
+        Args:
+            text (str): The text to place on the clipboard
+        """
+        from PyQt6.QtWidgets import QApplication
+
+        # Always set the Qt clipboard (covers native Windows/Linux and
+        # pasting into other Linux applications under WSL)
+        QApplication.clipboard().setText(text)
+
+        # Under WSL, mirror the text to the Windows clipboard as well
+        if self.running_under_wsl():
+            try:
+                import subprocess
+                import shutil
+
+                # Find clip.exe (on the PATH via WSL interop, with the
+                # standard System32 location as a fallback)
+                clip_path = shutil.which('clip.exe') or '/mnt/c/Windows/System32/clip.exe'
+
+                # Windows programs expect CRLF line endings
+                windows_text = text.replace('\n', '\r\n')
+
+                # Lead with a byte-order mark (\ufeff) and encode as
+                # UTF-16 so clip.exe preserves special characters
+                data = ('\ufeff' + windows_text).encode('utf-16-le')
+
+                subprocess.run([clip_path], input=data, timeout=10, check=True)
+                self.debug_print("📋 Mirrored text to the Windows clipboard via clip.exe")
+            except Exception as e:
+                # If the mirror fails we still have the Qt clipboard,
+                # so just note the problem rather than interrupting
+                self.debug_print(f"⚠️  Windows clipboard mirror failed: {e}")
+
     def on_copy_clicked(self):
         """Copy selected verses to clipboard"""
         from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -5031,7 +5235,9 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
             if verse_id in self.verse_lists[active].verse_items:
                 # verse_items now returns (QListWidgetItem, VerseItemWidget) tuple
                 list_item, verse_widget = self.verse_lists[active].verse_items[verse_id]
-                ref = verse_widget.get_verse_reference()
+                # Honor the Settings toggle: include or leave off the
+                # 3-letter translation code in the copied reference
+                ref = verse_widget.get_verse_reference(self.include_translation_code)
                 # Remove highlight brackets from text before copying
                 clean_text = verse_widget.text.replace('[', '').replace(']', '')
                 text_lines.append(f"{ref} {clean_text}")
@@ -5069,8 +5275,8 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
             if reply == QMessageBox.StandardButton.No:
                 return
 
-        # Copy to clipboard
-        QApplication.clipboard().setText(clipboard_text)
+        # Copy to clipboard (handles the WSL -> Windows bridge too)
+        self.copy_text_to_clipboard(clipboard_text)
         self.debug_print(f"📋 Copied to clipboard:")
         self.debug_print(f"   First verse: {text_lines[0][:100]}..." if text_lines else "   (empty)")
 
@@ -5204,6 +5410,11 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                 else:
                     self.debug_print(f"⚠️  No valid translations in saved config, using default [KJV]")
 
+            # Restore the "include translation code when copying/exporting"
+            # setting (defaults to True when not present in the config)
+            self.include_translation_code = config.get('include_translation_code', True)
+            self.debug_print(f"✓ Restored include_translation_code: {self.include_translation_code}")
+
             # Restore font settings
             if 'font_settings' in config:
                 font_settings = config['font_settings']
@@ -5260,6 +5471,9 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                 'title_font_size': self.title_font_size,
                 'verse_font_size': self.verse_font_size
             },
+            # Whether copied/exported verse references include the
+            # 3-letter translation code (Settings dialog toggle)
+            'include_translation_code': self.include_translation_code,
             'search_history': self.search_history
         }
 
@@ -5281,6 +5495,9 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
 
         # Reset book filter to "All Books" before saving
         self.selected_book_filter = "All Books"
+        # Also drop any custom "Select Books" selection so the next
+        # session starts clean
+        self.custom_book_selection = None
         self.debug_print("✓ Reset book filter to 'All Books' for next session")
 
         # Save configuration (including window sizes)

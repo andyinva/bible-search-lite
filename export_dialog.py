@@ -228,14 +228,20 @@ class ExportDialog(QDialog):
                     if verse_id in self.parent_app.verse_lists['search'].verse_items:
                         _, widget = self.parent_app.verse_lists['search'].verse_items[verse_id]
                         verses.append({
-                            'reference': widget.get_verse_reference(),
+                            # Honor the Settings toggle for the 3-letter
+                            # translation code in the reference
+                            'reference': widget.get_verse_reference(
+                                getattr(self.parent_app, 'include_translation_code', True)),
                             'text': widget.text,
                             'comment': None
                         })
             else:  # All verses
                 for verse_id, (_, widget) in self.parent_app.verse_lists['search'].verse_items.items():
                     verses.append({
-                        'reference': widget.get_verse_reference(),
+                        # Honor the Settings toggle for the 3-letter
+                        # translation code in the reference
+                        'reference': widget.get_verse_reference(
+                            getattr(self.parent_app, 'include_translation_code', True)),
                         'text': widget.text,
                         'comment': None
                     })
@@ -248,14 +254,20 @@ class ExportDialog(QDialog):
                     if verse_id in self.parent_app.verse_lists['reading'].verse_items:
                         _, widget = self.parent_app.verse_lists['reading'].verse_items[verse_id]
                         verses.append({
-                            'reference': widget.get_verse_reference(),
+                            # Honor the Settings toggle for the 3-letter
+                            # translation code in the reference
+                            'reference': widget.get_verse_reference(
+                                getattr(self.parent_app, 'include_translation_code', True)),
                             'text': widget.text,
                             'comment': None
                         })
             else:  # All verses
                 for verse_id, (_, widget) in self.parent_app.verse_lists['reading'].verse_items.items():
                     verses.append({
-                        'reference': widget.get_verse_reference(),
+                        # Honor the Settings toggle for the 3-letter
+                        # translation code in the reference
+                        'reference': widget.get_verse_reference(
+                            getattr(self.parent_app, 'include_translation_code', True)),
                         'text': widget.text,
                         'comment': None
                     })
@@ -284,8 +296,63 @@ class ExportDialog(QDialog):
 
         return verses, source_name
 
+    def get_book_order_map(self):
+        """
+        Build a {book abbreviation: canonical position} lookup table.
+
+        The order_index comes from the books table in the main Bible
+        database (bibles.db), so Genesis maps to 1, Exodus to 2, and so
+        on.  This map is what lets us sort subject verses into true
+        biblical order, since subject_verses only stores a text reference
+        like "Gen 37:32".
+
+        Returns:
+            dict: abbreviation -> order_index (empty dict on failure)
+        """
+        book_order = {}
+        try:
+            import sqlite3
+            bible_db_path = self.parent_app.search_controller.bible_search.database_path
+            bible_conn = sqlite3.connect(bible_db_path)
+            bible_cursor = bible_conn.cursor()
+            bible_cursor.execute("SELECT abbreviation, order_index FROM books")
+            book_order = {row[0]: row[1] for row in bible_cursor.fetchall()}
+            bible_conn.close()
+        except Exception as e:
+            print(f"Error loading book order: {e}")
+        return book_order
+
+    @staticmethod
+    def parse_verse_reference(verse_reference):
+        """
+        Split a stored reference like "Gen 37:32" or "2Ki 21:15" into
+        its parts.
+
+        Returns:
+            tuple: (book_abbrev, chapter, verse) — chapter/verse as ints,
+                   or (reference, 0, 0) if the reference cannot be parsed
+        """
+        try:
+            # The book abbreviation is everything before the LAST space,
+            # the "chapter:verse" part is everything after it
+            book, chap_verse = verse_reference.rsplit(' ', 1)
+            chapter_str, verse_str = chap_verse.split(':', 1)
+            return book, int(chapter_str), int(verse_str)
+        except (ValueError, AttributeError):
+            # Unparseable reference — sort it to the end rather than crash
+            return verse_reference, 0, 0
+
     def get_subject_verses(self, subject_name):
-        """Get verses from subject database, optionally with comments"""
+        """
+        Get verses from the subject database, optionally with comments.
+
+        The verses are returned sorted into biblical order (book, then
+        chapter, then verse) no matter what order they were added to the
+        subject in.  Previously this method sorted by database row ID
+        (insertion order) and also queried columns (book/chapter/verse)
+        that do not exist in subjects.db, so subject exports either came
+        out scrambled or empty.
+        """
         verses = []
         include_comments = self.check_include_comments.isChecked()
 
@@ -302,48 +369,80 @@ class ExportDialog(QDialog):
 
                 subject_id = result[0]
 
-                # Get all verses for this subject
+                # Get the rows for this subject.  The real subjects.db
+                # schema stores a text reference ("Gen 1:1"), the verse
+                # text, the translation, and a comments column.
                 if self.radio_selected.isChecked() and hasattr(self.parent_app.subject_manager, 'verse_manager'):
-                    # Get only selected verses from Window 4
+                    # Export only the verses checked in Window 4
                     selected_ids = self.parent_app.subject_manager.verse_manager.get_selected_verse_ids()
                     if not selected_ids:
                         return verses
 
                     placeholders = ','.join('?' * len(selected_ids))
                     query = f"""
-                        SELECT v.id, v.book, v.chapter, v.verse, v.text, v.translation
-                        FROM subject_verses v
-                        WHERE v.subject_id = ? AND v.id IN ({placeholders})
-                        ORDER BY v.id
+                        SELECT id, verse_reference, verse_text, translation, comments
+                        FROM subject_verses
+                        WHERE subject_id = ? AND id IN ({placeholders})
                     """
                     cursor.execute(query, [subject_id] + selected_ids)
                 else:
-                    # Get all verses
+                    # Export all verses in the subject
                     cursor.execute("""
-                        SELECT id, book, chapter, verse, text, translation
+                        SELECT id, verse_reference, verse_text, translation, comments
                         FROM subject_verses
                         WHERE subject_id = ?
-                        ORDER BY id
                     """, (subject_id,))
 
                 rows = cursor.fetchall()
 
+                # --- Sort into biblical order -------------------------
+                # Build the canonical book-order lookup once, then sort
+                # by (book position, chapter, verse number).  Unknown
+                # books sort to the end (position 999).
+                book_order = self.get_book_order_map()
+
+                def biblical_sort_key(row):
+                    book, chapter, verse_num = self.parse_verse_reference(row[1])
+                    return (book_order.get(book, 999), chapter, verse_num)
+
+                rows = sorted(rows, key=biblical_sort_key)
+                # ------------------------------------------------------
+
+                # Check once whether the newer subject_comments table
+                # exists; older databases keep comments in a column on
+                # subject_verses instead.
+                cursor.execute("""
+                    SELECT name FROM sqlite_master
+                    WHERE type='table' AND name='subject_comments'
+                """)
+                has_comments_table = cursor.fetchone() is not None
+
                 for row in rows:
                     verse_id = row[0]
-                    reference = f"{row[1]} {row[2]}:{row[3]} ({row[5]})"
-                    text = row[4]
+                    # Honor the Settings toggle: append the 3-letter
+                    # translation code only when the user wants it
+                    if getattr(self.parent_app, 'include_translation_code', True):
+                        reference = f"{row[1]} ({row[3]})"  # e.g. "Gen 1:1 (KJV)"
+                    else:
+                        reference = row[1]                  # e.g. "Gen 1:1"
+                    text = row[2]
 
                     comment = None
                     if include_comments:
-                        # Get comment for this verse
-                        cursor.execute("""
-                            SELECT comment
-                            FROM subject_comments
-                            WHERE subject_id = ? AND verse_id = ?
-                        """, (subject_id, verse_id))
-                        comment_row = cursor.fetchone()
-                        if comment_row and comment_row[0]:
-                            comment = comment_row[0]
+                        if has_comments_table:
+                            # New schema: comments live in their own table
+                            cursor.execute("""
+                                SELECT comment
+                                FROM subject_comments
+                                WHERE subject_id = ? AND verse_id = ?
+                            """, (subject_id, verse_id))
+                            comment_row = cursor.fetchone()
+                            if comment_row and comment_row[0]:
+                                comment = comment_row[0]
+                        else:
+                            # Old schema: comments column on the verse row
+                            if row[4]:
+                                comment = row[4]
 
                     verses.append({
                         'reference': reference,
