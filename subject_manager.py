@@ -226,28 +226,33 @@ class SubjectManager:
         self.comments_section, comment_controls = self.comment_manager.create_ui()
 
         # Create a combined container widget with vertical splitter
+        # Flat look (v1.1.6): same 1px line as the main window sections
+        # instead of the raised bevel, and the same light grey background.
         self.container_widget = QFrame()
-        self.container_widget.setFrameShape(QFrame.Shape.StyledPanel)
-        self.container_widget.setFrameShadow(QFrame.Shadow.Raised)
-        self.container_widget.setLineWidth(3)
-        self.container_widget.setMidLineWidth(2)
-        # Set gray background for Windows compatibility (matches Linux appearance)
-        self.container_widget.setStyleSheet("QFrame { background-color: #e0e0e0; }")
+        self.container_widget.setFrameShape(QFrame.Shape.NoFrame)
+        self.container_widget.setLineWidth(0)
+        self.container_widget.setMidLineWidth(0)
+        # The rule is scoped by object name: a plain "QFrame" rule would also
+        # reach every QLabel inside (QLabel derives from QFrame) and draw a
+        # box around the window titles.
+        self.container_widget.setObjectName("subjectContainer")
+        self.container_widget.setStyleSheet(
+            "QFrame#subjectContainer { background-color: #f4f4f4; border: 1px solid #c8c8c8; border-radius: 2px; }")
 
         container_layout = QVBoxLayout(self.container_widget)
-        container_layout.setContentsMargins(3, 3, 3, 3)
-        container_layout.setSpacing(3)
+        container_layout.setContentsMargins(2, 2, 2, 2)
+        container_layout.setSpacing(2)
 
         # Add title bar with close button
         from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QLabel
         title_bar = QWidget()
-        title_bar.setStyleSheet("background-color: #f0f0f0; padding: 2px;")
+        title_bar.setStyleSheet("background-color: #f4f4f4; padding: 2px;")
         title_bar_layout = QHBoxLayout(title_bar)
         title_bar_layout.setContentsMargins(5, 2, 5, 2)
         title_bar_layout.setSpacing(5)
 
         title_label = QLabel("Subject Features (Windows 4 & 5)")
-        title_label.setStyleSheet("font-weight: bold; font-size: 10px; color: #333;")
+        title_label.setStyleSheet("font-weight: normal; font-size: 10px; color: #555;")
         title_bar_layout.addWidget(title_label)
         title_bar_layout.addStretch()
 
@@ -281,11 +286,17 @@ class SubjectManager:
         # Set gray background for splitter handle (Windows compatibility)
         internal_splitter.setStyleSheet("""
             QSplitter::handle {
-                background-color: #c0c0c0;
-                height: 3px;
+                background-color: #d0d0d0;
+                border: none;
+                height: 4px;
+                margin: 1px 0px;
+            }
+            QSplitter::handle:hover {
+                background-color: #4CAF50;
             }
             QSplitter {
-                background-color: #e0e0e0;
+                background-color: #f4f4f4;
+                border: none;
             }
         """)
         internal_splitter.addWidget(self.subject_section)

@@ -108,7 +108,7 @@ class SelectionManager:
 class BibleSearchProgram(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"Bible Search Lite v{VERSION} (February 2026)")
+        self.setWindowTitle(f"Bible Search Lite v{VERSION}")
 
         # Configuration manager
         self.config_manager = ConfigManager("bible_search_lite_config.json")
@@ -138,7 +138,7 @@ class BibleSearchProgram(QMainWindow):
         # Set cross-platform stylesheet for consistent appearance on Windows and Linux
         self.setStyleSheet("""
             QWidget {
-                background-color: #f0f0f0;
+                background-color: #f4f4f4;
                 color: #000000;
             }
             QPushButton {
@@ -444,17 +444,18 @@ class BibleSearchProgram(QMainWindow):
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(1, 1, 1, 1)  # Reduced from 2 to 1 for thinner border
-        main_layout.setSpacing(2)
+        main_layout.setContentsMargins(2, 2, 2, 2)  # Flat look: 2px all round, frames carry a 1px line
+        main_layout.setSpacing(0)
         
         # Create main vertical splitter
         self.main_splitter = QSplitter(Qt.Orientation.Vertical)
         # Style splitter handles to be visible and easy to grab
         self.main_splitter.setStyleSheet("""
             QSplitter::handle {
-                background-color: #c0c0c0;
-                border: 1px solid #999;
-                height: 3px;
+                background-color: #d0d0d0;
+                border: none;
+                height: 4px;
+                margin: 1px 0px;
             }
             QSplitter::handle:hover {
                 background-color: #4CAF50;
@@ -891,9 +892,9 @@ class BibleSearchProgram(QMainWindow):
     def create_reading_controls(self):
         """Create controls for the reading window"""
         controls_widget = QWidget()
-        controls_widget.setStyleSheet("background-color: #f0f0f0; padding: 5px;")
+        controls_widget.setStyleSheet("background-color: #f4f4f4; padding: 3px;")
         layout = QHBoxLayout(controls_widget)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(3, 3, 3, 3)
 
         # Subject dropdown for quick save - LEFT SIDE
         self.reading_subject_combo = QComboBox()
@@ -4996,15 +4997,43 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
 
         dialog.exec()
 
+    # Where the updater reads from. update_files.txt on the main branch lists
+    # every file to replace, so new modules can be added to a release without
+    # changing the updater itself. UPDATE_FALLBACK_FILES is used only when that
+    # list cannot be downloaded.
+    UPDATE_BASE_URL = "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/"
+    UPDATE_FALLBACK_FILES = [
+        "bible_search_lite.py", "bible_search.py", "bible_search_service.py",
+        "subject_manager.py", "subject_verse_manager.py", "subject_comment_manager.py",
+        "export_dialog.py", "VERSION.txt", "SEARCH_OPERATORS.md",
+        "bible_search_ui/__init__.py", "bible_search_ui/ui/__init__.py",
+        "bible_search_ui/ui/widgets.py", "bible_search_ui/ui/dialogs.py",
+        "bible_search_ui/config/__init__.py", "bible_search_ui/config/config_manager.py",
+        "bible_search_ui/controllers/__init__.py",
+        "bible_search_ui/controllers/search_controller.py",
+    ]
+
+    @staticmethod
+    def version_tuple(text):
+        """
+        Turn 'v1.1.6' or '1.1.6' into (1, 1, 6) so versions compare as numbers.
+        Comparing the strings directly would rank '1.1.10' below '1.1.9'.
+        """
+        parts = []
+        for piece in text.strip().lstrip("vV").split("."):
+            digits = "".join(ch for ch in piece if ch.isdigit())
+            parts.append(int(digits) if digits else 0)
+        return tuple(parts)
+
     def check_for_updates(self):
         """Check for application updates on GitHub"""
         try:
             # Show checking message
-            self.set_message("⏳ Checking for updates...")
+            self.set_message("\u23f3 Checking for updates...")
             QApplication.processEvents()  # Update UI immediately
 
             # Fetch version from GitHub
-            version_url = "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/VERSION.txt"
+            version_url = self.UPDATE_BASE_URL + "VERSION.txt"
 
             try:
                 with urllib.request.urlopen(version_url, timeout=10) as response:
@@ -5017,13 +5046,13 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                     f"Error: {e}\n\n"
                     f"Please check your internet connection."
                 )
-                self.set_message("❌ Update check failed")
+                self.set_message("\u274c Update check failed")
                 return
 
-            # Compare versions
+            # Compare versions numerically, not as strings
             current = VERSION
 
-            if latest_version > current:
+            if self.version_tuple(latest_version) > self.version_tuple(current):
                 # Update available
                 reply = QMessageBox.question(
                     self,
@@ -5047,7 +5076,7 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                     f"You are running the latest version ({current}).\n\n"
                     f"No updates are available at this time."
                 )
-                self.set_message(f"✓ Up to date (v{current})")
+                self.set_message(f"\u2713 Up to date (v{current})")
 
         except Exception as e:
             QMessageBox.critical(
@@ -5055,83 +5084,104 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                 "Update Check Error",
                 f"An error occurred while checking for updates:\n\n{e}"
             )
-            self.set_message("❌ Update check error")
+            self.set_message("\u274c Update check error")
+
+    def fetch_update_file_list(self):
+        """
+        Read update_files.txt from GitHub. Falls back to the built-in list if
+        the file cannot be fetched, so older releases still update.
+        """
+        try:
+            with urllib.request.urlopen(self.UPDATE_BASE_URL + "update_files.txt", timeout=10) as response:
+                lines = response.read().decode("utf-8").splitlines()
+            files = [ln.strip() for ln in lines if ln.strip() and not ln.strip().startswith("#")]
+            if files:
+                return files
+        except Exception:
+            pass
+        return list(self.UPDATE_FALLBACK_FILES)
 
     def download_update(self):
-        """Download and install application update"""
+        """
+        Download and install an application update.
+
+        Every file named in update_files.txt is downloaded to a temporary
+        folder first. Only when all of them have arrived are the old files
+        backed up (to update_backup/) and replaced, so a failed or cancelled
+        download can never leave the program half updated.
+        """
         import tempfile
         import shutil
-        import platform
 
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        temp_dir = tempfile.mkdtemp(prefix="bsl_update_")
+        progress = None
         try:
-            # Create progress dialog
-            progress = QProgressDialog("Downloading update...", "Cancel", 0, 100, self)
+            files = self.fetch_update_file_list()
+
+            progress = QProgressDialog("Downloading update...", "Cancel", 0, len(files), self)
             progress.setWindowTitle("Updating Bible Search Lite")
             progress.setWindowModality(Qt.WindowModality.WindowModal)
             progress.show()
 
-            # Determine which file to download
-            system = platform.system()
-            if system == "Windows":
-                file_url = "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/bible_search_lite.py"
-                file_name = "bible_search_lite.py"
-            else:
-                file_url = "https://raw.githubusercontent.com/andyinva/bible-search-lite/main/bible_search_lite.py"
-                file_name = "bible_search_lite.py"
-
-            # Download to temp file
-            temp_file = tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.py')
-
-            def download_progress(count, block_size, total_size):
+            # Step 1: download everything to the temporary folder
+            for index, rel_path in enumerate(files):
                 if progress.wasCanceled():
                     raise Exception("Download cancelled by user")
-                if total_size > 0:
-                    percent = int(count * block_size * 100 / total_size)
-                    progress.setValue(min(percent, 100))
-                    QApplication.processEvents()
+                progress.setLabelText(f"Downloading {rel_path} ...")
+                progress.setValue(index)
+                QApplication.processEvents()
+                target = os.path.join(temp_dir, *rel_path.split("/"))
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with urllib.request.urlopen(self.UPDATE_BASE_URL + rel_path, timeout=30) as response:
+                    data = response.read()
+                if not data:
+                    raise Exception(f"{rel_path} came back empty")
+                with open(target, "wb") as handle:
+                    handle.write(data)
 
-            urllib.request.urlretrieve(file_url, temp_file.name, download_progress)
-            temp_file.close()
+            # Step 2: back up the current files, then move the new ones in
+            progress.setLabelText("Installing ...")
+            QApplication.processEvents()
+            backup_dir = os.path.join(app_dir, "update_backup")
+            os.makedirs(backup_dir, exist_ok=True)
+            for rel_path in files:
+                parts = rel_path.split("/")
+                current = os.path.join(app_dir, *parts)
+                if os.path.exists(current):
+                    backup = os.path.join(backup_dir, *parts)
+                    os.makedirs(os.path.dirname(backup), exist_ok=True)
+                    shutil.copy2(current, backup)
+                os.makedirs(os.path.dirname(current), exist_ok=True)
+                shutil.move(os.path.join(temp_dir, *parts), current)
 
-            progress.setValue(100)
+            progress.setValue(len(files))
             progress.close()
 
-            # Backup current file
-            backup_name = "bible_search_lite.py.backup"
-            if os.path.exists(file_name):
-                shutil.copy2(file_name, backup_name)
-
-            # Replace with new version
-            shutil.move(temp_file.name, file_name)
-
-            # Success message
             QMessageBox.information(
                 self,
                 "Update Complete",
-                "Bible Search Lite has been updated successfully!\n\n"
+                f"Bible Search Lite has been updated successfully "
+                f"({len(files)} files).\n\n"
                 "Please restart the application for changes to take effect.\n\n"
-                f"A backup of the previous version was saved as:\n{backup_name}"
+                f"The previous files were saved in:\n{backup_dir}"
             )
-
-            self.set_message("✓ Update downloaded - Please restart")
+            self.set_message("\u2713 Update downloaded - Please restart")
 
         except Exception as e:
+            if progress is not None:
+                progress.close()
             if "cancelled" not in str(e).lower():
                 QMessageBox.critical(
                     self,
                     "Update Failed",
                     f"Failed to download update:\n\n{e}\n\n"
-                    f"You can manually update by downloading from:\n"
+                    f"Nothing has been changed. You can update manually from:\n"
                     f"https://github.com/andyinva/bible-search-lite"
                 )
-            self.set_message("❌ Update failed")
-
-            # Clean up temp file if it exists
-            try:
-                if 'temp_file' in locals() and os.path.exists(temp_file.name):
-                    os.unlink(temp_file.name)
-            except:
-                pass
+            self.set_message("\u274c Update failed")
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 
     def running_under_wsl(self):

@@ -52,9 +52,9 @@ class SubjectVerseManager(QObject):
         """
         # Create controls with solid background
         controls_widget = QWidget()
-        controls_widget.setStyleSheet("background-color: #f0f0f0; padding: 5px;")
+        controls_widget.setStyleSheet("background-color: #f4f4f4; padding: 3px;")
         controls_layout = QHBoxLayout(controls_widget)
-        controls_layout.setContentsMargins(5, 5, 5, 5)
+        controls_layout.setContentsMargins(3, 3, 3, 3)
 
         # Subject dropdown
         self.subject_dropdown = QComboBox()

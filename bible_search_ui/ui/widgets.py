@@ -568,12 +568,13 @@ class VerseListWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Create beveled frame for the list
+        # Flat frame for the list (v1.1.6). The QListWidget draws its own
+        # 2px grey or 3px blue border to show which window is active, so the
+        # frame itself needs no thickness.
         list_frame = QFrame()
-        list_frame.setFrameShape(QFrame.Shape.Panel)
-        list_frame.setFrameShadow(QFrame.Shadow.Sunken)
-        list_frame.setLineWidth(3)
-        list_frame.setMidLineWidth(2)
+        list_frame.setFrameShape(QFrame.Shape.NoFrame)
+        list_frame.setLineWidth(0)
+        list_frame.setMidLineWidth(0)
 
         frame_layout = QVBoxLayout(list_frame)
         frame_layout.setContentsMargins(0, 0, 0, 0)
@@ -1081,15 +1082,19 @@ class SectionWidget(QFrame):
             parent (QWidget, optional): Parent widget
         """
         super().__init__(parent)
-        # Set frame style to create beveled/raised 3D effect
-        self.setFrameShape(QFrame.Shape.StyledPanel)
-        self.setFrameShadow(QFrame.Shadow.Raised)
-        self.setLineWidth(3)  # Thicker border for more pronounced 3D effect
-        self.setMidLineWidth(2)  # Additional thickness for deeper bevel
+        # Flat look (v1.1.6): a single light grey line instead of the old
+        # 5 pixel raised bevel, and no outer margin so the frame edges line up
+        # with the splitter bars. The active window is still marked by the
+        # blue outline on its verse list, so no depth cue is lost.
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setLineWidth(0)
+        self.setMidLineWidth(0)
         self.setStyleSheet("""
             SectionWidget {
                 background-color: transparent;
-                margin: 2px;
+                border: 1px solid #c8c8c8;
+                border-radius: 2px;
+                margin: 0px;
             }
         """)
 
@@ -1099,7 +1104,7 @@ class SectionWidget(QFrame):
         self.translation_label = None  # Will be created if show_translation is True
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(3, 0, 3, 3)  # Reduced top margin from 3 to 0
+        layout.setContentsMargins(3, 1, 3, 3)  # Thin padding inside the flat frame
         layout.setSpacing(2)
 
         # Title row with optional buttons
@@ -1109,11 +1114,13 @@ class SectionWidget(QFrame):
 
         # Title label - make it clickable to activate the window
         title_label = QLabel(title)
+        # Headers are deliberately quiet: 10px, normal weight, medium grey.
+        # They turn blue on hover so it is still clear they can be clicked.
         title_label.setStyleSheet("""
             QLabel {
-                font-weight: bold;
-                font-size: 11px;
-                color: #333;
+                font-weight: normal;
+                font-size: 10px;
+                color: #555;
                 background-color: transparent;
                 padding: 0px;
             }
@@ -1139,9 +1146,9 @@ class SectionWidget(QFrame):
             self.translation_label = QLabel("")
             self.translation_label.setStyleSheet("""
                 QLabel {
-                    font-weight: bold;
-                    font-size: 11px;
-                    color: #333;
+                    font-weight: normal;
+                    font-size: 10px;
+                    color: #555;
                     background-color: transparent;
                     padding: 0px;
                     margin-left: 20px;

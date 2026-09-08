@@ -1,0 +1,22 @@
+# Files the in-app updater (File > Check for Updates) downloads from the main
+# branch, one relative path per line. Every application source file belongs
+# here: an update that replaces bible_search_lite.py but not the modules it
+# imports leaves the program unable to start. Keep this list in step with the
+# file lists in setup.py and setup_win11.py. Lines starting with # are ignored.
+bible_search_lite.py
+bible_search.py
+bible_search_service.py
+subject_manager.py
+subject_verse_manager.py
+subject_comment_manager.py
+export_dialog.py
+VERSION.txt
+SEARCH_OPERATORS.md
+bible_search_ui/__init__.py
+bible_search_ui/ui/__init__.py
+bible_search_ui/ui/widgets.py
+bible_search_ui/ui/dialogs.py
+bible_search_ui/config/__init__.py
+bible_search_ui/config/config_manager.py
+bible_search_ui/controllers/__init__.py
+bible_search_ui/controllers/search_controller.py
