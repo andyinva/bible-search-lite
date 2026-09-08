@@ -871,41 +871,39 @@ class SubjectVerseManager(QObject):
 
     def get_selected_verse_ids(self):
         """
-        Get database IDs of selected (checked) verses.
+        Get database IDs of selected (checked) verses in Window 4.
+
+        Every verse loaded into Window 4 is given a widget ID of the form
+        "subject_<database id>" (see load_subject_verses), so the database
+        ID can be recovered directly from the widget ID — no SQL needed.
+
+        The old version of this method ran a query that appended EVERY
+        verse ID in the subject once per checked verse, so "export selected
+        verses" actually exported the whole subject (with duplicates) in
+        database-insertion order.  This version returns exactly the checked
+        verses, in the order they appear on screen (biblical order).
 
         Returns:
-            List of verse IDs from database
+            List of subject_verses database IDs (ints), in display order
         """
         selected_verse_ids = []
 
         if not self.current_subject_id:
             return selected_verse_ids
 
-        # Get checked verse references
-        checked_refs = self.subject_verse_list.get_selected_verses()
+        # Checked widget IDs, already in display (biblical) order because
+        # get_selected_verses walks the list widget top to bottom
+        checked_ids = self.subject_verse_list.get_selected_verses()
 
-        # Map references to database IDs
-        for verse_ref in checked_refs:
-            if verse_ref in self.subject_verse_list.verse_items:
-                # Get the verse widget
-                _, widget = self.subject_verse_list.verse_items[verse_ref]
-
-                # Parse reference to get database ID
-                # verse_ref format: "book chapter:verse (translation)"
+        for widget_id in checked_ids:
+            # Widget IDs in Window 4 look like "subject_42" where 42 is
+            # the row's primary key in the subject_verses table
+            if isinstance(widget_id, str) and widget_id.startswith("subject_"):
                 try:
-                    cursor = self.db_conn.cursor()
-                    cursor.execute("""
-                        SELECT id FROM subject_verses
-                        WHERE subject_id = ?
-                        ORDER BY id
-                    """, (self.current_subject_id,))
-
-                    rows = cursor.fetchall()
-                    for row in rows:
-                        selected_verse_ids.append(row[0])
-
-                except Exception as e:
-                    print(f"Error getting verse ID: {e}")
+                    selected_verse_ids.append(int(widget_id.split("_", 1)[1]))
+                except ValueError:
+                    # Malformed ID — skip rather than crash
+                    print(f"⚠️  Could not parse verse widget ID: {widget_id}")
 
         return selected_verse_ids
 

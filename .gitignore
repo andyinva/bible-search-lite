@@ -86,3 +86,10 @@ bible-search-lite-test*/
 .claude/settings.local.json
 database/*_bk.db
 database/*_BK.db
+
+# Claude Code worktrees (development only)
+.claude/worktrees/
+
+# Any copy or backup of the main database, whatever the suffix
+database/bibles.db.*
+database/bibles*.db

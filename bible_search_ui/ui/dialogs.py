@@ -4,6 +4,7 @@ Dialog windows for Bible Search application.
 This module contains popup dialog windows for user settings and configuration:
 - TranslationSelectorDialog: Select which Bible translations to search
 - FontSettingsDialog: Adjust font sizes for titles and Bible text
+- BookSelectorDialog: Check/uncheck individual Bible books to include in searches
 
 Author: Andrew Hopkins
 """
@@ -955,3 +956,172 @@ class SearchFilterDialog(QDialog):
 
 
 # END OF ADDITIONS TO dialogs.py
+
+
+class BookSelectorDialog(QDialog):
+    """
+    Dialog for choosing exactly which books of the Bible are included
+    in searches ("Select Books" option on the book-filter menu).
+
+    Displays every book with a checkbox next to it — Old Testament on
+    the left, New Testament on the right.  Checked books are included
+    in the database search; unchecked books are excluded.  The user
+    confirms with OK or abandons the changes with Cancel.
+
+    Features:
+    - Old/New Testament columns, each in a titled group box
+    - Check All / Uncheck All convenience buttons
+    - Validation (at least one book must stay checked)
+    - Returns the list of checked book names in biblical order
+
+    Example:
+        >>> dialog = BookSelectorDialog(
+        ...     parent=self,
+        ...     ot_books=BOOK_GROUPS["Old Testament"],
+        ...     nt_books=BOOK_GROUPS["New Testament"],
+        ...     checked_books=["Genesis", "Matthew"]
+        ... )
+        >>> if dialog.exec():
+        ...     included = dialog.get_selected_books()
+    """
+
+    def __init__(self, parent, ot_books, nt_books, checked_books=None):
+        """
+        Initialize the book selector dialog.
+
+        Args:
+            parent (QWidget): Parent window (usually main window)
+            ot_books (list): Old Testament book names in biblical order
+            nt_books (list): New Testament book names in biblical order
+            checked_books (list or None): Book names to pre-check.
+                None means "check every book" (the All Books state).
+        """
+        super().__init__(parent)
+        self.ot_books = list(ot_books)
+        self.nt_books = list(nt_books)
+        # None = everything checked (no filter currently active)
+        if checked_books is None:
+            self.initially_checked = set(self.ot_books + self.nt_books)
+        else:
+            self.initially_checked = set(checked_books)
+        self.checkboxes = {}  # book name -> QCheckBox
+
+        self.setup_ui()
+
+    def setup_ui(self):
+        """
+        Create the dialog user interface.
+
+        Layout structure:
+        - Instruction label
+        - Check All / Uncheck All buttons (horizontal layout)
+        - Two group boxes side by side (Old / New Testament), each a
+          two-column grid of book checkboxes
+        - OK / Cancel buttons (dialog button box)
+        """
+        self.setWindowTitle("Select Books to Search")
+        self.setMinimumWidth(560)
+
+        layout = QVBoxLayout(self)
+
+        # Short instruction so the purpose of the checkboxes is clear
+        info_label = QLabel("Checked books are included in the search. "
+                            "Unchecked books are left out.")
+        info_label.setStyleSheet("padding: 2px 0 6px 0;")
+        layout.addWidget(info_label)
+
+        # Convenience buttons for handling all 66 boxes at once
+        select_buttons_layout = QHBoxLayout()
+        check_all_btn = QPushButton("Check All")
+        uncheck_all_btn = QPushButton("Uncheck All")
+        check_all_btn.clicked.connect(self.check_all)
+        uncheck_all_btn.clicked.connect(self.uncheck_all)
+        select_buttons_layout.addWidget(check_all_btn)
+        select_buttons_layout.addWidget(uncheck_all_btn)
+        select_buttons_layout.addStretch()
+        layout.addLayout(select_buttons_layout)
+
+        # Old and New Testament group boxes, side by side
+        testaments_layout = QHBoxLayout()
+        testaments_layout.addWidget(
+            self._build_testament_group("Old Testament", self.ot_books))
+        testaments_layout.addWidget(
+            self._build_testament_group("New Testament", self.nt_books))
+        layout.addLayout(testaments_layout)
+
+        # OK / Cancel buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+    def _build_testament_group(self, title, books):
+        """
+        Build one titled group box containing a two-column grid of
+        book checkboxes.
+
+        Args:
+            title (str): Group box title ("Old Testament"/"New Testament")
+            books (list): Book names to create checkboxes for
+
+        Returns:
+            QGroupBox: The populated group box widget
+        """
+        group = QGroupBox(title)
+        grid = QGridLayout(group)
+        max_cols = 2
+
+        for index, book in enumerate(books):
+            cb = QCheckBox(book)
+            # Pre-check the books that are currently included in searches
+            cb.setChecked(book in self.initially_checked)
+            self.checkboxes[book] = cb
+            # Fill the grid top-to-bottom, left-to-right so the books
+            # read down each column in biblical order
+            rows = (len(books) + max_cols - 1) // max_cols
+            grid.addWidget(cb, index % rows, index // rows)
+
+        return group
+
+    def check_all(self):
+        """Check every book checkbox."""
+        for cb in self.checkboxes.values():
+            cb.setChecked(True)
+
+    def uncheck_all(self):
+        """Uncheck every book checkbox."""
+        for cb in self.checkboxes.values():
+            cb.setChecked(False)
+
+    def accept(self):
+        """
+        Validate before closing with OK.
+
+        At least one book must be checked — otherwise every search
+        would return nothing — so an empty selection shows a warning
+        and keeps the dialog open.
+        """
+        if not self.get_selected_books():
+            QMessageBox.warning(
+                self,
+                "No Books Selected",
+                "Please check at least one book to include in the search."
+            )
+            return  # Keep dialog open
+        super().accept()
+
+    def get_selected_books(self):
+        """
+        Return the list of checked book names.
+
+        Returns:
+            list: Checked book names in biblical order (OT first, then NT)
+        """
+        selected = []
+        for book in self.ot_books + self.nt_books:
+            if self.checkboxes[book].isChecked():
+                selected.append(book)
+        return selected

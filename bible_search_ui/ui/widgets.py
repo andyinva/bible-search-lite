@@ -432,14 +432,23 @@ class VerseItemWidget(QWidget):
         """
         return self.checkbox.isChecked()
         
-    def get_verse_reference(self):
+    def get_verse_reference(self, include_translation=True):
         """
         Return formatted verse reference.
-        
+
+        Args:
+            include_translation (bool): When True (default) the 3-letter
+                translation code is included at the front of the
+                reference. When False the code is left off — used by the
+                "Include translation code" setting so copied/exported
+                verses can read simply "Gen 1:1".
+
         Returns:
-            str: Formatted reference (e.g., "KJV Gen 1:1")
+            str: Formatted reference (e.g., "KJV Gen 1:1" or "Gen 1:1")
         """
-        return f"{self.translation} {self.book_abbrev} {self.chapter}:{self.verse_number}"
+        if include_translation:
+            return f"{self.translation} {self.book_abbrev} {self.chapter}:{self.verse_number}"
+        return f"{self.book_abbrev} {self.chapter}:{self.verse_number}"
         
     def highlight_search_terms(self, search_terms):
         """
@@ -783,12 +792,35 @@ class VerseListWidget(QWidget):
 
     def get_selected_verses(self):
         """
-        Return list of selected verse IDs.
+        Return list of selected verse IDs in display (top-to-bottom) order.
+
+        The checked verses are tracked internally in a Python set
+        (self.selected_verses).  A set has no meaningful order, so simply
+        doing list(self.selected_verses) returned the verses in arbitrary
+        hash order — which is why copied/exported verses used to come out
+        scrambled instead of in book/chapter/verse order.
+
+        To fix that, we walk the QListWidget rows from top to bottom and
+        collect only the checked verse IDs.  Because verses are always
+        displayed in biblical order, the returned list is automatically in
+        biblical order too.
 
         Returns:
-            list: List of verse_id strings for all selected verses
+            list: List of verse_id strings for all selected verses,
+                  ordered exactly as they appear on screen
         """
-        return list(self.selected_verses)
+        ordered_ids = []
+
+        # Walk every row of the list widget in visual (top-to-bottom) order
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            # Each QListWidgetItem stores its verse_id in the UserRole slot
+            verse_id = item.data(Qt.ItemDataRole.UserRole)
+            # Keep only the verses whose checkbox is currently checked
+            if verse_id in self.selected_verses:
+                ordered_ids.append(verse_id)
+
+        return ordered_ids
 
     def select_all(self):
         """

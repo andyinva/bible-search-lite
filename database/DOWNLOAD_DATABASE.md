@@ -1,6 +1,6 @@
 # Bible Search Lite - Database Download Instructions
 
-**The Bible database file is too large for GitHub (406 MB)**
+**The Bible database file is too large for GitHub (about 416 MB)**
 
 This file contains 37 Bible translations and must be downloaded separately.
 
@@ -11,23 +11,23 @@ This file contains 37 Bible translations and must be downloaded separately.
 ### For Linux/WSL/Mac:
 ```bash
 cd database
-wget https://github.com/andyinva/bible-search-lite/releases/download/v1.1.0/bibles.db
+wget https://github.com/andyinva/bible-search-lite/releases/download/v1.1.6/bibles.db
 # OR
-curl -L -o bibles.db https://github.com/andyinva/bible-search-lite/releases/download/v1.1.0/bibles.db
+curl -L -o bibles.db https://github.com/andyinva/bible-search-lite/releases/download/v1.1.6/bibles.db
 ```
 
 ### For Windows PowerShell:
 ```powershell
 cd database
-Invoke-WebRequest -Uri "https://github.com/andyinva/bible-search-lite/releases/download/v1.1.0/bibles.db" -OutFile "bibles.db"
+Invoke-WebRequest -Uri "https://github.com/andyinva/bible-search-lite/releases/download/v1.1.6/bibles.db" -OutFile "bibles.db"
 ```
 
 ---
 
 ## Manual Download
 
-1. Go to: https://github.com/andyinva/bible-search-lite/releases/tag/v1.1.0
-2. Download `bibles.db` (406 MB)
+1. Go to: https://github.com/andyinva/bible-search-lite/releases/tag/v1.1.6
+2. Download `bibles.db` (about 416 MB)
 3. Place it in the `database/` directory
 
 ---
@@ -49,7 +49,7 @@ sqlite3 bibles.db "SELECT COUNT(*) FROM translations;"
 - **37 Bible Translations** with complete publication dates
 - **All books** of the Old and New Testament
 - **Cross-references** and verse data
-- **~406 MB** compressed SQLite database
+- **~416 MB** compressed SQLite database
 
 ### Included Translations:
 ACV, AND, ASV, BBE, BIS, BSB, BST, COV, CPD, DBT, DRC, DRB, ERV, GEN, GN2, HAW, JPS, JUB, KJV, LEB, LIT, MKJ, NET, NHE, NHJ, NHM, NOY, OEB, OEC, ROT, TWE, TYD, TYN, WEB, WNT, WYC, YLT
