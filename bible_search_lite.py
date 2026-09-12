@@ -1496,6 +1496,13 @@ class BibleSearchProgram(QMainWindow):
         backup_btn.clicked.connect(lambda: [dialog.accept(), self.show_backup_restore_dialog()])
         layout.addWidget(backup_btn)
 
+        # Create Desktop Icon button - places a start icon on the
+        # Windows or Ubuntu desktop (whichever we are running in).
+        # Meant to be the first thing run after installing.
+        desktop_icon_btn = QPushButton("Create Desktop Icon")
+        desktop_icon_btn.clicked.connect(lambda: [dialog.accept(), self.on_create_desktop_icon()])
+        layout.addWidget(desktop_icon_btn)
+
         # Subject Features toggle
         layout.addWidget(QLabel(""))  # Spacer
         subject_label = QLabel("Subject Features (Windows 4 & 5):")
@@ -1528,6 +1535,31 @@ class BibleSearchProgram(QMainWindow):
         layout.addWidget(close_btn)
 
         dialog.exec()
+
+    def on_create_desktop_icon(self):
+        """
+        Create a start icon on the desktop (Settings menu button).
+
+        Delegates all the real work to the standalone desktop_icon.py
+        tool, which detects whether we are on native Windows, WSL, or
+        native Linux and places the icon on the matching desktop. The
+        result is reported in a message box either way.
+        """
+        from PyQt6.QtWidgets import QMessageBox
+
+        try:
+            from desktop_icon import create_desktop_icon
+            success, message = create_desktop_icon()
+        except Exception as e:
+            success, message = False, f"Could not run the desktop icon tool:\n{e}"
+
+        if success:
+            QMessageBox.information(self, "Create Desktop Icon", message)
+            self.set_message("✓ Desktop icon created")
+        else:
+            QMessageBox.warning(self, "Create Desktop Icon", message)
+            self.set_message("⚠️  Could not create desktop icon")
+        self.debug_print(f"🖥️  Create desktop icon: success={success}")
 
     def show_font_size_dialog(self):
         """Show dialog to adjust font sizes"""
