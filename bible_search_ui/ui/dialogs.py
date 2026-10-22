@@ -961,16 +961,26 @@ class SearchFilterDialog(QDialog):
 class BookSelectorDialog(QDialog):
     """
     Dialog for choosing exactly which books of the Bible are included
-    in searches ("Select Books" option on the book-filter menu).
+    in searches.  This is the ONLY window opened by the book-filter
+    button ("All Books") on the main search bar.
 
-    Displays every book with a checkbox next to it — Old Testament on
+    Displays every book with a checkbox next to it - Old Testament on
     the left, New Testament on the right.  Checked books are included
     in the database search; unchecked books are excluded.  The user
     confirms with OK or abandons the changes with Cancel.
 
     Features:
+    - Quick Select buttons (Old Testament, New Testament, Torah,
+      Gospels, ...) that fill in the checkboxes for a whole group of
+      books with one click, so they need not be ticked one at a time.
+      Clicking the same button again unchecks that group.
+    - "Add to current checks" option so several groups can be combined
+      (for example Torah + Gospels)
+    - Back / forward arrows that step through the last selections the
+      user confirmed with OK, filling in the checkboxes as they go
     - Old/New Testament columns, each in a titled group box
     - Check All / Uncheck All convenience buttons
+    - Live count of how many books are checked
     - Validation (at least one book must stay checked)
     - Returns the list of checked book names in biblical order
 
@@ -979,13 +989,15 @@ class BookSelectorDialog(QDialog):
         ...     parent=self,
         ...     ot_books=BOOK_GROUPS["Old Testament"],
         ...     nt_books=BOOK_GROUPS["New Testament"],
-        ...     checked_books=["Genesis", "Matthew"]
+        ...     checked_books=["Genesis", "Matthew"],
+        ...     book_groups={"Torah": ["Genesis", "Exodus", ...]}
         ... )
         >>> if dialog.exec():
         ...     included = dialog.get_selected_books()
     """
 
-    def __init__(self, parent, ot_books, nt_books, checked_books=None):
+    def __init__(self, parent, ot_books, nt_books, checked_books=None,
+                 book_groups=None, history=None):
         """
         Initialize the book selector dialog.
 
@@ -994,11 +1006,33 @@ class BookSelectorDialog(QDialog):
             ot_books (list): Old Testament book names in biblical order
             nt_books (list): New Testament book names in biblical order
             checked_books (list or None): Book names to pre-check.
-                None means "check every book" (the All Books state).
+                None means "check every book"; an empty list means
+                "check nothing" (how the All Books state opens).
+            book_groups (dict or None): Quick Select groups, in the
+                order the buttons should appear.  Maps the button
+                label (e.g. "Gospels") to the list of book names that
+                button checks.  None = no Quick Select buttons.
+            history (list or None): Previous selections, oldest first,
+                each a list of book names.  Stepped through with the
+                back/forward arrows.  None or empty = arrows disabled.
         """
         super().__init__(parent)
         self.ot_books = list(ot_books)
         self.nt_books = list(nt_books)
+        # Quick Select groups: button label -> list of book names.
+        # A plain dict keeps insertion order, so the buttons appear in
+        # the same order the caller listed the groups.
+        self.book_groups = dict(book_groups) if book_groups else {}
+        # Selection history for the arrows (a copy, so stepping through
+        # it can never alter the caller's list)
+        self.history = [list(h) for h in history] if history else []
+        # Where the arrows are in the history.  len(self.history) means
+        # "not browsing history" - the checkboxes show the user's own
+        # working selection, which is stashed in self.working_selection
+        # the moment they first step back so that stepping forward past
+        # the newest entry brings it back.
+        self.history_index = len(self.history)
+        self.working_selection = None
         # None = everything checked (no filter currently active)
         if checked_books is None:
             self.initially_checked = set(self.ot_books + self.nt_books)
@@ -1014,7 +1048,9 @@ class BookSelectorDialog(QDialog):
 
         Layout structure:
         - Instruction label
-        - Check All / Uncheck All buttons (horizontal layout)
+        - Quick Select group box (one button per book group, plus the
+          "Add to current checks" option)
+        - Check All / Uncheck All buttons and the checked-book count
         - Two group boxes side by side (Old / New Testament), each a
           two-column grid of book checkboxes
         - OK / Cancel buttons (dialog button box)
@@ -1026,19 +1062,32 @@ class BookSelectorDialog(QDialog):
 
         # Short instruction so the purpose of the checkboxes is clear
         info_label = QLabel("Checked books are included in the search. "
-                            "Unchecked books are left out.")
+                            "Unchecked books are left out.\n"
+                            "Use a Quick Select button to fill in a whole "
+                            "group of books at once.")
         info_label.setStyleSheet("padding: 2px 0 6px 0;")
         layout.addWidget(info_label)
+
+        # Quick Select buttons (only shown if the caller supplied groups)
+        if self.book_groups:
+            layout.addWidget(self._build_quick_select_group())
 
         # Convenience buttons for handling all 66 boxes at once
         select_buttons_layout = QHBoxLayout()
         check_all_btn = QPushButton("Check All")
         uncheck_all_btn = QPushButton("Uncheck All")
+        # autoDefault off so pressing Enter always means OK, never
+        # "whichever button was clicked last"
+        check_all_btn.setAutoDefault(False)
+        uncheck_all_btn.setAutoDefault(False)
         check_all_btn.clicked.connect(self.check_all)
         uncheck_all_btn.clicked.connect(self.uncheck_all)
         select_buttons_layout.addWidget(check_all_btn)
         select_buttons_layout.addWidget(uncheck_all_btn)
         select_buttons_layout.addStretch()
+        # Running total, e.g. "39 of 66 books checked"
+        self.count_label = QLabel("")
+        select_buttons_layout.addWidget(self.count_label)
         layout.addLayout(select_buttons_layout)
 
         # Old and New Testament group boxes, side by side
@@ -1057,6 +1106,148 @@ class BookSelectorDialog(QDialog):
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
+
+        # Show the starting count now that every checkbox exists
+        self.update_count_label()
+
+    def _build_quick_select_group(self):
+        """
+        Build the "Quick Select" group box: one button for each book
+        group (Old Testament, New Testament, Torah, Gospels, ...).
+
+        Clicking a button checks every book in that group.  By default
+        the other books are unchecked first, so the group REPLACES the
+        current checks.  With "Add to current checks" ticked, the group
+        is ADDED instead, which lets groups be combined.
+
+        Clicking a button whose group is already fully checked works in
+        reverse and UNCHECKS that group (see apply_group).
+
+        Returns:
+            QGroupBox: The populated Quick Select group box
+        """
+        group_box = QGroupBox("Quick Select")
+        box_layout = QVBoxLayout(group_box)
+
+        # Buttons laid out in a grid, 5 to a row, so the dialog stays
+        # a sensible width no matter how many groups there are
+        grid = QGridLayout()
+        max_cols = 5
+        for index, (label, books) in enumerate(self.book_groups.items()):
+            btn = QPushButton(label)
+            btn.setAutoDefault(False)  # Enter key must stay with OK
+            btn.setToolTip(f"Check the {len(books)} books in: {label}\n"
+                           f"(click again to uncheck them)")
+            # g=label freezes the current label for this button's lambda
+            btn.clicked.connect(
+                lambda checked=False, g=label: self.apply_group(g))
+            grid.addWidget(btn, index // max_cols, index % max_cols)
+
+        # History arrows go in the next free cell of the grid
+        next_index = len(self.book_groups)
+        grid.addLayout(self._build_history_arrows(),
+                       next_index // max_cols, next_index % max_cols)
+        box_layout.addLayout(grid)
+
+        # Option: add the group to what is already checked instead of
+        # replacing it
+        self.add_mode_cb = QCheckBox(
+            "Add to current checks (combine groups, e.g. Torah + Gospels)")
+        box_layout.addWidget(self.add_mode_cb)
+
+        return group_box
+
+    def _build_history_arrows(self):
+        """
+        Build the back / forward arrow buttons that step through the
+        selection history, with a small "3 / 7" position label between
+        them.
+
+        Returns:
+            QHBoxLayout: Layout holding [back] [position] [forward]
+        """
+        arrows = QHBoxLayout()
+        arrows.setSpacing(2)
+
+        self.history_back_btn = QPushButton("\u25c0")      # left-pointing triangle
+        self.history_fwd_btn = QPushButton("\u25b6")       # right-pointing triangle
+        for btn in (self.history_back_btn, self.history_fwd_btn):
+            btn.setAutoDefault(False)  # Enter key must stay with OK
+            btn.setFixedWidth(28)
+        self.history_back_btn.setToolTip(
+            "Back: show an earlier book selection")
+        self.history_fwd_btn.setToolTip(
+            "Forward: show a later book selection")
+        self.history_back_btn.clicked.connect(lambda: self.step_history(-1))
+        self.history_fwd_btn.clicked.connect(lambda: self.step_history(+1))
+
+        # Position label, e.g. "3 / 7"; blank while not browsing
+        self.history_label = QLabel("")
+        self.history_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.history_label.setMinimumWidth(40)
+        self.history_label.setToolTip(
+            f"Last {len(self.history)} selections confirmed with OK")
+
+        arrows.addWidget(self.history_back_btn)
+        arrows.addWidget(self.history_label)
+        arrows.addWidget(self.history_fwd_btn)
+
+        self.update_history_arrows()
+        return arrows
+
+    def step_history(self, direction):
+        """
+        Move one step back (-1) or forward (+1) through the selection
+        history and fill in the checkboxes to match.
+
+        Stepping forward past the newest entry restores the selection
+        the user was working on before they started browsing.
+
+        Args:
+            direction (int): -1 for back, +1 for forward
+        """
+        new_index = self.history_index + direction
+        if new_index < 0 or new_index > len(self.history):
+            return  # Already at the end - nothing to do
+
+        # Leaving the working selection for the first time: stash it
+        if self.history_index == len(self.history) and direction < 0:
+            self.working_selection = self.get_selected_books()
+
+        self.history_index = new_index
+        if self.history_index == len(self.history):
+            # Back at the front: restore what the user had been doing
+            self.set_checked_books(self.working_selection or [])
+        else:
+            self.set_checked_books(self.history[self.history_index])
+        self.update_history_arrows()
+
+    def update_history_arrows(self):
+        """
+        Enable/disable the arrows at the ends of the history and refresh
+        the position label.
+        """
+        total = len(self.history)
+        browsing = self.history_index < total
+        self.history_back_btn.setEnabled(self.history_index > 0)
+        self.history_fwd_btn.setEnabled(browsing)
+        if browsing:
+            # Entries are oldest first, so show newest as 1 for the user
+            self.history_label.setText(
+                f"{total - self.history_index} / {total}")
+        else:
+            self.history_label.setText("")
+
+    def set_checked_books(self, books):
+        """
+        Check exactly the given books and uncheck every other book.
+
+        Args:
+            books (list): Book names to check
+        """
+        wanted = set(books)
+        for book, cb in self.checkboxes.items():
+            cb.setChecked(book in wanted)
 
     def _build_testament_group(self, title, books):
         """
@@ -1078,6 +1269,8 @@ class BookSelectorDialog(QDialog):
             cb = QCheckBox(book)
             # Pre-check the books that are currently included in searches
             cb.setChecked(book in self.initially_checked)
+            # Keep the "N of 66 books checked" label up to date
+            cb.toggled.connect(self.update_count_label)
             self.checkboxes[book] = cb
             # Fill the grid top-to-bottom, left-to-right so the books
             # read down each column in biblical order
@@ -1085,6 +1278,55 @@ class BookSelectorDialog(QDialog):
             grid.addWidget(cb, index % rows, index // rows)
 
         return group
+
+    def apply_group(self, group_name):
+        """
+        Fill in (or clear) the checkboxes for one Quick Select group.
+
+        The button toggles: if every book in the group is already
+        checked, the click UNCHECKS just those books and leaves all the
+        others alone.  Otherwise it CHECKS the group.  Testing the
+        current state, rather than remembering which button was clicked
+        last, means it works however the boxes came to be checked.
+
+        Args:
+            group_name (str): Key into self.book_groups, e.g. "Gospels"
+        """
+        group_books = set(self.book_groups.get(group_name, []))
+        # Add mode: leave the other checkboxes exactly as they are
+        add_mode = self.add_mode_cb.isChecked()
+
+        # Is the whole group already checked?  Then this click undoes it.
+        already_all_checked = all(
+            self.checkboxes[book].isChecked() for book in group_books)
+
+        if already_all_checked:
+            # Second click: uncheck only the books in this group
+            for book in group_books:
+                self.checkboxes[book].setChecked(False)
+            return
+
+        for book, cb in self.checkboxes.items():
+            if book in group_books:
+                cb.setChecked(True)
+            elif not add_mode:
+                # Replace mode: books outside the group are unchecked
+                cb.setChecked(False)
+
+    def update_count_label(self, *_):
+        """
+        Refresh the "N of 66 books checked" label.
+
+        Accepts (and ignores) the True/False value that the checkbox
+        "toggled" signal sends along.
+        """
+        # The label does not exist yet while the checkboxes are first
+        # being built, so skip quietly until it does
+        if not hasattr(self, "count_label"):
+            return
+        checked = sum(1 for cb in self.checkboxes.values() if cb.isChecked())
+        self.count_label.setText(
+            f"{checked} of {len(self.checkboxes)} books checked")
 
     def check_all(self):
         """Check every book checkbox."""
@@ -1100,8 +1342,8 @@ class BookSelectorDialog(QDialog):
         """
         Validate before closing with OK.
 
-        At least one book must be checked — otherwise every search
-        would return nothing — so an empty selection shows a warning
+        At least one book must be checked - otherwise every search
+        would return nothing - so an empty selection shows a warning
         and keeps the dialog open.
         """
         if not self.get_selected_books():

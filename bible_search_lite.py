@@ -5093,9 +5093,10 @@ Scripture quoted by permission. Quotations designated (NET) are from the
 NET Bible® copyright ©1996, 2019 by Biblical Studies Press, L.L.C.
 http://netbible.com All rights reserved.
 
-This application includes the NET Bible® translation in the bibles.db database.
-The NET Bible® text is used under the terms of the NET Bible® copyright for
-non-commercial use.
+The bibles.db published with this program on GitHub does not include the
+NET Bible® or the other translations still under copyright (JUB, LEB, LIT,
+MKJ, BBE).  Where a copy of bibles.db does include the NET Bible®, its text
+is used under the terms of the NET Bible® copyright for non-commercial use.
 
 For complete NET Bible® copyright information and permissions, visit:
 https://netbible.org/copyright/

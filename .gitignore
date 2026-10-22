@@ -42,6 +42,12 @@ bible_search_lite_config.json
 # Large database files
 database/bibles.db
 
+# The database export: published only on GitHub releases, never in git
+# (the copies once committed held translations still under copyright)
+data/bible_data.sql.gz
+# What make_public_database.py writes for the release
+public_release/
+
 # User-specific database files
 database/user_data.db
 # NOTE: database/subjects.db IS tracked in git because it contains the schema

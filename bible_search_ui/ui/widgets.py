@@ -9,6 +9,8 @@ This module contains reusable UI components for displaying and managing Bible ve
 Author: Andrew Hopkins
 """
 
+import re  # Used by VerseItemWidget.get_clean_text() to remove highlight markers
+
 from PyQt6.QtWidgets import (QWidget, QLabel, QCheckBox, QVBoxLayout,
                              QHBoxLayout, QScrollArea, QFrame, QSizePolicy,
                              QListWidget, QListWidgetItem)
@@ -449,7 +451,38 @@ class VerseItemWidget(QWidget):
         if include_translation:
             return f"{self.translation} {self.book_abbrev} {self.chapter}:{self.verse_number}"
         return f"{self.book_abbrev} {self.chapter}:{self.verse_number}"
-        
+
+    def get_clean_text(self):
+        """
+        Return the verse text with all search highlight markers removed.
+
+        The search module marks matches inside the stored verse text:
+            [word]          = a plain match (shown green)
+            [base]{ending}  = a wildcard match (base green, ending blue)
+        These markers are only meant for the on-screen display. Anything
+        that leaves the program (Copy to clipboard, Export, Print) should
+        use this method so the result is plain verse text.
+
+        The patterns below mirror the ones used in apply_highlighting(),
+        so the text produced here always matches what the user sees.
+
+        Examples:
+            "For God so [lov]{ed} the world"  ->  "For God so loved the world"
+            "and [love] one another"          ->  "and love one another"
+
+        Returns:
+            str: Plain verse text with no highlight markers
+        """
+        text = self.text
+
+        # Step 1: [base]{variation} -> basevariation (two-color wildcard match)
+        text = re.sub(r'\[([^\]]+)\]\{([^\}]+)\}', r'\1\2', text)
+
+        # Step 2: [word] -> word (single-color match)
+        text = re.sub(r'\[([^\]]+)\]', r'\1', text)
+
+        return text
+
     def highlight_search_terms(self, search_terms):
         """
         Highlight search terms in the verse text.

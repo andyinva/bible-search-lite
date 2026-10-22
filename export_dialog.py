@@ -232,7 +232,8 @@ class ExportDialog(QDialog):
                             # translation code in the reference
                             'reference': widget.get_verse_reference(
                                 getattr(self.parent_app, 'include_translation_code', True)),
-                            'text': widget.text,
+                            # Plain verse text (search highlight markers removed)
+                            'text': widget.get_clean_text(),
                             'comment': None
                         })
             else:  # All verses
@@ -242,7 +243,8 @@ class ExportDialog(QDialog):
                         # translation code in the reference
                         'reference': widget.get_verse_reference(
                             getattr(self.parent_app, 'include_translation_code', True)),
-                        'text': widget.text,
+                        # Plain verse text (search highlight markers removed)
+                        'text': widget.get_clean_text(),
                         'comment': None
                     })
 
@@ -258,7 +260,8 @@ class ExportDialog(QDialog):
                             # translation code in the reference
                             'reference': widget.get_verse_reference(
                                 getattr(self.parent_app, 'include_translation_code', True)),
-                            'text': widget.text,
+                            # Plain verse text (search highlight markers removed)
+                            'text': widget.get_clean_text(),
                             'comment': None
                         })
             else:  # All verses
@@ -268,7 +271,8 @@ class ExportDialog(QDialog):
                         # translation code in the reference
                         'reference': widget.get_verse_reference(
                             getattr(self.parent_app, 'include_translation_code', True)),
-                        'text': widget.text,
+                        # Plain verse text (search highlight markers removed)
+                        'text': widget.get_clean_text(),
                         'comment': None
                     })
 

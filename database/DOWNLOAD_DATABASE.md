@@ -1,8 +1,13 @@
 # Bible Search Lite - Database Download Instructions
 
-**The Bible database file is too large for GitHub (about 416 MB)**
+**The Bible database file is too large for GitHub (about 397 MB)**
 
-This file contains 37 Bible translations and must be downloaded separately.
+This file contains 33 Bible translations and must be downloaded separately.
+
+The published database holds only translations that may be passed on.
+Six translations still under copyright (JUB, LEB, NET, LIT, MKJ, BBE) are
+left out of it.  The developer's own copy keeps them; the public copy is
+made from it with `python3 make_public_database.py`.
 
 ---
 
@@ -27,7 +32,7 @@ Invoke-WebRequest -Uri "https://github.com/andyinva/bible-search-lite/releases/d
 ## Manual Download
 
 1. Go to: https://github.com/andyinva/bible-search-lite/releases/tag/v1.1.6
-2. Download `bibles.db` (about 416 MB)
+2. Download `bibles.db` (about 397 MB)
 3. Place it in the `database/` directory
 
 ---
@@ -40,19 +45,19 @@ After downloading, verify it's correct:
 sqlite3 bibles.db "SELECT COUNT(*) FROM translations;"
 ```
 
-**Expected:** 37
+**Expected:** 33
 
 ---
 
 ## Database Contents
 
-- **37 Bible Translations** with complete publication dates
+- **33 Bible Translations** with complete publication dates
 - **All books** of the Old and New Testament
 - **Cross-references** and verse data
-- **~416 MB** compressed SQLite database
+- **~397 MB** SQLite database
 
 ### Included Translations:
-ACV, AND, ASV, BBE, BIS, BSB, BST, COV, CPD, DBT, DRC, DRB, ERV, GEN, GN2, HAW, JPS, JUB, KJV, LEB, LIT, MKJ, NET, NHE, NHJ, NHM, NOY, OEB, OEC, ROT, TWE, TYD, TYN, WEB, WNT, WYC, YLT
+ACV, AND, ASV, BIS, BSB, BST, COV, CPD, DBT, DRB, DRC, EDG, ERV, GEN, GN2, HAW, JPS, KJV, NHE, NHJ, NHM, NOY, OEB, OEC, ROT, SLT, TWE, TYD, TYN, WEB, WNT, WYC, YLT
 
 ---
 
