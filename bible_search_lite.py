@@ -6,8 +6,8 @@ import urllib.error
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QCheckBox, QPushButton, QComboBox, QLineEdit,
                              QVBoxLayout, QHBoxLayout, QSplitter, QFrame,
-                             QScrollArea, QListWidget, QMessageBox, QProgressDialog, QMenu)
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread
+                             QScrollArea, QListWidget, QMessageBox, QProgressDialog)
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QThread, QObject, QEvent
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 # Version number
@@ -23,7 +23,10 @@ from bible_search_ui.controllers import SearchController
 # Import subject management (Windows 4 & 5)
 from subject_manager import SubjectManager
 
-# Book groups for filtering searches
+# Book groups for filtering searches.
+# Every group except "All Books" also becomes a Quick Select button in
+# the Select Books dialog, in the order listed here - so adding a new
+# group to this dictionary automatically adds a new button.
 BOOK_GROUPS = {
     "All Books": [],  # Empty list means no filter
     "Old Testament": [
@@ -43,8 +46,12 @@ BOOK_GROUPS = {
         "Hebrews", "James", "1 Peter", "2 Peter",
         "1 John", "2 John", "3 John", "Jude", "Revelation"
     ],
-    "Pentateuch": [
+    "Torah": [
         "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy"
+    ],
+    "History Books": [
+        "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel", "1 Kings", "2 Kings",
+        "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther"
     ],
     "Wisdom Books": [
         "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon"
@@ -57,7 +64,7 @@ BOOK_GROUPS = {
         "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi"
     ],
     "Gospels": [
-        "Matthew", "Mark", "Luke", "John", "Acts"
+        "Matthew", "Mark", "Luke", "John"
     ],
     "Epistles": [
         "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians",
@@ -103,6 +110,45 @@ class SelectionManager:
         else:
             for window_id in self.window_selections:
                 self.window_selections[window_id] = set()
+
+
+class EnterKeyFilter(QObject):
+    """
+    Runs a callback when the Enter (or keypad Enter) key is pressed in a
+    widget, and then consumes the key press.
+
+    Why this exists:
+        The search box is an editable QComboBox. Its inner line edit emits
+        returnPressed TWICE for a single Enter press, because the key event
+        is passed up to the combo box and forwarded back down again. Simply
+        connecting returnPressed to the search would run every search twice.
+        By catching the key press here and consuming it, the callback runs
+        exactly once and the combo box never sees the key.
+
+    Usage:
+        self.enter_filter = EnterKeyFilter(self.perform_search, parent)
+        some_line_edit.installEventFilter(self.enter_filter)
+    """
+
+    def __init__(self, callback, parent=None):
+        """
+        Args:
+            callback (callable): Function to run when Enter is pressed
+            parent (QObject, optional): Owner, keeps this filter alive
+        """
+        super().__init__(parent)
+        self.callback = callback
+
+    def eventFilter(self, obj, event):
+        """Catch Enter key presses; pass every other event along untouched."""
+        if event.type() == QEvent.Type.KeyPress and \
+                event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            # A held-down key sends repeated presses; only the first one
+            # should start a search
+            if not event.isAutoRepeat():
+                self.callback()
+            return True  # Consume the key so it is handled only once
+        return False
 
 
 class BibleSearchProgram(QMainWindow):
@@ -825,6 +871,26 @@ class BibleSearchProgram(QMainWindow):
         # Connect signal to update search button style when text changes
         self.search_input.lineEdit().textChanged.connect(self.update_search_button_style)
 
+        # Pressing Enter in the search box runs the search, exactly the same
+        # as clicking the Search button (both call perform_search).
+        # EnterKeyFilter is used instead of the returnPressed signal because
+        # a combo box's line edit fires that signal twice per key press.
+        self.enter_search_filter = EnterKeyFilter(self.perform_search, self)
+        self.search_input.lineEdit().installEventFilter(self.enter_search_filter)
+        # The key can also arrive at the combo box itself (for example when
+        # the box has keyboard focus but the typing cursor is not active).
+        # The combo box then hands the key to its line edit internally, which
+        # skips any filter installed on the line edit, so filter it here too.
+        # Only one of the two ever sees a given key press (the filter consumes
+        # it), so the search still runs exactly once.
+        self.search_input.installEventFilter(self.enter_search_filter)
+
+        # An editable combo box normally adds whatever is typed to its list
+        # when Enter is pressed. Search history is managed by hand (it is only
+        # saved when a search finds results, in on_search_results_ready), so
+        # turn the automatic insert off to keep failed searches out of it.
+        self.search_input.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+
         self.search_button = QPushButton("Search")
         self.search_button.clicked.connect(self.perform_search)
         self.search_button.setStyleSheet(self.get_button_style())  # Start gray (empty)
@@ -850,15 +916,22 @@ class BibleSearchProgram(QMainWindow):
         # Search history (will be loaded from config)
         self.search_history = []
 
-        # Book filter - changed from QComboBox to QPushButton with menu
+        # Book filter button - opens the Select Books dialog directly
+        # (the old drop-down menu of groups and books was removed; the
+        # groups are now Quick Select buttons inside that dialog)
         self.selected_book_filter = "All Books"  # Track current selection
         # Custom per-book selection made in the "Select Books" dialog.
         # None = no custom selection; otherwise a list of book names that
         # are included in searches (all other books are excluded).
         self.custom_book_selection = None
+        # History of the last book selections confirmed with OK in the
+        # Select Books dialog (oldest first, newest last).  Each entry is
+        # a list of book names.  The dialog's back/forward arrows step
+        # through it.  Saved in the config file between sessions.
+        self.book_selection_history = []
         self.books_button = QPushButton("All Books")
         self.books_button.setStyleSheet(self.get_button_style())
-        self.books_button.clicked.connect(self.show_book_menu)
+        self.books_button.clicked.connect(self.show_book_selector_dialog)
 
         # NEW: Filter button (store as instance variable for highlighting)
         self.filter_button = QPushButton("Filter")
@@ -1227,63 +1300,20 @@ class BibleSearchProgram(QMainWindow):
             # Empty - gray/inactive style
             self.search_button.setStyleSheet(self.get_button_style(active=False))
 
-    def show_book_menu(self):
-        """Show hierarchical book filter menu"""
-        menu = QMenu(self)
-
-        # Add "All Books" option
-        all_books_action = menu.addAction("All Books")
-        all_books_action.triggered.connect(lambda: self.select_book_filter("All Books"))
-
-        # Add "Select Books" option - opens a dialog with a checkbox for
-        # every book so the user can build a custom set of books to search
-        select_books_action = menu.addAction("Select Books...")
-        select_books_action.triggered.connect(self.show_book_selector_dialog)
-
-        menu.addSeparator()
-
-        # Create Old Testament submenu
-        ot_menu = QMenu("Old Testament", self)
-        # Add action to select entire Old Testament
-        ot_all_action = ot_menu.addAction("✓ All Old Testament Books")
-        ot_all_action.triggered.connect(lambda: self.select_book_filter("Old Testament"))
-        ot_menu.addSeparator()
-        # Add individual OT books
-        for book in BOOK_GROUPS["Old Testament"]:
-            book_action = ot_menu.addAction(book)
-            book_action.triggered.connect(lambda checked, b=book: self.select_book_filter(b))
-        menu.addMenu(ot_menu)
-
-        # Create New Testament submenu
-        nt_menu = QMenu("New Testament", self)
-        # Add action to select entire New Testament
-        nt_all_action = nt_menu.addAction("✓ All New Testament Books")
-        nt_all_action.triggered.connect(lambda: self.select_book_filter("New Testament"))
-        nt_menu.addSeparator()
-        # Add individual NT books
-        for book in BOOK_GROUPS["New Testament"]:
-            book_action = nt_menu.addAction(book)
-            book_action.triggered.connect(lambda checked, b=book: self.select_book_filter(b))
-        menu.addMenu(nt_menu)
-
-        menu.addSeparator()
-
-        # Add other book groups
-        other_groups = ["Pentateuch", "Wisdom Books", "Major Prophets", "Minor Prophets", "Gospels", "Epistles"]
-        for group in other_groups:
-            group_action = menu.addAction(group)
-            group_action.triggered.connect(lambda checked, g=group: self.select_book_filter(g))
-
-        # Show the menu at the button position
-        menu.exec(self.books_button.mapToGlobal(self.books_button.rect().bottomLeft()))
-
     def show_book_selector_dialog(self):
         """
         Open the "Select Books" dialog (a checkbox for every Bible book).
 
+        This is the only window the book-filter button opens.  Its
+        Quick Select buttons (Old Testament, Torah, Gospels, ...) fill
+        in the checkboxes for a whole group of books at once.
+
         The dialog opens pre-checked with whatever books the current
-        filter includes.  On OK, the checked books become the new search
-        filter; on Cancel, nothing changes.
+        filter includes.  The one exception is "All Books" (no filter):
+        then every box starts UNCHECKED, on the assumption that the user
+        is about to build a fresh set of books from scratch.  On OK, the
+        checked books become the new search filter; on Cancel (or the
+        window's close button) nothing changes and "All Books" stays.
         """
         # Work out which books are currently included, so the dialog
         # opens showing the current state of the filter
@@ -1291,8 +1321,10 @@ class BibleSearchProgram(QMainWindow):
             # A custom selection is already active - restore those checks
             currently_included = list(self.custom_book_selection)
         elif self.selected_book_filter == "All Books":
-            # No filter - every book is included (None = check all)
-            currently_included = None
+            # No filter active - start with every box unchecked so the
+            # user builds a fresh selection (an empty list = check none).
+            # Cancel leaves the "All Books" filter untouched.
+            currently_included = []
         elif self.selected_book_filter in BOOK_GROUPS:
             # A named group (OT, NT, Gospels, ...) is active
             currently_included = list(BOOK_GROUPS[self.selected_book_filter])
@@ -1304,7 +1336,13 @@ class BibleSearchProgram(QMainWindow):
             self,
             ot_books=BOOK_GROUPS["Old Testament"],
             nt_books=BOOK_GROUPS["New Testament"],
-            checked_books=currently_included
+            checked_books=currently_included,
+            # One Quick Select button per named group, in BOOK_GROUPS
+            # order ("All Books" is skipped - Check All covers it)
+            book_groups={name: books for name, books in BOOK_GROUPS.items()
+                         if name != "All Books"},
+            # Previous selections for the dialog's back/forward arrows
+            history=self.book_selection_history
         )
 
         # exec() returns True only if the user clicked OK (Cancel or
@@ -1313,10 +1351,27 @@ class BibleSearchProgram(QMainWindow):
             selected_books = dialog.get_selected_books()
             total_books = len(BOOK_GROUPS["Old Testament"]) + len(BOOK_GROUPS["New Testament"])
 
+            # Remember this selection so the arrows can bring it back
+            self.remember_book_selection(selected_books)
+
+            # Does the checked set exactly match a named group (for
+            # example after clicking the "Gospels" Quick Select button)?
+            # If so the button can show the group's name instead of
+            # "Custom (N books)".
+            matching_group = None
+            for group_name, group_books in BOOK_GROUPS.items():
+                if group_name != "All Books" and set(group_books) == set(selected_books):
+                    matching_group = group_name
+                    break
+
             if len(selected_books) == total_books:
                 # Every book is checked - that is simply "All Books"
                 self.custom_book_selection = None
                 self.select_book_filter("All Books")
+            elif matching_group:
+                # The checks match a named group exactly
+                self.custom_book_selection = None
+                self.select_book_filter(matching_group)
             elif len(selected_books) == 1:
                 # Exactly one book checked - treat as an individual book
                 # filter so the button shows the book's name
@@ -1326,6 +1381,36 @@ class BibleSearchProgram(QMainWindow):
                 # A real custom subset - remember it and activate it
                 self.custom_book_selection = selected_books
                 self.select_book_filter("Custom Selection")
+
+    # How many past selections the Select Books dialog remembers
+    BOOK_HISTORY_LIMIT = 10
+
+    def remember_book_selection(self, selected_books):
+        """
+        Add a confirmed book selection to the history list.
+
+        The list holds at most BOOK_HISTORY_LIMIT entries, newest last.
+        A selection that is already in the list is moved to the end
+        rather than stored twice, and a selection of every book (plain
+        "All Books") is not worth remembering, so it is skipped.
+
+        Args:
+            selected_books (list): Book names the user checked
+        """
+        total_books = len(BOOK_GROUPS["Old Testament"]) + len(BOOK_GROUPS["New Testament"])
+        if not selected_books or len(selected_books) == total_books:
+            return
+
+        entry = list(selected_books)
+        # Drop an identical earlier entry so it moves to the newest slot
+        self.book_selection_history = [
+            h for h in self.book_selection_history if h != entry]
+        self.book_selection_history.append(entry)
+        # Trim the oldest entries beyond the limit
+        self.book_selection_history = \
+            self.book_selection_history[-self.BOOK_HISTORY_LIMIT:]
+        self.debug_print(f"📚 Book selection history: "
+                         f"{len(self.book_selection_history)} entries")
 
     def select_book_filter(self, filter_name):
         """Handle book filter selection"""
@@ -5320,8 +5405,11 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                 # Honor the Settings toggle: include or leave off the
                 # 3-letter translation code in the copied reference
                 ref = verse_widget.get_verse_reference(self.include_translation_code)
-                # Remove highlight brackets from text before copying
-                clean_text = verse_widget.text.replace('[', '').replace(']', '')
+                # Remove ALL highlight markers before copying. This covers
+                # both [word] and the wildcard form [base]{variation}; the
+                # old code only removed the square brackets, so wildcard
+                # matches were copied as "lov{ed}" instead of "loved".
+                clean_text = verse_widget.get_clean_text()
                 text_lines.append(f"{ref} {clean_text}")
 
         if not text_lines:
@@ -5519,6 +5607,16 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
                     self.debug_print(f"✓ Loaded {len(self.search_history)} search history items (starting empty)")
 
             # Restore book filter selection
+            # Restore the Select Books history (list of lists of names)
+            if 'book_selection_history' in config:
+                history = config['book_selection_history']
+                if isinstance(history, list):
+                    self.book_selection_history = [
+                        list(h) for h in history if isinstance(h, list)
+                    ][-self.BOOK_HISTORY_LIMIT:]
+                    self.debug_print(f"✓ Restored book selection history: "
+                                     f"{len(self.book_selection_history)} entries")
+
             if 'selected_book_filter' in config:
                 self.selected_book_filter = config['selected_book_filter']
                 if hasattr(self, 'books_button') and self.books_button is not None:
@@ -5544,6 +5642,8 @@ PRESS, L.L.C. ALL RIGHTS RESERVED.""")
             'splitter_sizes': self.main_splitter.sizes() if hasattr(self, 'main_splitter') and self.main_splitter else [80, 200, 250, 200, 100],
             'selected_translations': self.selected_translations,
             'selected_book_filter': self.selected_book_filter,
+            # Past selections for the Select Books dialog's arrows
+            'book_selection_history': self.book_selection_history,
             'checkboxes': {
                 'case_sensitive': self.case_sensitive_cb.isChecked(),
                 'unique_verse': self.unique_verse_cb.isChecked(),
