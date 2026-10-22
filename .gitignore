@@ -48,6 +48,9 @@ data/bible_data.sql.gz
 # What make_public_database.py writes for the release
 public_release/
 
+# Notes and files Claude writes while working on the program
+Claude outputs/
+
 # User-specific database files
 database/user_data.db
 # NOTE: database/subjects.db IS tracked in git because it contains the schema
